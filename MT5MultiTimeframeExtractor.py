@@ -13,6 +13,7 @@ class MT5MultiTimeframeExtractor:
     """
     Multi-Timeframe MT5 Data Extraction System for SMC AI Trading
     Created by อาจารย์ฟินิกซ์ - Optimized for Gold (XAUUSD.c) Analysis
+    🔧 FIXED VERSION - แก้ไข range error และ syntax issues
     """
 
     def __init__(self, account: int = None, password: str = None, server: str = None):
@@ -73,12 +74,9 @@ class MT5MultiTimeframeExtractor:
             self.account_info = mt5.account_info()
             self.is_connected = True
             print(f"✅ MT5 Connected Successfully!")
-            print(
-                f"📊 Account: {self.account_info.login if self.account_info else 'Demo'}"
-            )
-            print(
-                f"🏦 Server: {self.account_info.server if self.account_info else 'Default'}"
-            )
+            if self.account_info:
+                print(f"📊 Account: {self.account_info.login}")
+                print(f"🏦 Server: {self.account_info.server}")
 
             return True
 
@@ -100,6 +98,7 @@ class MT5MultiTimeframeExtractor:
             possible_variations = [
                 base_symbol,
                 f"{base_symbol}.c",
+                f"{base_symbol}.v",
                 f"{base_symbol}.m",
                 f"{base_symbol}.raw",
                 f"{base_symbol}.pro",
@@ -107,9 +106,11 @@ class MT5MultiTimeframeExtractor:
                 f"{base_symbol}#",
                 "GOLD",
                 "GOLD.c",
+                "GOLD.v",
                 "XAU/USD",
                 "XAUUSD",
                 "XAUUSD.c",
+                "XAUUSD.v",
                 f"{base_symbol}.a",
                 f"{base_symbol}cash",
                 f"{base_symbol}.cash"
@@ -119,6 +120,7 @@ class MT5MultiTimeframeExtractor:
             possible_variations = [
                 base_symbol,
                 f"{base_symbol}.c",
+                f"{base_symbol}.v",
                 f"{base_symbol}.m",
                 f"{base_symbol}.raw",
                 f"{base_symbol}.pro",
@@ -129,27 +131,32 @@ class MT5MultiTimeframeExtractor:
         found_symbols = []
 
         for variation in possible_variations:
-            symbol_info = mt5.symbol_info(variation)
-            if symbol_info is not None:
-                symbol_data = {
-                    "symbol": variation,
-                    "description": symbol_info.description,
-                    "digits": symbol_info.digits,
-                    "spread": symbol_info.spread,
-                    "trade_mode": symbol_info.trade_mode,
-                }
-                
-                # 🥇 Add Gold-specific information
-                if "XAU" in variation.upper() or "GOLD" in variation.upper():
-                    symbol_data.update({
-                        "is_gold": True,
-                        "point_value": 0.01,
-                        "pip_value": 0.1,
-                        "contract_size": getattr(symbol_info, 'trade_contract_size', 100)
-                    })
-                
-                found_symbols.append(symbol_data)
-                print(f"✅ Found: {variation} - {symbol_info.description}")
+            try:
+                tick = mt5.symbol_info_tick(variation)
+                if tick is not None:
+                    symbol_info = mt5.symbol_info(variation)
+                    if symbol_info and symbol_info.trade_mode != 0:  # Trading allowed
+                        symbol_data = {
+                            "symbol": variation,
+                            "description": symbol_info.description,
+                            "digits": symbol_info.digits,
+                            "spread": symbol_info.spread,
+                            "trade_mode": symbol_info.trade_mode,
+                        }
+                        
+                        # 🥇 Add Gold-specific information
+                        if "XAU" in variation.upper() or "GOLD" in variation.upper():
+                            symbol_data.update({
+                                "is_gold": True,
+                                "point_value": 0.01,
+                                "pip_value": 0.1,
+                                "contract_size": getattr(symbol_info, 'trade_contract_size', 100)
+                            })
+                        
+                        found_symbols.append(symbol_data)
+                        print(f"✅ Found: {variation} - {symbol_info.description}")
+            except:
+                continue
 
         # Search in all symbols for partial matches
         search_keywords = []
@@ -162,25 +169,33 @@ class MT5MultiTimeframeExtractor:
             symbol_name_lower = symbol.name.lower()
             if any(keyword in symbol_name_lower for keyword in search_keywords):
                 if symbol.name not in [s["symbol"] for s in found_symbols]:
-                    symbol_data = {
-                        "symbol": symbol.name,
-                        "description": symbol.description,
-                        "digits": symbol.digits,
-                        "spread": symbol.spread,
-                        "trade_mode": symbol.trade_mode,
-                    }
+                    # Exclude obvious non-Gold symbols for Gold search
+                    if "XAU" in base_symbol.upper():
+                        if any(currency in symbol_name_lower for currency in ['aud', 'cad', 'eur', 'gbp', 'jpy']) and 'xau' not in symbol_name_lower:
+                            continue
                     
-                    # Add Gold info if applicable
-                    if any(keyword in symbol_name_lower for keyword in ["xau", "gold", "au"]):
-                        symbol_data.update({
-                            "is_gold": True,
-                            "point_value": 0.01,
-                            "pip_value": 0.1,
-                            "contract_size": getattr(symbol, 'trade_contract_size', 100)
-                        })
-                    
-                    found_symbols.append(symbol_data)
-                    print(f"🔍 Also found: {symbol.name} - {symbol.description}")
+                    try:
+                        symbol_data = {
+                            "symbol": symbol.name,
+                            "description": symbol.description,
+                            "digits": symbol.digits,
+                            "spread": symbol.spread,
+                            "trade_mode": symbol.trade_mode,
+                        }
+                        
+                        # Add Gold info if applicable
+                        if any(keyword in symbol_name_lower for keyword in ["xau", "gold"]):
+                            symbol_data.update({
+                                "is_gold": True,
+                                "point_value": 0.01,
+                                "pip_value": 0.1,
+                                "contract_size": getattr(symbol, 'trade_contract_size', 100)
+                            })
+                        
+                        found_symbols.append(symbol_data)
+                        print(f"🔍 Also found: {symbol.name} - {symbol.description}")
+                    except:
+                        continue
 
         if not found_symbols:
             print(f"❌ No variations of {base_symbol} found")
@@ -285,7 +300,10 @@ class MT5MultiTimeframeExtractor:
         start_date: datetime = None,
         end_date: datetime = None,
     ) -> pd.DataFrame:
-        """Extract historical data with Gold-specific enhancements"""
+        """
+        Extract historical data with Gold-specific enhancements
+        🔧 FIXED VERSION - แก้ไข range error
+        """
 
         if not self.is_connected:
             print("❌ MT5 not connected!")
@@ -344,12 +362,18 @@ class MT5MultiTimeframeExtractor:
             df["hlc3"] = (df["high"] + df["low"] + df["close"]) / 3
             df["ohlc4"] = (df["open"] + df["high"] + df["low"] + df["close"]) / 4
 
+        # 🔧 FIX: Price ranges and volatility (moved up)
+        df["range"] = df["high"] - df["low"]
+        df["range_pct"] = (df["range"] / df["close"]) * 100
+            # 🔧 FIX: สร้าง range calculations ขึ้นมาก่อน
+            df["range"] = df["high"] - df["low"]
+            df["range_pct"] = (df["range"] / df["close"]) * 100
+
             # 🥇 Gold-specific price calculations
             is_gold = symbol_info.get("is_gold", False)
             if is_gold:
                 point_value = symbol_info.get("point_value", 0.01)
                 df["range_points"] = df["range"] / point_value
-                df["price_change_points"] = df["price_change"] / point_value
                 
                 # Gold session analysis
                 df["hour"] = df.index.hour
@@ -363,17 +387,10 @@ class MT5MultiTimeframeExtractor:
                 # Standard Forex pip calculations
                 pip_size = 0.0001 if "JPY" not in symbol else 0.01
                 df["range_pips"] = df["range"] / pip_size
-                df["price_change_pips"] = df["price_change"] / pip_size
-
-            # Price ranges and volatility
-            df["range"] = df["high"] - df["low"]
-            df["range_pct"] = (df["range"] / df["close"]) * 100
 
             # Candle patterns
             df["body"] = abs(df["close"] - df["open"])
-            df["body_pct"] = np.where(
-                df["range"] > 0, (df["body"] / df["range"]) * 100, 0
-            )
+            df["body_pct"] = np.where(df["range"] > 0, (df["body"] / df["range"]) * 100, 0)
             df["upper_shadow"] = df["high"] - np.maximum(df["open"], df["close"])
             df["lower_shadow"] = np.minimum(df["open"], df["close"]) - df["low"]
             df["is_bullish"] = (df["close"] > df["open"]).astype(int)
@@ -382,6 +399,10 @@ class MT5MultiTimeframeExtractor:
             # Price movements
             df["price_change"] = df["close"].diff()
             df["price_change_pct"] = df["close"].pct_change() * 100
+
+            # 🥇 Gold-specific price change in points
+            if is_gold:
+                df["price_change_points"] = df["price_change"] / point_value
 
             # Volatility measures
             df["atr_14"] = df["range"].rolling(14).mean()
@@ -426,6 +447,7 @@ class MT5MultiTimeframeExtractor:
 
         except Exception as e:
             print(f"❌ Data extraction error: {str(e)}")
+            print(f"🔧 Error type: {type(e).__name__}")
             return pd.DataFrame()
 
     def get_smc_dataset(
@@ -745,10 +767,10 @@ if __name__ == "__main__":
     xauusd_variants = extractor.find_symbol_variations("XAUUSD")
 
     if xauusd_variants:
-        # Select .c suffix if available (preferred for Gold)
+        # Select .c or .v suffix if available (preferred for Gold)
         target_symbol = None
         for variant in xauusd_variants:
-            if ".c" in variant["symbol"]:
+            if ".c" in variant["symbol"] or ".v" in variant["symbol"]:
                 target_symbol = variant["symbol"]
                 break
 
