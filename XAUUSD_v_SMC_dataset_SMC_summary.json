@@ -1,0 +1,37 @@
+{
+  "symbol": "XAUUSD.v",
+  "symbol_type": "Gold",
+  "is_gold": true,
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "total_files": 5,
+  "total_candles": 39051,
+  "extraction_date": "2025-06-11T00:49:28.340727",
+  "files": [
+    "XAUUSD_v_SMC_dataset_M5.csv",
+    "XAUUSD_v_SMC_dataset_M15.csv",
+    "XAUUSD_v_SMC_dataset_H1.csv",
+    "XAUUSD_v_SMC_dataset_H4.csv",
+    "XAUUSD_v_SMC_dataset_D1.csv"
+  ],
+  "gold_features": [
+    "range_points",
+    "price_change_points",
+    "is_london_session",
+    "is_us_session",
+    "is_asian_session",
+    "is_high_impact_hour"
+  ],
+  "trading_sessions": {
+    "london": "08:00-16:00 UTC (High volatility)",
+    "us": "13:00-21:00 UTC (High impact)",
+    "asian": "22:00-07:00 UTC (Low liquidity)"
+  },
+  "point_value": 0.01,
+  "recommended_risk": "1.5% per trade (lower than Forex due to volatility)"
+}

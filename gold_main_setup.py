@@ -300,8 +300,10 @@ def run_complete_setup():
     try:
         # Apply data extraction fix first
         print("🔧 Checking and applying necessary fixes...")
-        apply_data_extraction_fix()
+        # apply_data_extraction_fix()
         
+        print("✅ Using pre-fixed MT5MultiTimeframeExtractor.py")
+
         # Find Gold symbol first
         gold_symbol = find_gold_symbol()
         if not gold_symbol:

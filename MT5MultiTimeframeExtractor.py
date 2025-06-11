@@ -362,9 +362,6 @@ class MT5MultiTimeframeExtractor:
             df["hlc3"] = (df["high"] + df["low"] + df["close"]) / 3
             df["ohlc4"] = (df["open"] + df["high"] + df["low"] + df["close"]) / 4
 
-        # 🔧 FIX: Price ranges and volatility (moved up)
-        df["range"] = df["high"] - df["low"]
-        df["range_pct"] = (df["range"] / df["close"]) * 100
             # 🔧 FIX: สร้าง range calculations ขึ้นมาก่อน
             df["range"] = df["high"] - df["low"]
             df["range_pct"] = (df["range"] / df["close"]) * 100

@@ -1,0 +1,57 @@
+{
+  "dataset_type": "Gold SMC Trading Labels",
+  "total_timeframes": 5,
+  "total_candles": 39051,
+  "total_signals": "2826",
+  "total_trades": "2826",
+  "overall_win_rate": 32.59023354564756,
+  "label_types": [
+    "direction_label",
+    "signal_quality",
+    "outcome_label",
+    "risk_adjusted_label",
+    "session_label"
+  ],
+  "export_date": "2025-06-11T00:59:26.829057",
+  "files": [
+    "XAUUSD_v_labeled_M5.csv",
+    "XAUUSD_v_labeled_M15.csv",
+    "XAUUSD_v_labeled_H1.csv",
+    "XAUUSD_v_labeled_H4.csv",
+    "XAUUSD_v_labeled_D1.csv"
+  ],
+  "gold_specific_features": [
+    "stop_loss_points",
+    "take_profit_points",
+    "pnl_points",
+    "max_favorable_excursion",
+    "max_adverse_excursion",
+    "session_risk_multiplier",
+    "session_label"
+  ],
+  "gold_performance": {
+    "total_points_profit": 807373.5999999967,
+    "total_dollar_profit": 8073.735999999967,
+    "point_value": 0.01,
+    "avg_risk_reward": 2.5
+  },
+  "gold_parameters": {
+    "min_confluence": 3,
+    "atr_multiplier_sl": 2.0,
+    "atr_multiplier_tp": 5.0,
+    "max_holding_periods": {
+      "M5": 200,
+      "M15": 80,
+      "H1": 20,
+      "H4": 10,
+      "D1": 5
+    },
+    "session_risk_multipliers": {
+      "london": 1.2,
+      "us": 1.1,
+      "asian": 0.8,
+      "transition": 0.6
+    }
+  },
+  "optimization_notes": "Optimized for XAUUSD.c with enhanced volatility handling and session-based risk management"
+}

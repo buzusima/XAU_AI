@@ -1,0 +1,902 @@
+{
+  "model_type": "Gold SMC Trading Models",
+  "training_date": "2025-06-11T08:35:42.625671",
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "model_types": [
+    "random_forest",
+    "xgboost",
+    "neural_network"
+  ],
+  "performance_summary": {
+    "M5": {
+      "random_forest": {
+        "accuracy": 0.9923664122137404,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.007633587786259555,
+        "cv_score_mean": 0.9904306220095694,
+        "cv_score_std": 0.006052206048169127,
+        "best_params": {
+          "class_weight": null,
+          "max_depth": 15,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "min_samples_split": 2,
+          "n_estimators": 250
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.23331924041844151
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.1194764896484135
+          },
+          {
+            "feature": "sell_liquidity",
+            "importance": 0.0775910557236327
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.04745724387136505
+          },
+          {
+            "feature": "max_adverse_excursion",
+            "importance": 0.03570463031273607
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.035675437836408766
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.03470708750812985
+          },
+          {
+            "feature": "buy_liquidity",
+            "importance": 0.03354928030292625
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.022388259692135083
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.021062212340973663
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.035675437836408766
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.022388259692135083
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.021062212340973663
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.020100259640999305
+          },
+          {
+            "feature": "smc_confluence",
+            "importance": 0.01868098482543415
+          }
+        ],
+        "quality_score": 0.6892066545594124,
+        "quality_rating": "Acceptable"
+      },
+      "xgboost": {
+        "accuracy": 0.9961832061068703,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.003816793893129722,
+        "cv_score_mean": 0.9952153110047848,
+        "cv_score_std": 0.007412408318100316,
+        "best_params": {
+          "colsample_bytree": 0.8,
+          "learning_rate": 0.15,
+          "max_depth": 8,
+          "n_estimators": 350,
+          "reg_alpha": 0,
+          "reg_lambda": 1,
+          "subsample": 0.8
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.18779273331165314
+          },
+          {
+            "feature": "sell_liquidity",
+            "importance": 0.17180626094341278
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.10859869420528412
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.08078635483980179
+          },
+          {
+            "feature": "fvg_low",
+            "importance": 0.067342609167099
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.04555172100663185
+          },
+          {
+            "feature": "is_high_impact_hour",
+            "importance": 0.0383848138153553
+          },
+          {
+            "feature": "fvg_efficiency",
+            "importance": 0.026342852041125298
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.026156410574913025
+          },
+          {
+            "feature": "buy_liquidity",
+            "importance": 0.021776534616947174
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.04555172100663185
+          },
+          {
+            "feature": "fvg_efficiency",
+            "importance": 0.026342852041125298
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.026156410574913025
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.008629925549030304
+          },
+          {
+            "feature": "ob_strength",
+            "importance": 0.008244615979492664
+          }
+        ],
+        "quality_score": 0.6932874356915015,
+        "quality_rating": "Acceptable"
+      },
+      "neural_network": {
+        "accuracy": 1.0,
+        "train_accuracy": 0.9980860948562622,
+        "overfitting_gap": -0.001913905143737793,
+        "cv_score_mean": 0.0,
+        "cv_score_std": 0.0,
+        "quality_score": 0.10000000000000003,
+        "quality_rating": "Very Poor"
+      }
+    },
+    "M15": {
+      "random_forest": {
+        "accuracy": 0.9881656804733728,
+        "train_accuracy": 0.9985163204747775,
+        "overfitting_gap": 0.01035064000140462,
+        "cv_score_mean": 0.9866556108347153,
+        "cv_score_std": 0.009820392128733315,
+        "best_params": {
+          "class_weight": null,
+          "max_depth": 15,
+          "max_features": 0.8,
+          "min_samples_leaf": 1,
+          "min_samples_split": 5,
+          "n_estimators": 150
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.48663066813369243
+          },
+          {
+            "feature": "sell_liquidity",
+            "importance": 0.16732042712264864
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.08194769289050555
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.07608045176101237
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.038533475096339934
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.02471487153750196
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.017247830103158664
+          },
+          {
+            "feature": "max_adverse_excursion",
+            "importance": 0.010306341937998429
+          },
+          {
+            "feature": "buy_liquidity",
+            "importance": 0.008363376380119723
+          },
+          {
+            "feature": "ob_low",
+            "importance": 0.007909985177738459
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.038533475096339934
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.02471487153750196
+          },
+          {
+            "feature": "pnl_points",
+            "importance": 0.006397676491948824
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.005380357848259925
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.004741945457275629
+          }
+        ],
+        "quality_score": 0.6835831099904929,
+        "quality_rating": "Acceptable"
+      },
+      "xgboost": {
+        "accuracy": 1.0,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.0,
+        "cv_score_mean": 0.9925815367606411,
+        "cv_score_std": 0.004684907974059497,
+        "best_params": {
+          "colsample_bytree": 1.0,
+          "learning_rate": 0.1,
+          "max_depth": 8,
+          "n_estimators": 350,
+          "reg_alpha": 0.5,
+          "reg_lambda": 1.5,
+          "subsample": 0.8
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.2786934971809387
+          },
+          {
+            "feature": "sell_liquidity",
+            "importance": 0.1380212903022766
+          },
+          {
+            "feature": "break_strength",
+            "importance": 0.07545584440231323
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.06825001537799835
+          },
+          {
+            "feature": "is_high_impact_hour",
+            "importance": 0.06275438517332077
+          },
+          {
+            "feature": "is_london_session",
+            "importance": 0.06111413240432739
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.05500326305627823
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.042825743556022644
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.02300119213759899
+          },
+          {
+            "feature": "structure_break",
+            "importance": 0.022627338767051697
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "break_strength",
+            "importance": 0.07545584440231323
+          },
+          {
+            "feature": "is_london_session",
+            "importance": 0.06111413240432739
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.05500326305627823
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.042825743556022644
+          },
+          {
+            "feature": "ob_strength",
+            "importance": 0.016989411786198616
+          }
+        ],
+        "quality_score": 0.6963689886359745,
+        "quality_rating": "Acceptable"
+      },
+      "neural_network": {
+        "accuracy": 0.9940828680992126,
+        "train_accuracy": 0.9955489635467529,
+        "overfitting_gap": 0.0014660954475402832,
+        "cv_score_mean": 0.0,
+        "cv_score_std": 0.0,
+        "quality_score": 0.09526629447937013,
+        "quality_rating": "Very Poor"
+      }
+    },
+    "H1": {
+      "random_forest": {
+        "accuracy": 0.9882352941176471,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.0117647058823529,
+        "cv_score_mean": 0.9852502194907814,
+        "cv_score_std": 0.009301231020887342,
+        "best_params": {
+          "class_weight": "balanced",
+          "max_depth": 15,
+          "max_features": "log2",
+          "min_samples_leaf": 1,
+          "min_samples_split": 5,
+          "n_estimators": 150
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.20147716626521178
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.16176447920610182
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.03244979954695609
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.0324342639745826
+          },
+          {
+            "feature": "price_change_pct",
+            "importance": 0.03124690674410857
+          },
+          {
+            "feature": "price_change",
+            "importance": 0.027472350498897093
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.027407598614842522
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.023588710807232904
+          },
+          {
+            "feature": "ob_strength",
+            "importance": 0.022898976104591708
+          },
+          {
+            "feature": "pnl_points",
+            "importance": 0.02196250967992635
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "price_change_points",
+            "importance": 0.03244979954695609
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.027407598614842522
+          },
+          {
+            "feature": "ob_strength",
+            "importance": 0.022898976104591708
+          },
+          {
+            "feature": "pnl_points",
+            "importance": 0.02196250967992635
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.021722596022975646
+          }
+        ],
+        "quality_score": 0.6833729318350859,
+        "quality_rating": "Acceptable"
+      },
+      "xgboost": {
+        "accuracy": 0.9882352941176471,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.0117647058823529,
+        "cv_score_mean": 0.9852502194907814,
+        "cv_score_std": 0.009301231020887342,
+        "best_params": {
+          "colsample_bytree": 0.9,
+          "learning_rate": 0.15,
+          "max_depth": 8,
+          "n_estimators": 350,
+          "reg_alpha": 0,
+          "reg_lambda": 1.5,
+          "subsample": 0.9
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.2385469675064087
+          },
+          {
+            "feature": "sell_liquidity",
+            "importance": 0.1600157767534256
+          },
+          {
+            "feature": "bearish_fvg",
+            "importance": 0.13298894464969635
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.08467751741409302
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.06546346098184586
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.06314549595117569
+          },
+          {
+            "feature": "ob_high",
+            "importance": 0.0422995500266552
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.04211369901895523
+          },
+          {
+            "feature": "ob_distance",
+            "importance": 0.0289908479899168
+          },
+          {
+            "feature": "break_strength",
+            "importance": 0.021937137469649315
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.08467751741409302
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.04211369901895523
+          },
+          {
+            "feature": "break_strength",
+            "importance": 0.021937137469649315
+          },
+          {
+            "feature": "pnl_points",
+            "importance": 0.009889315813779831
+          },
+          {
+            "feature": "ob_strength",
+            "importance": 0.0064009688794612885
+          }
+        ],
+        "quality_score": 0.6833729318350859,
+        "quality_rating": "Acceptable"
+      },
+      "neural_network": {
+        "accuracy": 0.9882352948188782,
+        "train_accuracy": 0.991150438785553,
+        "overfitting_gap": 0.0029151439666748047,
+        "cv_score_mean": 0.0,
+        "cv_score_std": 0.0,
+        "quality_score": 0.09058823585510256,
+        "quality_rating": "Very Poor"
+      }
+    },
+    "H4": {
+      "random_forest": {
+        "accuracy": 0.9545454545454546,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.045454545454545414,
+        "cv_score_mean": 0.9887301587301588,
+        "cv_score_std": 0.01380496184454534,
+        "best_params": {
+          "class_weight": null,
+          "max_depth": 15,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "min_samples_split": 2,
+          "n_estimators": 250
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.22734184384003525
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.16762340908654455
+          },
+          {
+            "feature": "price_change",
+            "importance": 0.07266603889708562
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.054965294945737785
+          },
+          {
+            "feature": "price_change_pct",
+            "importance": 0.05368241852767527
+          },
+          {
+            "feature": "is_bullish",
+            "importance": 0.04020993219634369
+          },
+          {
+            "feature": "bearish_fvg",
+            "importance": 0.030868920358910524
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.030533215691474654
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.030069931297347943
+          },
+          {
+            "feature": "ema_20",
+            "importance": 0.01763702043708862
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "price_change_points",
+            "importance": 0.054965294945737785
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.01694369877838854
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.012404441757769356
+          },
+          {
+            "feature": "pnl_points",
+            "importance": 0.012152440572135912
+          },
+          {
+            "feature": "gold_momentum",
+            "importance": 0.009889688491286764
+          }
+        ],
+        "quality_score": 0.6561139227020477,
+        "quality_rating": "Acceptable"
+      },
+      "xgboost": {
+        "accuracy": 0.9318181818181818,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.06818181818181823,
+        "cv_score_mean": 0.9830158730158731,
+        "cv_score_std": 0.013870509380922847,
+        "best_params": {
+          "colsample_bytree": 0.8,
+          "learning_rate": 0.05,
+          "max_depth": 8,
+          "n_estimators": 150,
+          "reg_alpha": 0,
+          "reg_lambda": 1,
+          "subsample": 0.8
+        },
+        "top_features": [
+          {
+            "feature": "market_structure",
+            "importance": 0.30783745646476746
+          },
+          {
+            "feature": "structure_momentum",
+            "importance": 0.11816932260990143
+          },
+          {
+            "feature": "range_points",
+            "importance": 0.08462806791067123
+          },
+          {
+            "feature": "sell_liquidity",
+            "importance": 0.0493258573114872
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.04731026664376259
+          },
+          {
+            "feature": "liquidity_proximity",
+            "importance": 0.04430055245757103
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.041049789637327194
+          },
+          {
+            "feature": "price_change_pct",
+            "importance": 0.03845289722084999
+          },
+          {
+            "feature": "liquidity_strength",
+            "importance": 0.03178377076983452
+          },
+          {
+            "feature": "body_pct",
+            "importance": 0.02996320091187954
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "range_points",
+            "importance": 0.08462806791067123
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.04731026664376259
+          },
+          {
+            "feature": "liquidity_strength",
+            "importance": 0.03178377076983452
+          },
+          {
+            "feature": "ob_strength",
+            "importance": 0.027360955253243446
+          },
+          {
+            "feature": "session_weighted_confluence",
+            "importance": 0.01932706870138645
+          }
+        ],
+        "quality_score": 0.6252890636359396,
+        "quality_rating": "Acceptable"
+      },
+      "neural_network": {
+        "accuracy": 0.9090909361839294,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.09090906381607056,
+        "cv_score_mean": 0.0,
+        "cv_score_std": 0.0,
+        "quality_score": 0.002727310657501269,
+        "quality_rating": "Very Poor"
+      }
+    },
+    "D1": {
+      "random_forest": {
+        "accuracy": 1.0,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.0,
+        "cv_score_mean": 1.0,
+        "cv_score_std": 0.0,
+        "best_params": {
+          "class_weight": null,
+          "max_depth": 15,
+          "max_features": "sqrt",
+          "min_samples_leaf": 3,
+          "min_samples_split": 2,
+          "n_estimators": 150
+        },
+        "top_features": [
+          {
+            "feature": "price_change",
+            "importance": 0.09374847374847374
+          },
+          {
+            "feature": "fvg_high",
+            "importance": 0.0757571663364863
+          },
+          {
+            "feature": "price_change_pct",
+            "importance": 0.07333333333333333
+          },
+          {
+            "feature": "is_bullish",
+            "importance": 0.07333333333333333
+          },
+          {
+            "feature": "sma_50",
+            "importance": 0.06764404698130878
+          },
+          {
+            "feature": "sma_20",
+            "importance": 0.06228209405405621
+          },
+          {
+            "feature": "ema_20",
+            "importance": 0.05986318974389197
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.05973267230485079
+          },
+          {
+            "feature": "market_structure",
+            "importance": 0.05333333333333334
+          },
+          {
+            "feature": "atr_14",
+            "importance": 0.05262076207620762
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "price_change_points",
+            "importance": 0.05973267230485079
+          },
+          {
+            "feature": "take_profit_points",
+            "importance": 0.04701113789457779
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.024004872665885885
+          },
+          {
+            "feature": "fvg_efficiency",
+            "importance": 0.013333333333333334
+          },
+          {
+            "feature": "gold_momentum",
+            "importance": 0.013333333333333334
+          }
+        ],
+        "quality_score": 0.7,
+        "quality_rating": "Good"
+      },
+      "xgboost": {
+        "accuracy": 1.0,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.0,
+        "cv_score_mean": 1.0,
+        "cv_score_std": 0.0,
+        "best_params": {
+          "colsample_bytree": 0.8,
+          "learning_rate": 0.05,
+          "max_depth": 8,
+          "n_estimators": 150,
+          "reg_alpha": 0,
+          "reg_lambda": 1.5,
+          "subsample": 0.8
+        },
+        "top_features": [
+          {
+            "feature": "price_change_pct",
+            "importance": 0.14286160469055176
+          },
+          {
+            "feature": "bullish_fvg",
+            "importance": 0.13744761049747467
+          },
+          {
+            "feature": "price_change_points",
+            "importance": 0.09987564384937286
+          },
+          {
+            "feature": "fvg_low",
+            "importance": 0.09184110909700394
+          },
+          {
+            "feature": "atr_14",
+            "importance": 0.09037015587091446
+          },
+          {
+            "feature": "sma_20",
+            "importance": 0.08192948251962662
+          },
+          {
+            "feature": "market_structure",
+            "importance": 0.08158966153860092
+          },
+          {
+            "feature": "max_favorable_excursion",
+            "importance": 0.07646939158439636
+          },
+          {
+            "feature": "sma_50",
+            "importance": 0.06853391975164413
+          },
+          {
+            "feature": "is_bullish",
+            "importance": 0.06126156076788902
+          }
+        ],
+        "top_gold_features": [
+          {
+            "feature": "price_change_points",
+            "importance": 0.09987564384937286
+          },
+          {
+            "feature": "stop_loss_points",
+            "importance": 0.016254989430308342
+          },
+          {
+            "feature": "pnl_points",
+            "importance": 0.012038390152156353
+          },
+          {
+            "feature": "break_strength",
+            "importance": 0.001153202960267663
+          },
+          {
+            "feature": "gold_momentum",
+            "importance": 0.0
+          }
+        ],
+        "quality_score": 0.7,
+        "quality_rating": "Good"
+      },
+      "neural_network": {
+        "accuracy": 1.0,
+        "train_accuracy": 1.0,
+        "overfitting_gap": 0.0,
+        "cv_score_mean": 0.0,
+        "cv_score_std": 0.0,
+        "quality_score": 0.10000000000000003,
+        "quality_rating": "Very Poor"
+      }
+    }
+  },
+  "gold_optimizations": {
+    "feature_selection_k": 60,
+    "min_accuracy_threshold": 0.68,
+    "min_cv_score": 0.65,
+    "max_overfitting_gap": 0.15
+  },
+  "overall_statistics": {
+    "average_accuracy": 0.982063908166329,
+    "best_accuracy": 1.0,
+    "worst_accuracy": 0.9090909361839294,
+    "average_cv_score": 0.6604753034224871,
+    "total_models": 15,
+    "models_above_threshold": 15
+  }
+}
