@@ -1,3 +1,6 @@
+# XAUUSD SMC Auto Trading Bot - Gold Trading System
+# Modified for XAUUSD from the original EURUSD system
+
 import pandas as pd
 import numpy as np
 import MetaTrader5 as mt5
@@ -14,15 +17,15 @@ warnings.filterwarnings("ignore")
 from smc_signal_engine import SMCSignalEngine
 
 
-class SMCAutoTrader:
+class XAUUSDAutoTrader:
     """
-    SMC Auto Trading Bot - One Trade at a Time
-    Created by อาจารย์ฟินิกซ์ - Professional Automated Trading System
+    XAUUSD SMC Auto Trading Bot - Specialized for Gold Trading
+    Created by อาจารย์ฟินิกซ์ - Professional Gold Trading System
     """
 
     def __init__(
         self,
-        models_path: str = "EURUSD_c_SMC",
+        models_path: str = "XAUUSD_v_SMC",  # แก้ไขเป็น XAUUSD
         account: int = None,
         password: str = None,
         server: str = None,
@@ -37,12 +40,12 @@ class SMCAutoTrader:
         base_lot_size: float = 0.01,
         max_lot_size: float = 0.1,
         lot_multiplier: float = 2.0,
-        default_sl_pips: int = 20,
+        default_sl_pips: int = 20,  # สำหรับทองคำใช้ pips เป็น points
         default_tp_ratio: float = 2.0,
         max_trades_per_hour: int = 5,
         wait_for_trade_completion: bool = True,
     ):
-        """Initialize SMC Auto Trader with configurable parameters"""
+        """Initialize XAUUSD Auto Trader with Gold-specific parameters"""
 
         # Connection settings
         self.account = account
@@ -55,20 +58,20 @@ class SMCAutoTrader:
         self.enable_first_signal_trade = enable_first_signal_trade
         self.first_signal_min_confidence = first_signal_min_confidence
 
-        # Risk Management Settings
+        # Risk Management Settings (ปรับสำหรับทองคำ)
         self.max_risk_per_trade = max_risk_per_trade
         self.max_daily_loss = max_daily_loss
         self.max_concurrent_trades = max_concurrent_trades
         self.min_confidence = min_confidence
         self.min_consensus = min_consensus
 
-        # Position Sizing
+        # Position Sizing (ปรับสำหรับทองคำ)
         self.base_lot_size = base_lot_size
         self.max_lot_size = max_lot_size
         self.lot_multiplier = lot_multiplier
 
-        # Trade Management
-        self.default_sl_pips = default_sl_pips
+        # Trade Management (ปรับสำหรับทองคำ)
+        self.default_sl_pips = default_sl_pips  # ทองคำ 1 pip = $0.01
         self.default_tp_ratio = default_tp_ratio
 
         # Safety Controls
@@ -84,10 +87,11 @@ class SMCAutoTrader:
         self.hour_start = datetime.now().hour
         self.last_trade_closed_time = None
 
-        # Initialize Signal Engine
+        # Initialize Signal Engine สำหรับ XAUUSD
         self.signal_engine = SMCSignalEngine(models_path)
 
-        print("🤖 SMC Auto Trading Bot Initialized")
+        print("🥇 XAUUSD SMC Auto Trading Bot Initialized")
+        print("💰 Specialized for Gold Trading")
         print("⚠️ Trading is DISABLED by default for safety")
 
     def connect_mt5(self) -> bool:
@@ -113,9 +117,10 @@ class SMCAutoTrader:
                 print("❌ Trading is not allowed on this account")
                 return False
 
-            print("✅ MT5 Connected with Trading Capabilities")
+            print("✅ MT5 Connected with Gold Trading Capabilities")
             print(f"📊 Account: {account_info.login}")
             print(f"💰 Balance: ${account_info.balance:.2f}")
+            print(f"🥇 Currency: {account_info.currency}")
 
             return True
 
@@ -125,94 +130,26 @@ class SMCAutoTrader:
 
     def load_models(self) -> bool:
         """Load AI models through signal engine"""
-        return self.signal_engine.load_trained_models()
+        print("🔄 Loading XAUUSD AI Models...")
+        success = self.signal_engine.load_trained_models()
+        if success:
+            print("✅ XAUUSD Models loaded successfully")
+        else:
+            print("❌ Failed to load XAUUSD models")
+        return success
 
     def enable_trading(self, enable: bool = True):
         """Enable or disable automated trading"""
         self.trading_enabled = enable
         status = "ENABLED" if enable else "DISABLED"
-        print(f"🎯 Auto Trading {status}")
+        print(f"🎯 XAUUSD Auto Trading {status}")
 
         if enable:
-            print("⚠️ WARNING: Live trading is now active!")
+            print("⚠️ WARNING: Live Gold trading is now active!")
             print("🛡️ Safety mechanisms active")
 
-    def should_analyze_signals(self) -> bool:
-        """Determine if system should analyze new signals"""
-        if not self.wait_for_trade_completion:
-            return True
-
-        if len(self.active_positions) > 0:
-            return False
-
-        return True
-
-    def check_can_trade(self) -> bool:
-        """Check if system can place new trades"""
-        if self.wait_for_trade_completion:
-            if len(self.active_positions) > 0:
-                print(
-                    f"⏳ Waiting for current trade to close. Active positions: {len(self.active_positions)}"
-                )
-                return False
-
-        return self.check_risk_limits()
-
-    def check_risk_limits(self) -> bool:
-        """Check if trading is within risk limits"""
-        if len(self.active_positions) >= self.max_concurrent_trades:
-            print(f"🛑 Maximum concurrent trades reached: {len(self.active_positions)}")
-            return False
-
-        current_hour = datetime.now().hour
-        if current_hour != self.hour_start:
-            self.hourly_trade_count = 0
-            self.hour_start = current_hour
-
-        if self.hourly_trade_count >= self.max_trades_per_hour:
-            print(f"🛑 Hourly trade limit reached: {self.hourly_trade_count}")
-            return False
-
-        return True
-
-    def _is_signal_changed(
-        self, last_signal: Optional[Dict], current_signal: Dict
-    ) -> bool:
-        """Determine if signal has changed enough to warrant new trade"""
-
-        if last_signal is None:
-            if self.enable_first_signal_trade:
-                return (
-                    current_signal["final_confidence"]
-                    >= self.first_signal_min_confidence
-                    and current_signal["trading_recommendation"] == "TRADE"
-                )
-            else:
-                return False
-
-        if last_signal["final_direction"] != current_signal["final_direction"]:
-            return True
-
-        confidence_change = abs(
-            last_signal["final_confidence"] - current_signal["final_confidence"]
-        )
-        if confidence_change > self.signal_change_threshold:
-            return True
-
-        if (
-            current_signal["final_confidence"] >= 0.85
-            and current_signal["trading_recommendation"] == "TRADE"
-            and len(self.trade_history) == 0
-        ):
-            print(
-                f"🔥 Force trading high confidence signal: {current_signal['final_confidence']:.3f}"
-            )
-            return True
-
-        return False
-
-    def calculate_position_size(self, symbol: str, confidence: float) -> float:
-        """Calculate optimal position size based on risk management"""
+    def calculate_gold_position_size(self, symbol: str, confidence: float) -> float:
+        """Calculate optimal position size for Gold trading"""
         try:
             account_info = mt5.account_info()
             if account_info is None:
@@ -223,16 +160,21 @@ class SMCAutoTrader:
                 print(f"❌ Cannot get symbol info for {symbol}")
                 return self.base_lot_size
 
-            print(f"📊 Symbol {symbol} specifications:")
+            print(f"🥇 Gold {symbol} specifications:")
             print(f"   Min lot: {symbol_info.volume_min}")
             print(f"   Max lot: {symbol_info.volume_max}")
             print(f"   Lot step: {symbol_info.volume_step}")
+            print(f"   Contract size: {symbol_info.trade_contract_size}")
 
+            # ปรับขนาด lot สำหรับทองคำ
             calculated_lot = self.base_lot_size
 
+            # เพิ่มขนาดตาม confidence
             if confidence >= 0.9:
-                calculated_lot *= self.lot_multiplier
+                calculated_lot *= self.lot_multiplier * 1.5  # เพิ่มสำหรับทองคำ
             elif confidence >= 0.8:
+                calculated_lot *= self.lot_multiplier
+            elif confidence >= 0.75:
                 calculated_lot *= 1.5
 
             min_lot = symbol_info.volume_min
@@ -248,25 +190,24 @@ class SMCAutoTrader:
 
             final_lot = max(min_lot, calculated_lot)
 
-            print(f"💰 Position size: {self.base_lot_size} → {final_lot}")
+            print(f"💰 Gold position size: {self.base_lot_size} → {final_lot}")
 
             return final_lot
 
         except Exception as e:
-            print(f"❌ Position size error: {str(e)}")
+            print(f"❌ Gold position size error: {str(e)}")
             return self.base_lot_size
 
-    def calculate_sl_tp_levels(
+    def calculate_gold_sl_tp_levels(
         self, symbol: str, order_type: int, entry_price: float
     ) -> Tuple[float, float]:
-        """Calculate Stop Loss and Take Profit levels"""
+        """Calculate Stop Loss and Take Profit levels for Gold"""
         try:
-            if "JPY" in symbol:
-                pip_size = 0.01
-            else:
-                pip_size = 0.0001
-
-            sl_distance = self.default_sl_pips * pip_size
+            # ทองคำใช้ point size แทน pip
+            # XAUUSD: 1 point = $0.01
+            point_size = 0.01
+            
+            sl_distance = self.default_sl_pips * point_size
             tp_distance = sl_distance * self.default_tp_ratio
 
             if order_type == mt5.ORDER_TYPE_BUY:
@@ -276,41 +217,47 @@ class SMCAutoTrader:
                 stop_loss = entry_price + sl_distance
                 take_profit = entry_price - tp_distance
 
+            print(f"🎯 Gold SL/TP calculation:")
+            print(f"   Entry: {entry_price:.2f}")
+            print(f"   SL: {stop_loss:.2f} (Risk: {sl_distance:.2f})")
+            print(f"   TP: {take_profit:.2f} (Reward: {tp_distance:.2f})")
+
             return stop_loss, take_profit
 
         except Exception as e:
-            print(f"❌ SL/TP calculation error: {str(e)}")
+            print(f"❌ Gold SL/TP calculation error: {str(e)}")
             return 0.0, 0.0
 
-    def send_order(
+    def send_gold_order(
         self,
         symbol: str,
         order_type: int,
         lot_size: float,
         stop_loss: float = 0.0,
         take_profit: float = 0.0,
-        comment: str = "SMC_AI_Bot",
+        comment: str = "XAUUSD_SMC_AI_Bot",
     ) -> bool:
-        """Send trading order to MT5"""
+        """Send Gold trading order to MT5"""
 
         if not self.trading_enabled:
-            print("⚠️ Trading disabled - order not sent")
+            print("⚠️ Trading disabled - Gold order not sent")
             return False
 
         try:
             symbol_info = mt5.symbol_info(symbol)
             if symbol_info is None:
-                print(f"❌ Symbol {symbol} not found")
+                print(f"❌ Gold symbol {symbol} not found")
                 return False
 
             min_lot = symbol_info.volume_min
             max_lot = symbol_info.volume_max
             lot_step = symbol_info.volume_step
 
-            print(f"🔍 Order validation:")
+            print(f"🔍 Gold order validation:")
             print(f"   Requested lot: {lot_size}")
             print(f"   Broker limits: {min_lot} - {max_lot}, step: {lot_step}")
 
+            # ปรับขนาด lot ให้เหมาะสม
             if lot_size < min_lot:
                 lot_size = min_lot
                 print(f"⚠️ Adjusted to minimum: {lot_size}")
@@ -322,6 +269,7 @@ class SMCAutoTrader:
                 lot_size = round(lot_size / lot_step) * lot_step
                 print(f"🔧 Rounded to step: {lot_size}")
 
+            # ดึงราคาปัจจุบัน
             if order_type == mt5.ORDER_TYPE_BUY:
                 price = mt5.symbol_info_tick(symbol).ask
                 order_type_str = "BUY"
@@ -337,22 +285,23 @@ class SMCAutoTrader:
                 "price": price,
                 "sl": stop_loss if stop_loss > 0 else 0.0,
                 "tp": take_profit if take_profit > 0 else 0.0,
-                "deviation": 20,
-                "magic": 123456,
+                "deviation": 50,  # เพิ่ม deviation สำหรับทองคำ
+                "magic": 999999,  # Magic number สำหรับทองคำ
                 "comment": comment,
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": mt5.ORDER_FILLING_IOC,
             }
 
-            print(f"📋 Sending order: {order_type_str} {lot_size} {symbol}")
+            print(f"📋 Sending Gold order: {order_type_str} {lot_size} {symbol}")
 
             result = mt5.order_send(request)
 
             if result.retcode != mt5.TRADE_RETCODE_DONE:
-                print(f"❌ Order failed: {result.retcode} - {result.comment}")
+                print(f"❌ Gold order failed: {result.retcode} - {result.comment}")
 
+                # ลองเปลี่ยน filling mode
                 if result.retcode == 10014:
-                    print("🔄 Trying FOK filling...")
+                    print("🔄 Trying FOK filling for Gold...")
                     request["type_filling"] = mt5.ORDER_FILLING_FOK
                     result = mt5.order_send(request)
 
@@ -362,6 +311,7 @@ class SMCAutoTrader:
                 else:
                     return False
 
+            # บันทึกข้อมูลการเทรด
             trade_info = {
                 "timestamp": datetime.now(self.timezone),
                 "symbol": symbol,
@@ -377,34 +327,35 @@ class SMCAutoTrader:
             self.trade_history.append(trade_info)
             self.active_positions[result.order] = trade_info
 
-            print(
-                f"✅ Order executed: {order_type_str} {lot_size} {symbol} @ {result.price:.5f}"
-            )
-            print(f"   🎯 SL: {stop_loss:.5f} | TP: {take_profit:.5f}")
+            print(f"✅ Gold order executed: {order_type_str} {lot_size} {symbol} @ ${result.price:.2f}")
+            print(f"   🎯 SL: ${stop_loss:.2f} | TP: ${take_profit:.2f}")
             print(f"   🎫 Ticket: {result.order}")
 
             return True
 
         except Exception as e:
-            print(f"❌ Order execution error: {str(e)}")
+            print(f"❌ Gold order execution error: {str(e)}")
             return False
 
-    def process_signal(self, signal: Dict, symbol: str) -> bool:
-        """Process AI signal and execute trade if conditions are met"""
+    def process_gold_signal(self, signal: Dict, symbol: str) -> bool:
+        """Process AI signal for Gold trading"""
 
         if not self.trading_enabled:
             return False
 
-        if not self.check_can_trade():
+        # เช็คสถานะการเทรด
+        if self.wait_for_trade_completion and len(self.active_positions) > 0:
+            print(f"⏳ Waiting for Gold trade to close. Active: {len(self.active_positions)}")
             return False
 
         if signal["final_confidence"] < self.min_confidence:
-            print(f"⚠️ Signal confidence too low: {signal['final_confidence']:.3f}")
+            print(f"⚠️ Gold signal confidence too low: {signal['final_confidence']:.3f}")
             return False
 
         if signal["trading_recommendation"] != "TRADE":
             return False
 
+        # ตรวจสอบ consensus
         individual_signals = signal["individual_signals"]
         long_count = sum(
             1 for s in individual_signals.values() if s["consensus_prediction"] == 1
@@ -415,11 +366,10 @@ class SMCAutoTrader:
 
         total_agreement = max(long_count, short_count)
         if total_agreement < self.min_consensus:
-            print(
-                f"⚠️ Insufficient consensus: {total_agreement}/{len(individual_signals)}"
-            )
+            print(f"⚠️ Insufficient Gold consensus: {total_agreement}/{len(individual_signals)}")
             return False
 
+        # กำหนดทิศทางการเทรด
         if signal["final_direction"] == "LONG":
             order_type = mt5.ORDER_TYPE_BUY
         elif signal["final_direction"] == "SHORT":
@@ -427,22 +377,23 @@ class SMCAutoTrader:
         else:
             return False
 
-        lot_size = self.calculate_position_size(symbol, signal["final_confidence"])
+        # คำนวณขนาด position สำหรับทองคำ
+        lot_size = self.calculate_gold_position_size(symbol, signal["final_confidence"])
 
+        # ดึงราคาปัจจุบัน
         tick = mt5.symbol_info_tick(symbol)
         if tick is None:
             return False
 
         entry_price = tick.ask if order_type == mt5.ORDER_TYPE_BUY else tick.bid
-        stop_loss, take_profit = self.calculate_sl_tp_levels(
+        stop_loss, take_profit = self.calculate_gold_sl_tp_levels(
             symbol, order_type, entry_price
         )
 
-        comment = (
-            f"SMC_AI_{signal['final_direction']}_C{signal['final_confidence']:.2f}"
-        )
+        comment = f"XAUUSD_SMC_{signal['final_direction']}_C{signal['final_confidence']:.2f}"
 
-        success = self.send_order(
+        # ส่งคำสั่งซื้อขาย
+        success = self.send_gold_order(
             symbol=symbol,
             order_type=order_type,
             lot_size=lot_size,
@@ -453,31 +404,30 @@ class SMCAutoTrader:
 
         if success:
             self.hourly_trade_count += 1
-            print(f"🚀 Auto trade executed: {signal['final_direction']} {symbol}")
+            print(f"🚀 Gold auto trade executed: {signal['final_direction']} {symbol}")
 
         return success
 
-    def update_positions(self):
-        """Update active positions and calculate P&L"""
+    def update_gold_positions(self):
+        """Update Gold positions and calculate P&L"""
         try:
             positions = mt5.positions_get()
             if positions is None:
                 positions = []
 
             current_tickets = [pos.ticket for pos in positions]
-
             closed_tickets = []
+
             for ticket in list(self.active_positions.keys()):
                 if ticket not in current_tickets:
                     closed_tickets.append(ticket)
 
                     closed_trade = self.active_positions[ticket]
-                    print(f"📈 Trade #{ticket} CLOSED:")
-                    print(
-                        f"   {closed_trade['type']} {closed_trade['volume']} {closed_trade['symbol']}"
-                    )
-                    print(f"   Entry: {closed_trade['price']:.5f}")
+                    print(f"📈 Gold Trade #{ticket} CLOSED:")
+                    print(f"   {closed_trade['type']} {closed_trade['volume']} {closed_trade['symbol']}")
+                    print(f"   Entry: ${closed_trade['price']:.2f}")
 
+                    # ดึงข้อมูลการปิดออเดอร์
                     deals = mt5.history_deals_get(
                         datetime.now() - timedelta(hours=1), datetime.now()
                     )
@@ -489,128 +439,144 @@ class SMCAutoTrader:
                                 close_price = deal.price
                                 close_time = datetime.fromtimestamp(deal.time)
 
-                                print(f"   Exit: {close_price:.5f}")
+                                print(f"   Exit: ${close_price:.2f}")
                                 print(f"   P&L: ${profit:.2f}")
-                                print(
-                                    f"   Result: {'✅ WIN' if profit > 0 else '❌ LOSS'}"
-                                )
+                                print(f"   Result: {'✅ WIN' if profit > 0 else '❌ LOSS'}")
                                 break
 
                     del self.active_positions[ticket]
                     self.last_trade_closed_time = datetime.now()
 
             if closed_tickets:
-                print(
-                    f"🎯 {len(closed_tickets)} position(s) closed. Ready for new trades."
-                )
+                print(f"🎯 {len(closed_tickets)} Gold position(s) closed. Ready for new trades.")
 
+            # คำนวณ P&L รวม
             total_profit = sum(pos.profit for pos in positions)
             self.daily_pnl = total_profit
 
         except Exception as e:
-            print(f"❌ Position update error: {str(e)}")
+            print(f"❌ Gold position update error: {str(e)}")
 
-    def print_current_settings(self):
-        """Print current configuration"""
-        print("⚙️ Auto Trader Settings:")
-        print("=" * 50)
-        print(f"🎯 Max concurrent trades: {self.max_concurrent_trades}")
-        print(
-            f"⏳ Wait for completion: {'YES' if self.wait_for_trade_completion else 'NO'}"
-        )
-        print(f"📊 Min confidence: {self.min_confidence*100}%")
-        print(f"🤝 Min consensus: {self.min_consensus}/5")
-        print(f"💰 Base lot size: {self.base_lot_size}")
-        print("=" * 50)
+    def start_gold_auto_trading(self, symbol: str = "XAUUSD", update_interval: int = 60):
+        """Start XAUUSD automated trading system"""
 
-    def start_auto_trading(self, symbol: str = "EURUSD.c", update_interval: int = 60):
-        """Start automated trading system"""
-
-        print("🚀 Starting SMC Auto Trading System - One Trade at a Time")
+        print("🚀 Starting XAUUSD SMC Auto Trading System")
         print("=" * 60)
-        print(f"📊 Symbol: {symbol}")
+        print(f"🥇 Symbol: {symbol}")
         print(f"🎯 Trading Status: {'ENABLED' if self.trading_enabled else 'DISABLED'}")
-        print(f"⏳ Mode: One trade at a time")
+        print(f"⏳ Mode: One Gold trade at a time")
         print("=" * 60)
 
         last_signal = None
 
         while True:
             try:
-                self.update_positions()
+                self.update_gold_positions()
 
-                if not self.should_analyze_signals():
-                    print(
-                        f"\n⏳ {datetime.now().strftime('%H:%M:%S')} - Waiting for active trade to close..."
-                    )
-                    print(
-                        f"💰 Daily P&L: ${self.daily_pnl:.2f} | Active Positions: {len(self.active_positions)}"
-                    )
-
-                    if self.active_positions:
-                        for ticket, trade_info in self.active_positions.items():
-                            positions = mt5.positions_get(ticket=ticket)
-                            if positions:
-                                pos = positions[0]
-                                print(
-                                    f"🔄 Active: {trade_info['type']} {trade_info['volume']} {trade_info['symbol']}"
-                                )
-                                print(
-                                    f"   Entry: {trade_info['price']:.5f} | Current P&L: ${pos.profit:.2f}"
-                                )
-
-                    time.sleep(update_interval)
-                    continue
-
-                print(
-                    f"\n🔍 {datetime.now().strftime('%H:%M:%S')} - Analyzing new signals..."
-                )
+                print(f"\n🔍 {datetime.now().strftime('%H:%M:%S')} - Analyzing Gold signals...")
                 signal = self.signal_engine.get_multi_timeframe_signals(symbol)
 
                 if "error" in signal:
-                    print(f"❌ Signal error: {signal['error']}")
+                    print(f"❌ Gold signal error: {signal['error']}")
                 else:
-                    print(
-                        f"📊 {symbol}: {signal['final_direction']} | Confidence: {signal['final_confidence']:.3f}"
-                    )
-                    print(
-                        f"🎯 Risk: {signal['risk_level']} | Consensus: {signal['timeframe_consensus']}"
-                    )
+                    print(f"🥇 {symbol}: {signal['final_direction']} | Confidence: {signal['final_confidence']:.3f}")
+                    print(f"🎯 Risk: {signal['risk_level']} | Consensus: {signal['timeframe_consensus']}")
                     print(f"💰 Daily P&L: ${self.daily_pnl:.2f}")
 
+                    # ตรวจสอบการเปลี่ยนแปลงสัญญาณ
                     signal_changed = self._is_signal_changed(last_signal, signal)
 
                     if signal_changed and signal["trading_recommendation"] == "TRADE":
                         if self.trading_enabled:
-                            print("🔥 NEW TRADING SIGNAL DETECTED!")
-                            success = self.process_signal(signal, symbol)
+                            print("🔥 NEW GOLD TRADING SIGNAL DETECTED!")
+                            success = self.process_gold_signal(signal, symbol)
                             if success:
-                                print("✅ Auto trade executed successfully")
+                                print("✅ Gold auto trade executed successfully")
                             else:
-                                print("❌ Auto trade failed or blocked")
+                                print("❌ Gold auto trade failed or blocked")
                         else:
-                            print("📊 TRADING SIGNAL (Trading disabled)")
+                            print("📊 GOLD TRADING SIGNAL (Trading disabled)")
 
                     last_signal = signal
+
+                # แสดงสถานะ position ที่เปิดอยู่
+                if self.active_positions:
+                    for ticket, trade_info in self.active_positions.items():
+                        positions = mt5.positions_get(ticket=ticket)
+                        if positions:
+                            pos = positions[0]
+                            print(f"🔄 Active Gold: {trade_info['type']} {trade_info['volume']} {trade_info['symbol']}")
+                            print(f"   Entry: ${trade_info['price']:.2f} | Current P&L: ${pos.profit:.2f}")
 
                 time.sleep(update_interval)
 
             except KeyboardInterrupt:
-                print("\n🛑 Auto trading stopped by user")
+                print("\n🛑 Gold auto trading stopped by user")
                 break
             except Exception as e:
-                print(f"❌ Auto trading error: {str(e)}")
+                print(f"❌ Gold auto trading error: {str(e)}")
                 time.sleep(10)
 
-        print("✅ Auto trading system stopped")
+        print("✅ Gold auto trading system stopped")
+
+    def _is_signal_changed(self, last_signal: Optional[Dict], current_signal: Dict) -> bool:
+        """Determine if Gold signal has changed enough to warrant new trade"""
+
+        if last_signal is None:
+            if self.enable_first_signal_trade:
+                return (
+                    current_signal["final_confidence"] >= self.first_signal_min_confidence
+                    and current_signal["trading_recommendation"] == "TRADE"
+                )
+            else:
+                return False
+
+        # ตรวจสอบการเปลี่ยนทิศทาง
+        if last_signal["final_direction"] != current_signal["final_direction"]:
+            return True
+
+        # ตรวจสอบการเปลี่ยน confidence
+        confidence_change = abs(
+            last_signal["final_confidence"] - current_signal["final_confidence"]
+        )
+        if confidence_change > self.signal_change_threshold:
+            return True
+
+        # สัญญาณแรงสำหรับทองคำ
+        if (
+            current_signal["final_confidence"] >= 0.85
+            and current_signal["trading_recommendation"] == "TRADE"
+            and len(self.trade_history) == 0
+        ):
+            print(f"🔥 Force trading high confidence Gold signal: {current_signal['final_confidence']:.3f}")
+            return True
+
+        return False
+
+    def print_gold_settings(self):
+        """Print current Gold trading configuration"""
+        print("⚙️ XAUUSD Auto Trader Settings:")
+        print("=" * 50)
+        print(f"🥇 Trading Gold (XAUUSD)")
+        print(f"🎯 Max concurrent trades: {self.max_concurrent_trades}")
+        print(f"⏳ Wait for completion: {'YES' if self.wait_for_trade_completion else 'NO'}")
+        print(f"📊 Min confidence: {self.min_confidence*100}%")
+        print(f"🤝 Min consensus: {self.min_consensus}/5")
+        print(f"💰 Base lot size: {self.base_lot_size}")
+        print(f"🎯 Default SL: {self.default_sl_pips} points")
+        print(f"📈 TP Ratio: {self.default_tp_ratio}:1")
+        print("=" * 50)
 
 
-# Main execution
+# Main execution สำหรับ Gold Trading
 if __name__ == "__main__":
-    print("🤖 SMC Auto Trading Bot - One Trade at a Time")
+    print("🥇 XAUUSD SMC Auto Trading Bot")
     print("=" * 50)
 
-    # Settings
+    # Settings สำหรับทองคำ
+    MODELS_PATH = "XAUUSD_v_SMC"  # เปลี่ยนเป็น path ที่ถูกต้อง
+    SYMBOL = "XAUUSD"  # หรือ "XAUUSD.c" ขึ้นอยู่กับโบรกเกอร์
+    
     SIGNAL_CHANGE_THRESHOLD = 0.001
     ENABLE_FIRST_TRADE = True
     FIRST_TRADE_MIN_CONFIDENCE = 0.75
@@ -621,9 +587,9 @@ if __name__ == "__main__":
     BASE_LOT_SIZE = 0.01
     MAX_LOT_SIZE = 0.1
 
-    # Initialize trader
-    trader = SMCAutoTrader(
-        models_path="EURUSD_c_SMC",
+    # Initialize Gold trader
+    gold_trader = XAUUSDAutoTrader(
+        models_path=MODELS_PATH,
         signal_change_threshold=SIGNAL_CHANGE_THRESHOLD,
         enable_first_signal_trade=ENABLE_FIRST_TRADE,
         first_signal_min_confidence=FIRST_TRADE_MIN_CONFIDENCE,
@@ -633,27 +599,27 @@ if __name__ == "__main__":
         wait_for_trade_completion=WAIT_FOR_COMPLETION,
         base_lot_size=BASE_LOT_SIZE,
         max_lot_size=MAX_LOT_SIZE,
+        default_sl_pips=200,  # ทองคำใช้ SL ใหญ่กว่า (200 points = $2.00)
+        default_tp_ratio=2.0,
     )
 
-    trader.print_current_settings()
+    gold_trader.print_gold_settings()
 
-    if trader.connect_mt5():
-        if trader.load_models():
-            print("\n🎯 Auto Trading Bot Ready!")
+    if gold_trader.connect_mt5():
+        if gold_trader.load_models():
+            print("\n🎯 Gold Auto Trading Bot Ready!")
 
-            enable_trading = (
-                input("\n🚀 Enable LIVE AUTO TRADING? (yes/no): ").lower().strip()
-            )
+            enable_trading = input("\n🚀 Enable LIVE GOLD TRADING? (yes/no): ").lower().strip()
 
             if enable_trading == "yes":
-                trader.enable_trading(True)
+                gold_trader.enable_trading(True)
             else:
-                print("📊 Demo mode")
-                trader.enable_trading(True)  # Enable anyway for testing
+                print("📊 Demo mode - signals only")
 
-            trader.start_auto_trading("EURUSD.c", 60)
+            # เริ่มเทรดทองคำ
+            gold_trader.start_gold_auto_trading(SYMBOL, 60)
 
         else:
-            print("❌ Failed to load AI models")
+            print("❌ Failed to load XAUUSD AI models")
     else:
         print("❌ Failed to connect to MT5")
