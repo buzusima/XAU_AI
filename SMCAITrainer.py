@@ -63,7 +63,7 @@ class SMCAITrainer:
         self.feature_importance = {}
         self.performance_metrics = {}
 
-        # Model configurations
+        # Model configurations - adjusted for Gold trading
         self.random_forest_config = {
             "n_estimators": [100, 200, 300],
             "max_depth": [10, 20, None],
@@ -78,10 +78,10 @@ class SMCAITrainer:
             "subsample": [0.8, 0.9, 1.0],
         }
 
-        # Feature selection settings
-        self.feature_selection_k = 50  # Top K features to select
+        # Feature selection settings - increased for Gold's complexity
+        self.feature_selection_k = 60  # Top K features to select (increased from 50)
 
-        print("🚀 SMC AI Training System Initialized")
+        print("🚀 SMC AI Training System Initialized for Gold Trading")
         print("🎯 Ready for Multi-Model Training")
 
     def load_labeled_dataset(self, base_filename: str) -> Dict[str, pd.DataFrame]:
@@ -396,10 +396,12 @@ class SMCAITrainer:
             y_train_cat = y_train
             y_test_cat = y_test
 
-        # Build neural network
+        # Build neural network - enhanced for Gold trading
         model = Sequential(
             [
-                Dense(256, activation="relu", input_shape=(X_train_scaled.shape[1],)),
+                Dense(512, activation="relu", input_shape=(X_train_scaled.shape[1],)),
+                Dropout(0.3),
+                Dense(256, activation="relu"),
                 Dropout(0.3),
                 Dense(128, activation="relu"),
                 Dropout(0.3),
@@ -422,17 +424,17 @@ class SMCAITrainer:
 
         # Callbacks
         early_stopping = EarlyStopping(
-            monitor="val_loss", patience=10, restore_best_weights=True
+            monitor="val_loss", patience=15, restore_best_weights=True
         )
         reduce_lr = ReduceLROnPlateau(
-            monitor="val_loss", factor=0.2, patience=5, min_lr=1e-7
+            monitor="val_loss", factor=0.2, patience=8, min_lr=1e-7
         )
 
         # Train model
         history = model.fit(
             X_train_scaled,
             y_train_cat,
-            epochs=100,
+            epochs=150,  # Increased for Gold complexity
             batch_size=32,
             validation_split=0.2,
             callbacks=[early_stopping, reduce_lr],
@@ -523,7 +525,7 @@ class SMCAITrainer:
         """
         Train models for all timeframes
         """
-        print("🚀 Training SMC AI Models - All Timeframes")
+        print("🚀 Training SMC AI Models - All Timeframes (Gold)")
         print("=" * 60)
 
         all_results = {}
@@ -592,6 +594,22 @@ class SMCAITrainer:
 
                     print(f"✅ {timeframe} {model_name}: {model_filename}")
 
+            # Save feature mapping for prediction alignment
+            import json
+            feature_mapping = {}
+            for timeframe, tf_models in self.models.items():
+                for model_name, model_data in tf_models.items():
+                    if "selected_features" in model_data:
+                        feature_mapping[timeframe] = model_data["selected_features"]
+                        break
+
+            if feature_mapping:
+                feature_map_file = f"{base_filename}_feature_mapping.json"
+                with open(feature_map_file, 'w') as f:
+                    json.dump(feature_mapping, f, indent=2)
+                saved_files.append(feature_map_file)
+                print(f"✅ Feature mapping: {feature_map_file}")
+
             print(f"\n✅ {len(saved_files)} model files saved!")
 
             return True
@@ -609,6 +627,7 @@ class SMCAITrainer:
 
             report_data = {
                 "training_date": pd.Timestamp.now().isoformat(),
+                "symbol": "XAUUSD",
                 "timeframes": list(self.models.keys()),
                 "model_types": [],
                 "performance_summary": {},
@@ -663,7 +682,7 @@ class SMCAITrainer:
 
 # Usage Example
 if __name__ == "__main__":
-    print("🚀 SMC AI Training System")
+    print("🚀 SMC AI Training System - Gold Trading")
     print("=" * 50)
 
     # Initialize trainer
@@ -671,7 +690,7 @@ if __name__ == "__main__":
 
     # Load labeled dataset
     print("\n📂 Loading Labeled Dataset...")
-    labeled_data = trainer.load_labeled_dataset("EURUSD_c")
+    labeled_data = trainer.load_labeled_dataset("XAUUSD_v")
 
     if labeled_data:
         # Train all models
@@ -689,10 +708,10 @@ if __name__ == "__main__":
         all_results = trainer.train_all_timeframes(labeled_data, models_to_train)
 
         # Save models
-        trainer.save_models("EURUSD_c_SMC")
+        trainer.save_models("XAUUSD_v_SMC")
 
         # Generate report
-        trainer.generate_performance_report("EURUSD_c_SMC")
+        trainer.generate_performance_report("XAUUSD_v_SMC")
 
         print("\n🎉 SMC AI Training Pipeline Complete!")
         print("=" * 50)
