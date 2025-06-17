@@ -1,48 +1,145 @@
 {
+    "_metadata": {
+        "created": "2025-06-17T18:23:38.000Z",
+        "version": "1.0.0",
+        "description": "Lightning Scalper Configuration File - FIXED VERSION",
+        "documentation": "https://docs.lightning-scalper.com/configuration"
+    },
     "application": {
         "name": "Lightning Scalper",
         "version": "1.0.0",
         "debug_mode": true,
-        "auto_start_trading": false,
-        "max_startup_time": 60,
-        "health_check_interval": 30
+        "auto_start_trading": true,
+        "max_restart_attempts": 3,
+        "restart_delay_seconds": 30,
+        "auto_restart_on_failure": true,
+        "enable_recovery_mode": true,
+        "maintenance_mode": false,
+        "api_rate_limit": 1000
     },
     "system": {
         "max_clients": 100,
         "data_update_interval": 1.0,
-        "health_check_interval": 30.0,
         "signal_generation_interval": 5.0,
         "auto_reconnect": true,
         "max_reconnect_attempts": 5,
-        "emergency_stop_loss": 0.1,
-        "max_daily_trades": 1000,
-        "enable_performance_monitoring": true
+        "enable_performance_monitoring": true,
+        "enable_health_checks": true,
+        "connection_timeout": 30,
+        "heartbeat_interval": 60
+    },
+    "risk": {
+        "global_daily_loss_limit": -5000.0,
+        "max_concurrent_trades": 200,
+        "emergency_stop_loss_percent": 10.0,
+        "max_signals_per_client_hour": 10,
+        "enable_global_safety": true,
+        "risk_calculation_method": "kelly",
+        "max_portfolio_exposure": 0.25,
+        "correlation_threshold": 0.7
     },
     "trading": {
-        "default_lot_size": 0.01,
-        "max_lot_size": 1.0,
-        "max_spread": 3.0,
-        "min_equity": 100.0,
-        "risk_per_trade": 0.02,
-        "max_simultaneous_trades": 5,
-        "allow_demo_trading": true
+        "default_currency_pairs": ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD"],
+        "default_timeframes": ["M1", "M5", "M15", "H1"],
+        "min_signal_confluence": 65.0,
+        "max_slippage_pips": 3.0,
+        "default_risk_per_trade": 0.02,
+        "enable_news_filter": true,
+        "enable_market_hours_filter": true,
+        "enable_volatility_filter": true
     },
-    "fvg_detection": {
-        "min_fvg_size": 5.0,
-        "max_fvg_age": 300,
-        "confirmation_candles": 2,
-        "volume_threshold": 1.2,
-        "enable_multi_timeframe": true,
-        "min_confluence_score": 60.0
-    },
-    "performance": {
-        "enable_caching": true,
-        "cache_duration": 300,
-        "max_memory_usage": 512,
-        "cleanup_interval": 3600
+    "logging": {
+        "log_level": "DEBUG",
+        "max_log_file_size": "100MB",
+        "log_retention_days": 30,
+        "enable_performance_logs": true,
+        "enable_trade_logs": true,
+        "enable_audit_logs": true,
+        "compress_old_logs": true,
+        "log_rotation_interval": "daily"
     },
     "clients": {
         "auto_load_clients": true,
-        "clients_config_file": "config/clients.json"
+        "clients_config_file": "config/clients.json",
+        "client_validation_strict": false,
+        "enable_client_isolation": true,
+        "default_client_settings": {
+            "max_positions": 5,
+            "max_lot_size": 1.0,
+            "risk_multiplier": 1.0,
+            "auto_trading": true,
+            "enable_notifications": true,
+            "notification_methods": ["email", "webhook"]
+        }
+    },
+    "server": {
+        "host": "localhost",
+        "port": 8080,
+        "enable_dashboard": true,
+        "dashboard_port": 5000,
+        "enable_websocket": true,
+        "websocket_port": 8081,
+        "enable_api": true,
+        "api_port": 9000,
+        "enable_ssl": false,
+        "max_connections": 1000
+    },
+    "database": {
+        "type": "sqlite",
+        "path": "data/lightning_scalper.db",
+        "backup_interval_hours": 6,
+        "enable_data_compression": true,
+        "enable_encryption": false,
+        "connection_pool_size": 10,
+        "query_timeout": 30
+    },
+    "mt5": {
+        "enable_auto_connection": false,
+        "connection_timeout": 30,
+        "max_retries": 3,
+        "enable_symbol_validation": false,
+        "enable_account_validation": false,
+        "enable_trade_copying": false,
+        "copy_trades_delay": 0.1
+    },
+    "notifications": {
+        "enable_email": false,
+        "enable_webhook": false,
+        "enable_telegram": false,
+        "enable_slack": false,
+        "email_settings": {
+            "smtp_server": "",
+            "smtp_port": 587,
+            "username": "",
+            "password": "",
+            "use_tls": true
+        },
+        "webhook_settings": {
+            "url": "",
+            "secret": "",
+            "timeout": 10
+        },
+        "telegram_settings": {
+            "bot_token": "",
+            "chat_id": ""
+        }
+    },
+    "security": {
+        "enable_api_authentication": false,
+        "api_key_expiry_days": 30,
+        "enable_rate_limiting": false,
+        "enable_ip_whitelisting": false,
+        "allowed_ips": [],
+        "enable_audit_logging": true,
+        "encryption_algorithm": "AES-256"
+    },
+    "optimization": {
+        "enable_auto_scaling": true,
+        "enable_caching": true,
+        "cache_size_mb": 256,
+        "enable_compression": true,
+        "enable_multi_threading": true,
+        "max_worker_threads": 10,
+        "enable_async_processing": true
     }
 }
