@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Management - Lightning Scalper</title>
+    
+    <!-- 📍 ไฟล์นี้: templates/risk.html -->
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <style>
+        .risk-card {
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.3);
+        }
+        
+        .metric-card {
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-indicator {
+            animation: pulse 2s infinite;
+        }
+        
+        .alert-high {
+            background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+        }
+        
+        .alert-medium {
+            background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+        }
+        
+        .alert-low {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+        
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+        
+        .emergency-stop {
+            background: linear-gradient(135deg, #DC2626 0%, #7F1D1D 100%);
+            animation: emergencyPulse 1s infinite;
+        }
+        
+        @keyframes emergencyPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-bolt text-yellow-400 text-2xl mr-3"></i>
+                    <span class="text-xl font-bold">Lightning Scalper</span>
+                    <span class="ml-4 text-gray-400">Risk Management</span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="/clients" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-users mr-2"></i>Clients
+                    </a>
+                    <a href="/signals" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-signal mr-2"></i>Signals
+                    </a>
+                    <a href="/analytics" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-chart-line mr-2"></i>Analytics
+                    </a>
+                    <a href="/risk" class="bg-blue-600 text-white px-3 py-2 rounded-md">
+                        <i class="fas fa-shield-alt mr-2"></i>Risk
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        
+        <!-- Emergency Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Emergency Stop -->
+            <div class="risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-red-400">
+                        <i class="fas fa-stop-circle mr-2"></i>Emergency Stop
+                    </h3>
+                    <div class="status-indicator">
+                        <span id="emergency-status" class="px-3 py-1 rounded-full text-sm font-medium bg-green-500">
+                            <i class="fas fa-check mr-1"></i>Normal
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <button id="emergency-stop-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-hand-paper mr-2"></i>ACTIVATE EMERGENCY STOP
+                    </button>
+                    
+                    <button id="stop-all-trading-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-pause mr-2"></i>Stop All Trading
+                    </button>
+                    
+                    <button id="close-all-positions-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-times mr-2"></i>Close All Positions
+                    </button>
+                </div>
+            </div>
+            
+            <!-- System Health -->
+            <div class="risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-green-400">
+                        <i class="fas fa-heartbeat mr-2"></i>System Health
+                    </h3>
+                    <span id="health-score" class="text-2xl font-bold text-green-400">98%</span>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Server Connection</span>
+                        <span class="text-green-400"><i class="fas fa-check-circle"></i></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Database</span>
+                        <span class="text-green-400"><i class="fas fa-check-circle"></i></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Trading Engine</span>
+                        <span class="text-green-400"><i class="fas fa-check-circle"></i></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Risk Manager</span>
+                        <span class="text-green-400"><i class="fas fa-check-circle"></i></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Risk Level -->
+            <div class="risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-blue-400">
+                        <i class="fas fa-gauge-high mr-2"></i>Risk Level
+                    </h3>
+                    <span id="risk-level" class="px-3 py-1 rounded-full text-sm font-medium bg-green-500">LOW</span>
+                </div>
+                
+                <div class="flex justify-center">
+                    <div class="gauge-container">
+                        <canvas id="risk-gauge"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Risk Metrics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            
+            <!-- Exposure -->
+            <div class="metric-card risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Exposure</p>
+                        <p id="total-exposure" class="text-2xl font-bold text-yellow-400">$12,450</p>
+                        <p class="text-xs text-gray-500">2.5% of total capital</p>
+                    </div>
+                    <div class="text-yellow-400">
+                        <i class="fas fa-chart-pie text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Daily P&L -->
+            <div class="metric-card risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Daily P&L</p>
+                        <p id="daily-pnl" class="text-2xl font-bold text-green-400">+$1,247</p>
+                        <p class="text-xs text-gray-500">+2.1% today</p>
+                    </div>
+                    <div class="text-green-400">
+                        <i class="fas fa-dollar-sign text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Max Drawdown -->
+            <div class="metric-card risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Max Drawdown</p>
+                        <p id="max-drawdown" class="text-2xl font-bold text-red-400">-3.2%</p>
+                        <p class="text-xs text-gray-500">This month</p>
+                    </div>
+                    <div class="text-red-400">
+                        <i class="fas fa-arrow-down text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Win Rate -->
+            <div class="metric-card risk-card rounded-xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Win Rate</p>
+                        <p id="win-rate" class="text-2xl font-bold text-blue-400">73.5%</p>
+                        <p class="text-xs text-gray-500">Last 30 days</p>
+                    </div>
+                    <div class="text-blue-400">
+                        <i class="fas fa-target text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Risk Alerts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Active Alerts -->
+            <div class="risk-card rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-4">
+                    <i class="fas fa-exclamation-triangle mr-2 text-yellow-400"></i>Risk Alerts
+                </h3>
+                
+                <div id="risk-alerts" class="space-y-3">
+                    <!-- Alerts will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Risk Limits -->
+            <div class="risk-card rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-4">
+                    <i class="fas fa-sliders-h mr-2 text-blue-400"></i>Risk Limits
+                </h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-400 mb-1">
+                            <span>Daily Loss Limit</span>
+                            <span>$850 / $1,000</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-orange-500 h-2 rounded-full" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-400 mb-1">
+                            <span>Position Exposure</span>
+                            <span>15 / 20 positions</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-400 mb-1">
+                            <span>Margin Usage</span>
+                            <span>45% / 80%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm text-gray-400 mb-1">
+                            <span>Correlation Risk</span>
+                            <span>LOW</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 30%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Risk Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Risk Over Time -->
+            <div class="risk-card rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-4">
+                    <i class="fas fa-chart-line mr-2 text-purple-400"></i>Risk Over Time
+                </h3>
+                <canvas id="risk-chart" height="300"></canvas>
+            </div>
+            
+            <!-- Portfolio Exposure -->
+            <div class="risk-card rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-4">
+                    <i class="fas fa-chart-pie mr-2 text-green-400"></i>Portfolio Exposure
+                </h3>
+                <canvas id="exposure-chart" height="300"></canvas>
+            </div>
+        </div>
+        
+        <!-- Client Risk Matrix -->
+        <div class="risk-card rounded-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">
+                    <i class="fas fa-table mr-2 text-blue-400"></i>Client Risk Matrix
+                </h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                        <i class="fas fa-download mr-1"></i>Export
+                    </button>
+                    <button class="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                        <i class="fas fa-sync mr-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="text-left p-3">Client ID</th>
+                            <th class="text-left p-3">Risk Level</th>
+                            <th class="text-left p-3">Exposure</th>
+                            <th class="text-left p-3">Daily P&L</th>
+                            <th class="text-left p-3">Positions</th>
+                            <th class="text-left p-3">Margin</th>
+                            <th class="text-left p-3">Status</th>
+                            <th class="text-left p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-risk-table">
+                        <!-- Table rows will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        
+        // Risk gauge configuration
+        const riskGaugeCtx = document.getElementById('risk-gauge').getContext('2d');
+        const riskGauge = new Chart(riskGaugeCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [25, 75],
+                    backgroundColor: ['#10B981', '#374151'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Risk over time chart
+        const riskChartCtx = document.getElementById('risk-chart').getContext('2d');
+        const riskChart = new Chart(riskChartCtx, {
+            type: 'line',
+            data: {
+                labels: ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
+                datasets: [{
+                    label: 'Risk Score',
+                    data: [20, 25, 30, 28, 35, 32, 25],
+                    borderColor: '#EF4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#9CA3AF'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#9CA3AF'
+                        },
+                        grid: {
+                            color: '#374151'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#9CA3AF'
+                        },
+                        grid: {
+                            color: '#374151'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Portfolio exposure chart
+        const exposureChartCtx = document.getElementById('exposure-chart').getContext('2d');
+        const exposureChart = new Chart(exposureChartCtx, {
+            type: 'pie',
+            data: {
+                labels: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'Others'],
+                datasets: [{
+                    data: [35, 25, 20, 15, 5],
+                    backgroundColor: [
+                        '#3B82F6',
+                        '#10B981',
+                        '#F59E0B',
+                        '#EF4444',
+                        '#8B5CF6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#9CA3AF'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Emergency stop functionality
+        document.getElementById('emergency-stop-btn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to activate EMERGENCY STOP? This will halt all trading activities immediately.')) {
+                activateEmergencyStop();
+            }
+        });
+        
+        document.getElementById('stop-all-trading-btn').addEventListener('click', function() {
+            if (confirm('Stop all trading activities?')) {
+                stopAllTrading();
+            }
+        });
+        
+        document.getElementById('close-all-positions-btn').addEventListener('click', function() {
+            if (confirm('Close all open positions?')) {
+                closeAllPositions();
+            }
+        });
+        
+        function activateEmergencyStop() {
+            socket.emit('emergency_stop', {action: 'activate'});
+            updateEmergencyStatus(true);
+        }
+        
+        function stopAllTrading() {
+            socket.emit('stop_all_trading');
+        }
+        
+        function closeAllPositions() {
+            socket.emit('close_all_positions');
+        }
+        
+        function updateEmergencyStatus(isEmergency) {
+            const statusElement = document.getElementById('emergency-status');
+            const button = document.getElementById('emergency-stop-btn');
+            
+            if (isEmergency) {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>EMERGENCY';
+                statusElement.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-500 status-indicator';
+                button.innerHTML = '<i class="fas fa-play mr-2"></i>RESUME TRADING';
+                button.className = 'w-full emergency-stop text-white font-bold py-3 px-4 rounded-lg transition-colors';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-check mr-1"></i>Normal';
+                statusElement.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-500 status-indicator';
+                button.innerHTML = '<i class="fas fa-hand-paper mr-2"></i>ACTIVATE EMERGENCY STOP';
+                button.className = 'w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors';
+            }
+        }
+        
+        // Update risk alerts
+        function updateRiskAlerts(alerts) {
+            const alertsContainer = document.getElementById('risk-alerts');
+            alertsContainer.innerHTML = '';
+            
+            if (alerts.length === 0) {
+                alertsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No active risk alerts</p>';
+                return;
+            }
+            
+            alerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `p-3 rounded-lg ${getAlertClass(alert.level)}`;
+                alertDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium">${alert.title}</p>
+                            <p class="text-sm opacity-90">${alert.message}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs opacity-75">${alert.time}</p>
+                            <button class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded mt-1">
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                `;
+                alertsContainer.appendChild(alertDiv);
+            });
+        }
+        
+        function getAlertClass(level) {
+            switch(level) {
+                case 'high': return 'alert-high';
+                case 'medium': return 'alert-medium';
+                case 'low': return 'alert-low';
+                default: return 'alert-low';
+            }
+        }
+        
+        // Update client risk table
+        function updateClientRiskTable(clients) {
+            const tableBody = document.getElementById('client-risk-table');
+            tableBody.innerHTML = '';
+            
+            clients.forEach(client => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 hover:bg-gray-800';
+                row.innerHTML = `
+                    <td class="p-3">${client.id}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs ${getRiskLevelClass(client.riskLevel)}">
+                            ${client.riskLevel}
+                        </span>
+                    </td>
+                    <td class="p-3">$${client.exposure.toLocaleString()}</td>
+                    <td class="p-3 ${client.dailyPnL >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ${client.dailyPnL >= 0 ? '+' : ''}$${client.dailyPnL.toLocaleString()}
+                    </td>
+                    <td class="p-3">${client.positions}</td>
+                    <td class="p-3">${client.margin}%</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs ${getStatusClass(client.status)}">
+                            ${client.status}
+                        </span>
+                    </td>
+                    <td class="p-3">
+                        <button class="text-blue-400 hover:text-blue-300 mr-2">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="text-yellow-400 hover:text-yellow-300 mr-2">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="text-red-400 hover:text-red-300">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function getRiskLevelClass(level) {
+            switch(level.toLowerCase()) {
+                case 'high': return 'bg-red-500';
+                case 'medium': return 'bg-yellow-500';
+                case 'low': return 'bg-green-500';
+                default: return 'bg-gray-500';
+            }
+        }
+        
+        function getStatusClass(status) {
+            switch(status.toLowerCase()) {
+                case 'active': return 'bg-green-500';
+                case 'paused': return 'bg-yellow-500';
+                case 'stopped': return 'bg-red-500';
+                default: return 'bg-gray-500';
+            }
+        }
+        
+        // Socket.IO event handlers
+        socket.on('risk_update', function(data) {
+            // Update risk metrics
+            document.getElementById('total-exposure').textContent = `$${data.totalExposure.toLocaleString()}`;
+            document.getElementById('daily-pnl').textContent = `${data.dailyPnL >= 0 ? '+' : ''}$${data.dailyPnL.toLocaleString()}`;
+            document.getElementById('max-drawdown').textContent = `${data.maxDrawdown}%`;
+            document.getElementById('win-rate').textContent = `${data.winRate}%`;
+            
+            // Update risk gauge
+            riskGauge.data.datasets[0].data = [data.riskScore, 100 - data.riskScore];
+            riskGauge.update();
+            
+            // Update risk level indicator
+            const riskLevel = document.getElementById('risk-level');
+            if (data.riskScore > 70) {
+                riskLevel.textContent = 'HIGH';
+                riskLevel.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-500';
+            } else if (data.riskScore > 40) {
+                riskLevel.textContent = 'MEDIUM';
+                riskLevel.className = 'px-3 py-1 rounded-full text-sm font-medium bg-yellow-500';
+            } else {
+                riskLevel.textContent = 'LOW';
+                riskLevel.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-500';
+            }
+        });
+        
+        socket.on('risk_alerts', function(data) {
+            updateRiskAlerts(data.alerts);
+        });
+        
+        socket.on('client_risk_update', function(data) {
+            updateClientRiskTable(data.clients);
+        });
+        
+        socket.on('emergency_status', function(data) {
+            updateEmergencyStatus(data.isEmergency);
+        });
+        
+        // Initialize with sample data
+        const sampleAlerts = [
+            {
+                level: 'medium',
+                title: 'High Correlation Warning',
+                message: 'Multiple EUR pairs showing high correlation (85%)',
+                time: '2 min ago'
+            },
+            {
+                level: 'low',
+                title: 'Margin Usage',
+                message: 'Client LS_001 margin usage at 75%',
+                time: '5 min ago'
+            }
+        ];
+        
+        const sampleClients = [
+            {
+                id: 'LS_001',
+                riskLevel: 'LOW',
+                exposure: 12450,
+                dailyPnL: 1247,
+                positions: 3,
+                margin: 45,
+                status: 'Active'
+            },
+            {
+                id: 'LS_002',
+                riskLevel: 'MEDIUM',
+                exposure: 8750,
+                dailyPnL: -567,
+                positions: 5,
+                margin: 67,
+                status: 'Active'
+            },
+            {
+                id: 'LS_003',
+                riskLevel: 'HIGH',
+                exposure: 15600,
+                dailyPnL: 892,
+                positions: 7,
+                margin: 78,
+                status: 'Paused'
+            }
+        ];
+        
+        updateRiskAlerts(sampleAlerts);
+        updateClientRiskTable(sampleClients);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            socket.emit('get_risk_update');
+        }, 30000);
+        
+    </script>
+</body>
+</html>
