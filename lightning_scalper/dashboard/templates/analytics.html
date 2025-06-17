@@ -3,1497 +3,651 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ Lightning Scalper - Advanced Analytics</title>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
-    
-    <!-- Socket.IO -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-    
+    <title>Lightning Scalper - Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: #333333;
+            --color-primary: #00d4ff;
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --border: #444444;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            --primary-bg: #0a0e1a;
-            --secondary-bg: #1a1f2e;
-            --card-bg: #252b3b;
-            --hover-bg: #2d3441;
-            --border-color: #3a4553;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a9c0;
-            --text-muted: #6b7688;
-            --accent-green: #00ff88;
-            --accent-red: #ff4757;
-            --accent-yellow: #ffa502;
-            --accent-blue: #3742fa;
-            --accent-purple: #7c4dff;
-            --accent-cyan: #00d2d3;
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            --gradient-danger: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
-            --gradient-warning: linear-gradient(135deg, #fcb045 0%, #fd1d1d 100%);
-            --gradient-info: linear-gradient(135deg, #00d2d3 0%, #00a8ff 100%);
-            --gradient-analytics: linear-gradient(135deg, #7c4dff 0%, #9c88ff 100%);
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
-            --glow-purple: 0 0 20px rgba(124, 77, 255, 0.3);
-            --glow-cyan: 0 0 20px rgba(0, 210, 211, 0.3);
+            transition: none !important;
+            animation: none !important;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--primary-bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.6;
-            overflow-x: hidden;
+            line-height: 1.5;
         }
 
-        /* Animated Background */
-        .animated-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: var(--primary-bg);
-        }
-
-        .animated-bg::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(600px circle at 25% 25%, rgba(124, 77, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(800px circle at 75% 75%, rgba(0, 210, 211, 0.08) 0%, transparent 50%),
-                radial-gradient(400px circle at 50% 50%, rgba(102, 126, 234, 0.06) 0%, transparent 50%);
-            animation: analyticsFlow 25s ease-in-out infinite alternate;
-        }
-
-        @keyframes analyticsFlow {
-            0% { 
-                transform: translate(0, 0) rotate(0deg); 
-                opacity: 0.8;
-            }
-            100% { 
-                transform: translate(-15px, -15px) rotate(1deg); 
-                opacity: 1;
-            }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
         }
 
         /* Header */
         .header {
-            background: var(--secondary-bg);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .header-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .page-title {
             font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-green);
-            text-decoration: none;
+            font-weight: 600;
+            color: var(--color-primary);
         }
 
-        .logo i {
-            font-size: 2rem;
-            background: var(--gradient-success);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.3));
-        }
-
-        .breadcrumb {
+        .time-filters {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+            gap: 0.25rem;
         }
 
-        .breadcrumb a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .breadcrumb a:hover {
-            color: var(--accent-green);
-        }
-
-        .breadcrumb .current {
+        .time-btn {
+            background: var(--bg-card);
             color: var(--text-primary);
-            font-weight: 600;
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
         }
 
-        .header-stats {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-            background: var(--gradient-analytics);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .time-btn.active,
+        .time-btn:hover {
+            background: var(--color-primary);
+            color: var(--bg-primary);
         }
 
         /* Navigation */
         .nav {
-            background: var(--secondary-bg);
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .nav-content {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .nav-links {
             display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
-
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
             gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
 
-        .nav-link:hover, .nav-link.active {
+        .nav-btn {
+            background: var(--bg-card);
             color: var(--text-primary);
-            background: var(--hover-bg);
-            transform: translateY(-1px);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
         }
 
-        /* Main Container */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--color-primary);
+            color: var(--bg-primary);
         }
 
-        /* Page Header */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
             margin-bottom: 2rem;
         }
 
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            background: var(--gradient-analytics);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .page-controls {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .time-selector {
-            display: flex;
-            background: var(--card-bg);
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
+            padding: 1rem;
+            text-align: center;
         }
 
-        .time-btn {
-            padding: 0.5rem 1rem;
-            background: transparent;
-            border: none;
+        .kpi-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-value.positive {
+            color: var(--color-success);
+        }
+
+        .kpi-value.negative {
+            color: var(--color-danger);
+        }
+
+        .kpi-value.neutral {
+            color: var(--color-primary);
+        }
+
+        .kpi-label {
             color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.8rem;
         }
 
-        .time-btn.active {
-            background: var(--accent-purple);
-            color: white;
+        .kpi-change {
+            font-size: 0.7rem;
+            margin-top: 0.25rem;
         }
 
-        .time-btn:hover:not(.active) {
-            background: var(--hover-bg);
-            color: var(--text-primary);
+        .kpi-change.positive {
+            color: var(--color-success);
+        }
+
+        .kpi-change.negative {
+            color: var(--color-danger);
         }
 
         /* Analytics Grid */
         .analytics-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 2rem;
+            gap: 1rem;
             margin-bottom: 2rem;
         }
 
-        /* Performance Section */
-        .performance-section {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        .chart-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
         }
 
-        /* Cards */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--gradient-analytics);
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--accent-purple);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-title {
+        .chart-title {
             font-size: 1.1rem;
-            font-weight: 600;
+            margin-bottom: 1rem;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .card-icon {
-            background: var(--gradient-analytics);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Chart Container */
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        .chart-large {
-            height: 400px;
-        }
-
-        .chart-medium {
+        .simple-chart {
             height: 250px;
-        }
-
-        /* KPI Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-        }
-
-        .kpi-card {
-            background: var(--hover-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-        }
-
-        .kpi-card.profit::before { background: var(--gradient-success); }
-        .kpi-card.trades::before { background: var(--gradient-info); }
-        .kpi-card.winrate::before { background: var(--gradient-warning); }
-        .kpi-card.sharpe::before { background: var(--gradient-analytics); }
-
-        .kpi-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .kpi-icon {
-            font-size: 2rem;
-            margin-bottom: 0.75rem;
-            background: var(--gradient-analytics);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .kpi-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .kpi-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .kpi-change {
-            font-size: 0.8rem;
-            font-weight: 500;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .kpi-change.positive {
-            color: var(--accent-green);
-            background: rgba(0, 255, 136, 0.1);
-        }
-
-        .kpi-change.negative {
-            color: var(--accent-red);
-            background: rgba(255, 71, 87, 0.1);
-        }
-
-        /* Detailed Analytics Section */
-        .detailed-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        /* Heatmap */
-        .heatmap-container {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .heatmap-cell {
-            aspect-ratio: 1;
+            background: var(--bg-secondary);
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
         }
 
-        .heatmap-cell:hover {
-            transform: scale(1.1);
-            z-index: 10;
-            box-shadow: var(--shadow-md);
-        }
-
-        .heatmap-cell.profit-high { background: var(--accent-green); color: white; }
-        .heatmap-cell.profit-medium { background: rgba(0, 255, 136, 0.6); color: white; }
-        .heatmap-cell.profit-low { background: rgba(0, 255, 136, 0.3); color: var(--text-primary); }
-        .heatmap-cell.loss-high { background: var(--accent-red); color: white; }
-        .heatmap-cell.loss-medium { background: rgba(255, 71, 87, 0.6); color: white; }
-        .heatmap-cell.loss-low { background: rgba(255, 71, 87, 0.3); color: var(--text-primary); }
-        .heatmap-cell.neutral { background: var(--hover-bg); color: var(--text-secondary); }
-
-        /* Data Table */
-        .data-table {
-            overflow-x: auto;
-            margin-top: 1rem;
-        }
-
-        .table {
+        .chart-svg {
             width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
+            height: 100%;
         }
 
-        .table th,
-        .table td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
+        .chart-line {
+            fill: none;
+            stroke: var(--color-primary);
+            stroke-width: 2;
         }
 
-        .table th {
-            background: var(--hover-bg);
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.5px;
+        .chart-area {
+            fill: var(--color-primary);
+            opacity: 0.1;
         }
 
-        .table tbody tr {
-            transition: background-color 0.2s ease;
+        /* Performance Summary */
+        .performance-summary {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
         }
 
-        .table tbody tr:hover {
-            background: var(--hover-bg);
+        .summary-title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
         }
 
-        /* Progress Bars */
-        .progress-container {
-            margin: 1rem 0;
-        }
-
-        .progress-item {
+        .summary-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .progress-label {
-            font-size: 0.9rem;
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
             color: var(--text-secondary);
-            font-weight: 500;
+            font-size: 0.9rem;
         }
 
-        .progress-value {
-            font-size: 0.85rem;
+        .summary-value {
             font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Trading Pairs Performance */
+        .pairs-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .pairs-title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
             color: var(--text-primary);
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--hover-bg);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 0.25rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.8s ease;
-        }
-
-        .progress-fill.success { background: var(--gradient-success); }
-        .progress-fill.warning { background: var(--gradient-warning); }
-        .progress-fill.danger { background: var(--gradient-danger); }
-        .progress-fill.info { background: var(--gradient-info); }
-
-        /* ML Insights */
-        .insight-item {
-            display: flex;
-            align-items: center;
+        .pairs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
+        }
+
+        .pair-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
             padding: 1rem;
-            background: var(--hover-bg);
+        }
+
+        .pair-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .pair-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .pair-stat {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pair-stat-label {
+            color: var(--text-secondary);
+        }
+
+        .pair-stat-value {
+            color: var(--text-primary);
+        }
+
+        /* Risk Metrics */
+        .risk-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .risk-title {
+            font-size: 1.1rem;
             margin-bottom: 1rem;
-            border-left: 4px solid var(--accent-purple);
+            color: var(--text-primary);
         }
 
-        .insight-icon {
-            font-size: 1.5rem;
-            color: var(--accent-purple);
+        .risk-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
         }
 
-        .insight-content h4 {
-            font-size: 0.9rem;
+        .risk-metric {
+            text-align: center;
+        }
+
+        .risk-value {
+            font-size: 1.2rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
-            color: var(--text-primary);
         }
 
-        .insight-content p {
-            font-size: 0.8rem;
+        .risk-value.low {
+            color: var(--color-success);
+        }
+
+        .risk-value.medium {
+            color: var(--color-warning);
+        }
+
+        .risk-value.high {
+            color: var(--color-danger);
+        }
+
+        .risk-label {
             color: var(--text-secondary);
-            line-height: 1.4;
+            font-size: 0.8rem;
         }
 
-        /* Buttons */
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .btn-primary {
-            background: var(--gradient-primary);
-            color: white;
-        }
-
-        .btn-analytics {
-            background: var(--gradient-analytics);
-            color: white;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        .btn-outline:hover {
-            background: var(--hover-bg);
-        }
-
-        /* Loading States */
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 3rem;
-            color: var(--text-muted);
-        }
-
-        .spinner {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border-color);
-            border-top: 2px solid var(--accent-purple);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 0.75rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1200px) {
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
             .analytics-grid {
                 grid-template-columns: 1fr;
             }
             
-            .detailed-section {
-                grid-template-columns: 1fr;
-            }
-            
             .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pairs-grid {
                 grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .page-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: stretch;
-            }
-            
-            .header-stats {
-                gap: 1rem;
-            }
-            
-            .heatmap-container {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        /* Animations */
-        .fade-in {
-            animation: fadeIn 0.6s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .slide-up {
-            animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
             }
         }
     </style>
 </head>
 <body>
-    <div class="animated-bg"></div>
-    
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <a href="/" class="logo">
-                <i class="fas fa-bolt"></i>
-                <span>Lightning Scalper</span>
-            </a>
-            
-            <div class="breadcrumb">
-                <a href="/"><i class="fas fa-home"></i></a>
-                <i class="fas fa-chevron-right"></i>
-                <span class="current">Analytics</span>
-            </div>
-            
-            <div class="header-stats">
-                <div class="stat-item">
-                    <div class="stat-value" id="header-profit">$0.00</div>
-                    <div class="stat-label">Total Profit</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="header-winrate">0%</div>
-                    <div class="stat-label">Win Rate</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="header-trades">0</div>
-                    <div class="stat-label">Total Trades</div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Navigation -->
-    <nav class="nav">
-        <div class="nav-content">
-            <ul class="nav-links">
-                <li><a href="/" class="nav-link">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </a></li>
-                <li><a href="/clients" class="nav-link">
-                    <i class="fas fa-users"></i> Clients
-                </a></li>
-                <li><a href="/signals" class="nav-link">
-                    <i class="fas fa-chart-line"></i> Signals
-                </a></li>
-                <li><a href="/analytics" class="nav-link active">
-                    <i class="fas fa-analytics"></i> Analytics
-                </a></li>
-                <li><a href="/risk" class="nav-link">
-                    <i class="fas fa-shield-alt"></i> Risk
-                </a></li>
-                <li><a href="/settings" class="nav-link">
-                    <i class="fas fa-cog"></i> Settings
-                </a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
     <div class="container">
-        <!-- Page Header -->
-        <div class="page-header fade-in">
+        <!-- Header -->
+        <div class="header">
             <h1 class="page-title">
-                <i class="fas fa-chart-pie"></i>
-                Advanced Analytics
+                <i class="fas fa-chart-pie"></i> Performance Analytics
             </h1>
-            <div class="page-controls">
-                <div class="time-selector">
-                    <button class="time-btn" data-period="1d">1D</button>
-                    <button class="time-btn" data-period="1w">1W</button>
-                    <button class="time-btn active" data-period="1m">1M</button>
-                    <button class="time-btn" data-period="3m">3M</button>
-                    <button class="time-btn" data-period="1y">1Y</button>
-                </div>
-                <button class="btn btn-analytics" onclick="generateReport()">
-                    <i class="fas fa-file-chart"></i> Generate Report
-                </button>
-                <button class="btn btn-outline" onclick="exportAnalytics()">
-                    <i class="fas fa-download"></i> Export
-                </button>
+            <div class="time-filters">
+                <button class="time-btn">1D</button>
+                <button class="time-btn">1W</button>
+                <button class="time-btn active">1M</button>
+                <button class="time-btn">3M</button>
+                <button class="time-btn">1Y</button>
             </div>
         </div>
 
-        <!-- Main Analytics Grid -->
-        <div class="analytics-grid fade-in">
-            <!-- Performance Section -->
-            <div class="performance-section">
-                <!-- Performance Chart -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-line card-icon"></i>
-                            Performance Overview
-                        </h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-outline btn-sm" id="equity-btn">Equity</button>
-                            <button class="btn btn-outline btn-sm active" id="pnl-btn">P&L</button>
-                            <button class="btn btn-outline btn-sm" id="drawdown-btn">Drawdown</button>
-                        </div>
-                    </div>
-                    <div class="chart-container chart-large">
-                        <canvas id="performanceChart"></canvas>
-                    </div>
-                </div>
+        <!-- Navigation -->
+        <div class="nav">
+            <a href="/" class="nav-btn">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="/clients" class="nav-btn">
+                <i class="fas fa-users"></i> Clients
+            </a>
+            <a href="/signals" class="nav-btn">
+                <i class="fas fa-chart-line"></i> Signals
+            </a>
+            <a href="/analytics" class="nav-btn active">
+                <i class="fas fa-chart-pie"></i> Analytics
+            </a>
+        </div>
 
-                <!-- Signal Analysis -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-satellite-dish card-icon"></i>
-                            Signal Performance Analysis
-                        </h3>
-                    </div>
-                    <div class="chart-container chart-medium">
-                        <canvas id="signalChart"></canvas>
-                    </div>
-                </div>
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value positive">+$12,450</div>
+                <div class="kpi-label">Total P&L (30 days)</div>
+                <div class="kpi-change positive">+18.5% vs last month</div>
             </div>
-
-            <!-- KPI Cards -->
-            <div class="kpi-grid">
-                <div class="kpi-card profit">
-                    <div class="kpi-icon">
-                        <i class="fas fa-dollar-sign"></i>
-                    </div>
-                    <div class="kpi-value" id="total-profit">$12,450</div>
-                    <div class="kpi-label">Total Profit</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        +15.2% this month
-                    </div>
-                </div>
-                
-                <div class="kpi-card trades">
-                    <div class="kpi-icon">
-                        <i class="fas fa-exchange-alt"></i>
-                    </div>
-                    <div class="kpi-value" id="total-trades">1,247</div>
-                    <div class="kpi-label">Total Trades</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        +12 today
-                    </div>
-                </div>
-                
-                <div class="kpi-card winrate">
-                    <div class="kpi-icon">
-                        <i class="fas fa-target"></i>
-                    </div>
-                    <div class="kpi-value" id="win-rate">72.5%</div>
-                    <div class="kpi-label">Win Rate</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        +2.1% vs last month
-                    </div>
-                </div>
-                
-                <div class="kpi-card sharpe">
-                    <div class="kpi-icon">
-                        <i class="fas fa-chart-area"></i>
-                    </div>
-                    <div class="kpi-value" id="sharpe-ratio">2.34</div>
-                    <div class="kpi-label">Sharpe Ratio</div>
-                    <div class="kpi-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        Excellent
-                    </div>
-                </div>
+            <div class="kpi-card">
+                <div class="kpi-value neutral">73.2%</div>
+                <div class="kpi-label">Win Rate</div>
+                <div class="kpi-change positive">+2.1% improvement</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value neutral">1.85</div>
+                <div class="kpi-label">Avg Risk:Reward</div>
+                <div class="kpi-change positive">+0.15 improvement</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value negative">-5.2%</div>
+                <div class="kpi-label">Max Drawdown</div>
+                <div class="kpi-change positive">-1.8% vs last month</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value neutral">156</div>
+                <div class="kpi-label">Total Trades</div>
+                <div class="kpi-change positive">+23 vs last month</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value neutral">68.5</div>
+                <div class="kpi-label">Avg Signal Quality</div>
+                <div class="kpi-change positive">+4.2 improvement</div>
             </div>
         </div>
 
-        <!-- Detailed Analytics Section -->
-        <div class="detailed-section slide-up">
-            <!-- Trading Heatmap -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-th card-icon"></i>
-                        Trading Heatmap
-                    </h3>
-                </div>
-                <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">Sessions (Hours)</span>
-                        <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.7rem;">
-                            <span style="color: var(--text-muted);">Loss</span>
-                            <div style="width: 12px; height: 12px; background: var(--accent-red); border-radius: 2px;"></div>
-                            <div style="width: 12px; height: 12px; background: var(--hover-bg); border-radius: 2px;"></div>
-                            <div style="width: 12px; height: 12px; background: var(--accent-green); border-radius: 2px;"></div>
-                            <span style="color: var(--text-muted);">Profit</span>
-                        </div>
-                    </div>
-                    <div class="heatmap-container" id="trading-heatmap">
-                        <!-- Dynamic heatmap will be generated here -->
-                    </div>
+        <!-- Analytics Grid -->
+        <div class="analytics-grid">
+            <div class="chart-section">
+                <h3 class="chart-title">
+                    <i class="fas fa-chart-area"></i> Equity Curve (30 Days)
+                </h3>
+                <div class="simple-chart">
+                    <svg class="chart-svg" viewBox="0 0 400 150">
+                        <defs>
+                            <linearGradient id="equityGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--color-success);stop-opacity:0.3" />
+                                <stop offset="100%" style="stop-color:var(--color-success);stop-opacity:0" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Equity curve with gradual upward trend -->
+                        <path class="chart-area" d="M0,120 L40,115 L80,110 L120,105 L160,95 L200,85 L240,80 L280,70 L320,65 L360,50 L400,40 L400,150 L0,150 Z" fill="url(#equityGradient)"/>
+                        <path class="chart-line" d="M0,120 L40,115 L80,110 L120,105 L160,95 L200,85 L240,80 L280,70 L320,65 L360,50 L400,40" stroke="var(--color-success)"/>
+                        
+                        <!-- Grid lines -->
+                        <g stroke="var(--border)" stroke-width="0.5" opacity="0.3">
+                            <line x1="0" y1="37.5" x2="400" y2="37.5"/>
+                            <line x1="0" y1="75" x2="400" y2="75"/>
+                            <line x1="0" y1="112.5" x2="400" y2="112.5"/>
+                        </g>
+                    </svg>
                 </div>
             </div>
 
-            <!-- Risk Analysis -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-shield-alt card-icon"></i>
-                        Risk Analysis
-                    </h3>
+            <div class="performance-summary">
+                <h3 class="summary-title">
+                    <i class="fas fa-trophy"></i> Performance Summary
+                </h3>
+                <div class="summary-item">
+                    <span class="summary-label">Best Day</span>
+                    <span class="summary-value" style="color: var(--color-success);">+$890</span>
                 </div>
-                <div class="progress-container">
-                    <div class="progress-item">
-                        <span class="progress-label">Max Drawdown</span>
-                        <span class="progress-value">-8.5%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill warning" style="width: 42.5%"></div>
-                    </div>
-                    
-                    <div class="progress-item">
-                        <span class="progress-label">Risk per Trade</span>
-                        <span class="progress-value">2.1%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill success" style="width: 21%"></div>
-                    </div>
-                    
-                    <div class="progress-item">
-                        <span class="progress-label">Correlation Risk</span>
-                        <span class="progress-value">15.2%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill info" style="width: 15.2%"></div>
-                    </div>
-                    
-                    <div class="progress-item">
-                        <span class="progress-label">Portfolio Exposure</span>
-                        <span class="progress-value">67.8%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill warning" style="width: 67.8%"></div>
-                    </div>
+                <div class="summary-item">
+                    <span class="summary-label">Worst Day</span>
+                    <span class="summary-value" style="color: var(--color-danger);">-$235</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Avg Daily P&L</span>
+                    <span class="summary-value">+$415</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Profitable Days</span>
+                    <span class="summary-value">22/30 (73%)</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Largest Win</span>
+                    <span class="summary-value" style="color: var(--color-success);">+$1,240</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Largest Loss</span>
+                    <span class="summary-value" style="color: var(--color-danger);">-$380</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Profit Factor</span>
+                    <span class="summary-value">2.34</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Sharpe Ratio</span>
+                    <span class="summary-value">1.87</span>
                 </div>
             </div>
         </div>
 
-        <!-- Bottom Section -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;" class="slide-up">
-            <!-- Top Performing Pairs -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-trophy card-icon"></i>
-                        Top Performing Currency Pairs
-                    </h3>
+        <!-- Trading Pairs Performance -->
+        <div class="pairs-section">
+            <h3 class="pairs-title">
+                <i class="fas fa-exchange-alt"></i> Currency Pairs Performance
+            </h3>
+            <div class="pairs-grid">
+                <div class="pair-card">
+                    <div class="pair-name">EURUSD</div>
+                    <div class="pair-stats">
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Win Rate:</span>
+                            <span class="pair-stat-value">78%</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">P&L:</span>
+                            <span class="pair-stat-value" style="color: var(--color-success);">+$3,240</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Trades:</span>
+                            <span class="pair-stat-value">42</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Avg R:R:</span>
+                            <span class="pair-stat-value">1.6</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="data-table">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Pair</th>
-                                <th>Trades</th>
-                                <th>Win Rate</th>
-                                <th>Avg R:R</th>
-                                <th>Total P&L</th>
-                                <th>Trend</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pairs-performance">
-                            <tr>
-                                <td><strong>EUR/USD</strong></td>
-                                <td>347</td>
-                                <td><span style="color: var(--accent-green);">74.2%</span></td>
-                                <td>1.65</td>
-                                <td style="color: var(--accent-green);">+$3,420</td>
-                                <td><i class="fas fa-arrow-up" style="color: var(--accent-green);"></i></td>
-                            </tr>
-                            <tr>
-                                <td><strong>GBP/USD</strong></td>
-                                <td>289</td>
-                                <td><span style="color: var(--accent-green);">71.8%</span></td>
-                                <td>1.52</td>
-                                <td style="color: var(--accent-green);">+$2,890</td>
-                                <td><i class="fas fa-arrow-up" style="color: var(--accent-green);"></i></td>
-                            </tr>
-                            <tr>
-                                <td><strong>XAU/USD</strong></td>
-                                <td>156</td>
-                                <td><span style="color: var(--accent-green);">69.5%</span></td>
-                                <td>1.78</td>
-                                <td style="color: var(--accent-green);">+$2,340</td>
-                                <td><i class="fas fa-arrow-up" style="color: var(--accent-green);"></i></td>
-                            </tr>
-                            <tr>
-                                <td><strong>USD/JPY</strong></td>
-                                <td>234</td>
-                                <td><span style="color: var(--accent-yellow);">65.4%</span></td>
-                                <td>1.43</td>
-                                <td style="color: var(--accent-green);">+$1,560</td>
-                                <td><i class="fas fa-arrow-right" style="color: var(--accent-yellow);"></i></td>
-                            </tr>
-                            <tr>
-                                <td><strong>AUD/USD</strong></td>
-                                <td>221</td>
-                                <td><span style="color: var(--accent-red);">58.9%</span></td>
-                                <td>1.34</td>
-                                <td style="color: var(--accent-red);">-$340</td>
-                                <td><i class="fas fa-arrow-down" style="color: var(--accent-red);"></i></td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div class="pair-card">
+                    <div class="pair-name">GBPUSD</div>
+                    <div class="pair-stats">
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Win Rate:</span>
+                            <span class="pair-stat-value">71%</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">P&L:</span>
+                            <span class="pair-stat-value" style="color: var(--color-success);">+$2,890</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Trades:</span>
+                            <span class="pair-stat-value">38</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Avg R:R:</span>
+                            <span class="pair-stat-value">1.8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">USDJPY</div>
+                    <div class="pair-stats">
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Win Rate:</span>
+                            <span class="pair-stat-value">69%</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">P&L:</span>
+                            <span class="pair-stat-value" style="color: var(--color-success);">+$1,820</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Trades:</span>
+                            <span class="pair-stat-value">29</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Avg R:R:</span>
+                            <span class="pair-stat-value">1.9</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pair-card">
+                    <div class="pair-name">XAUUSD</div>
+                    <div class="pair-stats">
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Win Rate:</span>
+                            <span class="pair-stat-value">82%</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">P&L:</span>
+                            <span class="pair-stat-value" style="color: var(--color-success);">+$4,500</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Trades:</span>
+                            <span class="pair-stat-value">47</span>
+                        </div>
+                        <div class="pair-stat">
+                            <span class="pair-stat-label">Avg R:R:</span>
+                            <span class="pair-stat-value">2.1</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- ML Insights -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-brain card-icon"></i>
-                        AI Insights
-                    </h3>
+        <!-- Risk Metrics -->
+        <div class="risk-section">
+            <h3 class="risk-title">
+                <i class="fas fa-shield-alt"></i> Risk Management
+            </h3>
+            <div class="risk-metrics">
+                <div class="risk-metric">
+                    <div class="risk-value low">Low</div>
+                    <div class="risk-label">Current Risk Level</div>
                 </div>
-                <div>
-                    <div class="insight-item">
-                        <div class="insight-icon">
-                            <i class="fas fa-lightbulb"></i>
-                        </div>
-                        <div class="insight-content">
-                            <h4>Signal Quality Improvement</h4>
-                            <p>Confluence scores above 80 show 15% better performance. Consider raising minimum threshold.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="insight-item">
-                        <div class="insight-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="insight-content">
-                            <h4>Optimal Trading Hours</h4>
-                            <p>London-NY overlap shows highest win rate (76.2%). Consider increasing position sizes during this session.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="insight-item">
-                        <div class="insight-icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="insight-content">
-                            <h4>Risk Warning</h4>
-                            <p>AUD pairs showing decreased performance. Consider temporary reduction in exposure.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="insight-item">
-                        <div class="insight-icon">
-                            <i class="fas fa-trending-up"></i>
-                        </div>
-                        <div class="insight-content">
-                            <h4>Growth Opportunity</h4>
-                            <p>M15 timeframe signals outperforming M5 by 8.5%. Consider timeframe rebalancing.</p>
-                        </div>
-                    </div>
+                <div class="risk-metric">
+                    <div class="risk-value low">2.3%</div>
+                    <div class="risk-label">Position Size</div>
+                </div>
+                <div class="risk-metric">
+                    <div class="risk-value low">15%</div>
+                    <div class="risk-label">Margin Usage</div>
+                </div>
+                <div class="risk-metric">
+                    <div class="risk-value low">0.8</div>
+                    <div class="risk-label">Correlation Risk</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Global variables
-        let socket;
-        let performanceChart;
-        let signalChart;
-        let currentPeriod = '1m';
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeSocketIO();
-            initializeCharts();
-            generateHeatmap();
-            setupEventListeners();
-            loadAnalyticsData();
+        // Simple time filter functionality
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const period = this.textContent;
+                console.log('Analytics period changed to:', period);
+                // In real implementation: reload data for selected period
+            });
         });
 
-        // Socket.IO initialization
-        function initializeSocketIO() {
-            socket = io();
-            
-            socket.on('connect', function() {
-                console.log('Connected to Lightning Scalper server');
-                socket.emit('subscribe_to_updates', {type: 'analytics'});
-            });
-            
-            socket.on('analytics_update', function(data) {
-                updateAnalyticsData(data);
-            });
-        }
-
-        // Initialize charts
-        function initializeCharts() {
-            initializePerformanceChart();
-            initializeSignalChart();
-        }
-
-        function initializePerformanceChart() {
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            
-            performanceChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: generateTimeLabels(30),
-                    datasets: [{
-                        label: 'Cumulative P&L',
-                        data: generatePerformanceData(30),
-                        borderColor: '#7c4dff',
-                        backgroundColor: 'rgba(124, 77, 255, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#7c4dff',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 0,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                color: 'rgba(58, 69, 83, 0.3)'
-                            },
-                            ticks: {
-                                color: '#a0a9c0'
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(58, 69, 83, 0.3)'
-                            },
-                            ticks: {
-                                color: '#a0a9c0',
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    animation: {
-                        duration: 1500,
-                        easing: 'easeInOutQuart'
-                    }
-                }
-            });
-        }
-
-        function initializeSignalChart() {
-            const ctx = document.getElementById('signalChart').getContext('2d');
-            
-            signalChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Winning Signals', 'Losing Signals', 'Break Even'],
-                    datasets: [{
-                        data: [725, 382, 140],
-                        backgroundColor: [
-                            '#00ff88',
-                            '#ff4757',
-                            '#ffa502'
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#a0a9c0',
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                padding: 15
-                            }
-                        }
-                    },
-                    animation: {
-                        duration: 1200,
-                        easing: 'easeInOutQuart'
-                    }
-                }
-            });
-        }
-
-        // Generate trading heatmap
-        function generateHeatmap() {
-            const container = document.getElementById('trading-heatmap');
-            const hours = 24;
-            const days = 5; // Weekdays
-            
-            const sessionData = generateHeatmapData(hours, days);
-            
-            container.innerHTML = '';
-            
-            for (let day = 0; day < days; day++) {
-                for (let hour = 0; hour < hours; hour++) {
-                    const value = sessionData[day][hour];
-                    const cell = document.createElement('div');
-                    cell.className = 'heatmap-cell';
-                    cell.textContent = hour;
-                    
-                    // Determine cell color based on performance
-                    if (value > 100) {
-                        cell.classList.add('profit-high');
-                    } else if (value > 50) {
-                        cell.classList.add('profit-medium');
-                    } else if (value > 0) {
-                        cell.classList.add('profit-low');
-                    } else if (value > -50) {
-                        cell.classList.add('loss-low');
-                    } else if (value > -100) {
-                        cell.classList.add('loss-medium');
-                    } else if (value <= -100) {
-                        cell.classList.add('loss-high');
-                    } else {
-                        cell.classList.add('neutral');
-                    }
-                    
-                    cell.title = `Hour ${hour}: $${value}`;
-                    container.appendChild(cell);
-                }
-            }
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            // Time period buttons
-            document.querySelectorAll('.time-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentPeriod = this.dataset.period;
-                    updateChartsForPeriod(currentPeriod);
-                });
-            });
-
-            // Chart type buttons
-            document.getElementById('equity-btn').addEventListener('click', () => switchChartType('equity'));
-            document.getElementById('pnl-btn').addEventListener('click', () => switchChartType('pnl'));
-            document.getElementById('drawdown-btn').addEventListener('click', () => switchChartType('drawdown'));
-        }
-
-        // Switch chart type
-        function switchChartType(type) {
-            document.querySelectorAll('#equity-btn, #pnl-btn, #drawdown-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(type + '-btn').classList.add('active');
-            
-            let data, color, label;
-            
-            switch(type) {
-                case 'equity':
-                    data = generateEquityData(30);
-                    color = '#00d2d3';
-                    label = 'Account Equity';
-                    break;
-                case 'pnl':
-                    data = generatePerformanceData(30);
-                    color = '#7c4dff';
-                    label = 'Cumulative P&L';
-                    break;
-                case 'drawdown':
-                    data = generateDrawdownData(30);
-                    color = '#ff4757';
-                    label = 'Drawdown %';
-                    break;
-            }
-            
-            performanceChart.data.datasets[0].data = data;
-            performanceChart.data.datasets[0].borderColor = color;
-            performanceChart.data.datasets[0].backgroundColor = color + '20';
-            performanceChart.data.datasets[0].label = label;
-            performanceChart.update('active');
-        }
-
-        // Update charts for different time periods
-        function updateChartsForPeriod(period) {
-            let days;
-            switch(period) {
-                case '1d': days = 1; break;
-                case '1w': days = 7; break;
-                case '1m': days = 30; break;
-                case '3m': days = 90; break;
-                case '1y': days = 365; break;
-                default: days = 30;
-            }
-            
-            performanceChart.data.labels = generateTimeLabels(days);
-            performanceChart.data.datasets[0].data = generatePerformanceData(days);
-            performanceChart.update('active');
-            
-            // Update KPIs for the period
-            updateKPIsForPeriod(period);
-        }
-
-        // Utility functions
-        function generateTimeLabels(days) {
-            const labels = [];
-            for (let i = days - 1; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            }
-            return labels;
-        }
-
-        function generatePerformanceData(days) {
-            const data = [];
-            let value = 0;
-            for (let i = 0; i < days; i++) {
-                value += (Math.random() - 0.3) * 200; // Slight positive bias
-                data.push(Math.round(value));
-            }
-            return data;
-        }
-
-        function generateEquityData(days) {
-            const data = [];
-            let equity = 10000; // Starting equity
-            for (let i = 0; i < days; i++) {
-                equity += (Math.random() - 0.25) * 150; // Positive growth trend
-                data.push(Math.round(equity));
-            }
-            return data;
-        }
-
-        function generateDrawdownData(days) {
-            const data = [];
-            let maxEquity = 10000;
-            let currentEquity = 10000;
-            
-            for (let i = 0; i < days; i++) {
-                currentEquity += (Math.random() - 0.3) * 100;
-                maxEquity = Math.max(maxEquity, currentEquity);
-                const drawdown = ((currentEquity - maxEquity) / maxEquity) * 100;
-                data.push(Math.round(drawdown * 100) / 100);
-            }
-            return data;
-        }
-
-        function generateHeatmapData(hours, days) {
-            const data = [];
-            for (let day = 0; day < days; day++) {
-                const dayData = [];
-                for (let hour = 0; hour < hours; hour++) {
-                    // Simulate better performance during London/NY sessions
-                    let basePerformance = 0;
-                    if ((hour >= 8 && hour <= 16) || (hour >= 13 && hour <= 21)) {
-                        basePerformance = 20; // London/NY bonus
-                    }
-                    
-                    const randomVariation = (Math.random() - 0.5) * 200;
-                    dayData.push(Math.round(basePerformance + randomVariation));
-                }
-                data.push(dayData);
-            }
-            return data;
-        }
-
-        // Load analytics data
-        function loadAnalyticsData() {
-            fetch('/api/performance_chart')
+        // Auto-refresh analytics data every 5 minutes
+        setInterval(function() {
+            fetch('/api/analytics')
                 .then(response => response.json())
                 .then(data => {
-                    if (data && data.data) {
-                        updateChartsWithRealData(data);
-                    }
+                    console.log('Analytics data refreshed');
+                    // Update charts and metrics if needed
                 })
                 .catch(error => {
-                    console.error('Error loading analytics data:', error);
+                    console.log('Analytics refresh failed:', error);
                 });
-        }
+        }, 300000);
 
-        function updateChartsWithRealData(data) {
-            // Update performance chart with real data
-            if (data.data && data.data.datasets) {
-                performanceChart.data = data.data;
-                performanceChart.update('active');
-            }
-        }
-
-        function updateAnalyticsData(data) {
-            // Update KPIs
-            if (data.kpis) {
-                document.getElementById('total-profit').textContent = '$' + (data.kpis.totalProfit || 12450).toLocaleString();
-                document.getElementById('total-trades').textContent = (data.kpis.totalTrades || 1247).toLocaleString();
-                document.getElementById('win-rate').textContent = (data.kpis.winRate || 72.5).toFixed(1) + '%';
-                document.getElementById('sharpe-ratio').textContent = (data.kpis.sharpeRatio || 2.34).toFixed(2);
-            }
-            
-            // Update header stats
-            document.getElementById('header-profit').textContent = '$' + (data.totalProfit || 12450).toLocaleString();
-            document.getElementById('header-winrate').textContent = (data.winRate || 72.5).toFixed(1) + '%';
-            document.getElementById('header-trades').textContent = (data.totalTrades || 1247).toLocaleString();
-        }
-
-        function updateKPIsForPeriod(period) {
-            // Simulate different values for different periods
-            const multipliers = {
-                '1d': 0.1,
-                '1w': 0.5,
-                '1m': 1.0,
-                '3m': 2.8,
-                '1y': 12.0
-            };
-            
-            const mult = multipliers[period] || 1.0;
-            
-            document.getElementById('total-profit').textContent = '$' + Math.round(12450 * mult).toLocaleString();
-            document.getElementById('total-trades').textContent = Math.round(1247 * mult).toLocaleString();
-        }
-
-        // Export and report functions
-        function generateReport() {
-            // Implementation for generating comprehensive report
-            alert('Generating comprehensive analytics report...');
-        }
-
-        function exportAnalytics() {
-            // Implementation for exporting analytics data
-            const analyticsData = {
-                period: currentPeriod,
-                kpis: {
-                    totalProfit: 12450,
-                    totalTrades: 1247,
-                    winRate: 72.5,
-                    sharpeRatio: 2.34
-                },
-                timestamp: new Date().toISOString()
-            };
-            
-            const dataStr = JSON.stringify(analyticsData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `lightning_analytics_${currentPeriod}_${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            
-            URL.revokeObjectURL(url);
-        }
-
-        // Initialize with sample data
-        setTimeout(() => {
-            updateAnalyticsData({
-                totalProfit: 12450,
-                winRate: 72.5,
-                totalTrades: 1247,
-                kpis: {
-                    totalProfit: 12450,
-                    totalTrades: 1247,
-                    winRate: 72.5,
-                    sharpeRatio: 2.34
-                }
-            });
-        }, 1000);
+        console.log('Lightning Scalper Analytics page loaded');
     </script>
 </body>
 </html>

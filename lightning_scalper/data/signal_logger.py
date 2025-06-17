@@ -163,11 +163,10 @@ class ExecutionLogEntry:
 @dataclass
 class PerformanceLogEntry:
     """Performance tracking log entry"""
+    # Required fields (no default values)
     timestamp: datetime
     client_id: str
     period_type: str  # DAILY/WEEKLY/MONTHLY
-    
-    # P&L metrics
     total_pnl: float
     winning_trades: int
     losing_trades: int
@@ -176,18 +175,15 @@ class PerformanceLogEntry:
     avg_win: float
     avg_loss: float
     profit_factor: float
-    
-    # Risk metrics
     max_drawdown: float
-    sharpe_ratio: Optional[float] = None
-    calmar_ratio: Optional[float] = None
-    
-    # System metrics
     signals_generated: int
     signals_executed: int
     execution_rate: float
     avg_signal_quality: float
-
+    
+    # Optional fields (with default values)
+    sharpe_ratio: Optional[float] = None
+    calmar_ratio: Optional[float] = None
 class LightningScalperDataLogger:
     """
     🗄️ Lightning Scalper Data Logger

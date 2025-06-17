@@ -105,11 +105,52 @@ class LightningScalperDashboard:
         self.is_running = False
         
         # Setup routes and socket events
+        self._setup_template_filters()
         self._setup_routes()
         self._setup_socket_events()
         
         self.logger.info("🌐 Lightning Scalper Dashboard initialized")
     
+    
+    def _setup_template_filters(self):
+        """Setup custom template filters to handle data safely"""
+        
+        @self.app.template_filter('safe_round')
+        def safe_round(value, digits=2):
+            try:
+                if value is None:
+                    return 0.0
+                return round(float(value), digits)
+            except (ValueError, TypeError):
+                return 0.0
+        
+        @self.app.template_filter('safe_format_currency')
+        def safe_format_currency(value):
+            try:
+                if value is None:
+                    return '$0.00'
+                return f'${float(value):,.2f}'
+            except (ValueError, TypeError):
+                return '$0.00'
+        
+        @self.app.template_filter('safe_format_percent')
+        def safe_format_percent(value):
+            try:
+                if value is None:
+                    return '0%'
+                return f'{float(value):.1f}%'
+            except (ValueError, TypeError):
+                return '0%'
+        
+        @self.app.template_filter('safe_int')
+        def safe_int(value):
+            try:
+                if value is None:
+                    return 0
+                return int(float(value))
+            except (ValueError, TypeError):
+                return 0
+
     def _setup_routes(self):
         """Setup Flask routes"""
         
@@ -501,53 +542,72 @@ class LightningScalperDashboard:
         }
     
     def _get_demo_clients_data(self) -> List[Dict[str, Any]]:
-        """Get demo clients data"""
+        """Get demo clients data - แก้ไข structure ให้ตรงกับ template"""
         return [
             {
-                'client_id': 'DEMO_001',
-                'connection': {
-                    'is_active': True,
-                    'auto_trading': True,
-                    'mt5_connected': True,
-                    'last_heartbeat': datetime.now().isoformat(),
-                    'connection_attempts': 0
-                },
-                'trading_summary': {
-                    'account_info': {
-                        'balance': 10000.0,
-                        'equity': 10234.56,
-                        'free_margin': 8500.0
-                    },
-                    'pnl': {
-                        'daily': 234.56,
-                        'weekly': 1456.78,
-                        'monthly': 3245.89
-                    },
-                    'active_positions': 2
-                }
+                'client_id': 'CLIENT_001',
+                'name': 'Demo Client 001',
+                'email': 'demo1@example.com',
+                'is_active': True,
+                'is_demo': True,
+                'balance': 10000.0,
+                'pnl_today': 245.50,
+                'active_positions': 3,
+                'last_active': '2 min ago',
+                'connection_status': 'online',
+                'account_type': 'demo'
             },
             {
-                'client_id': 'DEMO_002',
-                'connection': {
-                    'is_active': True,
-                    'auto_trading': True,
-                    'mt5_connected': False,
-                    'last_heartbeat': (datetime.now() - timedelta(minutes=5)).isoformat(),
-                    'connection_attempts': 2
-                },
-                'trading_summary': {
-                    'account_info': {
-                        'balance': 25000.0,
-                        'equity': 24789.12,
-                        'free_margin': 22000.0
-                    },
-                    'pnl': {
-                        'daily': -210.88,
-                        'weekly': 567.34,
-                        'monthly': 2890.45
-                    },
-                    'active_positions': 1
-                }
+                'client_id': 'CLIENT_002',
+                'name': 'Demo Client 002', 
+                'email': 'demo2@example.com',
+                'is_active': True,
+                'is_demo': False,
+                'balance': 25000.0,
+                'pnl_today': 890.25,
+                'active_positions': 5,
+                'last_active': '5 min ago',
+                'connection_status': 'online',
+                'account_type': 'live'
+            },
+            {
+                'client_id': 'CLIENT_003',
+                'name': 'Demo Client 003',
+                'email': 'demo3@example.com', 
+                'is_active': False,
+                'is_demo': True,
+                'balance': 5000.0,
+                'pnl_today': -125.75,
+                'active_positions': 1,
+                'last_active': '1 hour ago',
+                'connection_status': 'offline',
+                'account_type': 'demo'
+            },
+            {
+                'client_id': 'CLIENT_004',
+                'name': 'Demo Client 004',
+                'email': 'demo4@example.com',
+                'is_active': True,
+                'is_demo': False, 
+                'balance': 50000.0,
+                'pnl_today': 1340.0,
+                'active_positions': 2,
+                'last_active': '1 min ago',
+                'connection_status': 'online',
+                'account_type': 'live'
+            },
+            {
+                'client_id': 'CLIENT_005',
+                'name': 'Demo Client 005',
+                'email': 'demo5@example.com',
+                'is_active': True,
+                'is_demo': True,
+                'balance': 15000.0,
+                'pnl_today': 678.90,
+                'active_positions': 4,
+                'last_active': '3 min ago',
+                'connection_status': 'online',
+                'account_type': 'demo'
             }
         ]
     
@@ -578,28 +638,30 @@ class LightningScalperDashboard:
         return [
             {
                 'id': 'FVG_DEMO_001',
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': '14:23',
                 'currency_pair': 'EURUSD',
                 'type': 'BULLISH',
-                'timeframe': 'M5',
-                'confluence_score': 85.2,
-                'entry_price': 1.1045,
-                'target_1': 1.1065,
-                'stop_loss': 1.1025,
+                'timeframe': 'M15',
+                'confluence_score': 78.5,
+                'entry_price': 1.10450,
+                'target_1': 1.10680,
+                'stop_loss': 1.10220,
+                'risk_reward_ratio': 1.5,
                 'session': 'London',
                 'status': 'ACTIVE',
                 'priority': 4
             },
             {
                 'id': 'FVG_DEMO_002',
-                'timestamp': (datetime.now() - timedelta(minutes=15)).isoformat(),
+                'timestamp': '14:18',
                 'currency_pair': 'GBPUSD',
                 'type': 'BEARISH',
-                'timeframe': 'M15',
-                'confluence_score': 78.9,
-                'entry_price': 1.2534,
-                'target_1': 1.2504,
-                'stop_loss': 1.2554,
+                'timeframe': 'M5',
+                'confluence_score': 82.1,
+                'entry_price': 1.25340,
+                'target_1': 1.25090,
+                'stop_loss': 1.25590,
+                'risk_reward_ratio': 1.8,
                 'session': 'London',
                 'status': 'FILLED',
                 'priority': 3

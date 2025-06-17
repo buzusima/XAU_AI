@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightning Scalper Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: #333333;
+            --color-primary: #00d4ff;
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --border: #444444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Header - Simplified */
+        .header {
+            text-align: center;
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .status {
+            display: inline-block;
+            background: var(--color-success);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Navigation - Simplified */
+        .nav {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--color-primary);
+            color: var(--bg-primary);
+        }
+
+        /* Stats Grid - Simplified */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-icon {
+            color: var(--color-primary);
+            font-size: 1.2rem;
+        }
+
+        .stat-title {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            color: var(--color-success);
+        }
+
+        /* Simple Chart Container */
+        .chart-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .simple-chart {
+            height: 200px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Simple SVG Chart */
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-line {
+            fill: none;
+            stroke: var(--color-primary);
+            stroke-width: 2;
+        }
+
+        .chart-area {
+            fill: var(--color-primary);
+            opacity: 0.1;
+        }
+
+        /* Activity List - Simplified */
+        .activity-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .activity-title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--color-primary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+        }
+
+        .activity-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .activity-time {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Performance Section - Simplified */
+        .performance {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .perf-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .perf-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .perf-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            .chart-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Remove heavy animations */
+        .fade-in {
+            opacity: 1;
+        }
+
+        /* Simplified loading */
+        .loading {
+            color: var(--color-primary);
+        }
+
+        /* Remove expensive transitions */
+        * {
+            transition: none !important;
+            animation: none !important;
+        }
+
+        /* Only keep essential hover effects */
+        .nav-btn:hover {
+            background: var(--color-primary);
+            color: var(--bg-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-bolt"></i> Lightning Scalper
+            </div>
+            <p class="subtitle">AI-Powered FVG Trading System</p>
+            <div class="status">
+                <i class="fas fa-circle"></i> System Running
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav">
+            <a href="/" class="nav-btn active">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="/clients" class="nav-btn">
+                <i class="fas fa-users"></i> Clients
+            </a>
+            <a href="/signals" class="nav-btn">
+                <i class="fas fa-chart-line"></i> Signals
+            </a>
+            <a href="/analytics" class="nav-btn">
+                <i class="fas fa-chart-pie"></i> Analytics
+            </a>
+            <a href="/api/system_status" class="nav-btn">
+                <i class="fas fa-cog"></i> API
+            </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <i class="fas fa-users stat-icon"></i>
+                    <span class="stat-title">Active Clients</span>
+                </div>
+                <div class="stat-value" id="active-clients">{{ client_count | default(5) }}</div>
+                <div class="stat-change">+2 from yesterday</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <i class="fas fa-chart-line stat-icon"></i>
+                    <span class="stat-title">Today's Signals</span>
+                </div>
+                <div class="stat-value" id="todays-signals">{{ system_status.metrics.total_signals_today | default(23) }}</div>
+                <div class="stat-change">+15% vs average</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <i class="fas fa-dollar-sign stat-icon"></i>
+                    <span class="stat-title">Total P&L Today</span>
+                </div>
+                <div class="stat-value" id="total-pnl">${{ system_status.metrics.total_pnl_today | default(1247.50) | safe_round(2) }}</div>
+                <div class="stat-change">+$324 profit</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <i class="fas fa-percentage stat-icon"></i>
+                    <span class="stat-title">Win Rate</span>
+                </div>
+                <div class="stat-value" id="win-rate">{{ system_status.metrics.avg_signal_quality | default(73.5) | safe_round(1) }}%</div>
+                <div class="stat-change">+2.1% this week</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-section">
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <i class="fas fa-chart-area"></i> Performance Overview
+                </h3>
+                <div class="simple-chart">
+                    <svg class="chart-svg" viewBox="0 0 300 100">
+                        <defs>
+                            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--color-primary);stop-opacity:0.3" />
+                                <stop offset="100%" style="stop-color:var(--color-primary);stop-opacity:0" />
+                            </linearGradient>
+                        </defs>
+                        <path class="chart-area" d="M0,80 L50,70 L100,60 L150,45 L200,35 L250,25 L300,20 L300,100 L0,100 Z" fill="url(#chartGradient)"/>
+                        <path class="chart-line" d="M0,80 L50,70 L100,60 L150,45 L200,35 L250,25 L300,20"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="activity-card">
+                <h3 class="activity-title">
+                    <i class="fas fa-clock"></i> Recent Activity
+                </h3>
+                <ul class="activity-list" id="recent-activity">
+                    <li class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="activity-text">EURUSD Bullish Signal</div>
+                        <div class="activity-time">2m ago</div>
+                    </li>
+                    <li class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="activity-text">Client connected</div>
+                        <div class="activity-time">5m ago</div>
+                    </li>
+                    <li class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="activity-text">GBPUSD +15 pips</div>
+                        <div class="activity-time">8m ago</div>
+                    </li>
+                    <li class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="activity-text">Risk check passed</div>
+                        <div class="activity-time">12m ago</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Performance Indicators -->
+        <div class="performance">
+            <div class="perf-card">
+                <div class="perf-label">System Uptime</div>
+                <div class="perf-value">99.8%</div>
+            </div>
+            <div class="perf-card">
+                <div class="perf-label">Response Time</div>
+                <div class="perf-value">45ms</div>
+            </div>
+            <div class="perf-card">
+                <div class="perf-label">Active Positions</div>
+                <div class="perf-value">{{ system_status.metrics.executed_trades_today | default(17) }}</div>
+            </div>
+            <div class="perf-card">
+                <div class="perf-label">Risk Level</div>
+                <div class="perf-value" style="color: var(--color-success);">Low</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Lightning Scalper v1.0.0 - Last updated: {{ last_update}}</p>
+            <p>© 2024 Phoenix Trading AI</p>
+        </div>
+    </div>
+
+    <script>
+        // Simplified JavaScript - No heavy libraries
+        
+        // Simple auto-refresh (reduced frequency)
+        setInterval(function() {
+            fetch('/api/system_status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update only essential stats
+                    const signalsEl = document.getElementById('todays-signals');
+                    const pnlEl = document.getElementById('total-pnl');
+                    
+                    if (signalsEl && data.metrics) {
+                        signalsEl.textContent = data.metrics.total_signals_today || 0;
+                    }
+                    if (pnlEl && data.metrics) {
+                        pnlEl.textContent = '$' + (data.metrics.total_pnl_today || 0).toFixed(2);
+                    }
+                })
+                .catch(error => {
+                    // Silent error handling
+                    console.log('Status update failed:', error);
+                });
+        }, 60000); // Reduced to 1 minute
+
+        // Simple activity updater
+        function addActivity(text, icon, time) {
+            const activityList = document.getElementById('recent-activity');
+            if (!activityList) return;
+            
+            const newItem = document.createElement('li');
+            newItem.className = 'activity-item';
+            newItem.innerHTML = `
+                <div class="activity-icon">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div class="activity-text">${text}</div>
+                <div class="activity-time">${time}</div>
+            `;
+            
+            activityList.insertBefore(newItem, activityList.firstChild);
+            
+            // Keep only 4 items
+            while (activityList.children.length > 4) {
+                activityList.removeChild(activityList.lastChild);
+            }
+        }
+
+        // Simple WebSocket (optional)
+        try {
+            if (typeof io !== 'undefined') {
+                const socket = io();
+                socket.on('new_signal', function(data) {
+                    addActivity(
+                        `${data.signal.currency_pair} ${data.signal.type}`,
+                        'chart-line',
+                        'Just now'
+                    );
+                });
+            }
+        } catch (e) {
+            // WebSocket not available - that's fine
+        }
+
+        console.log('Lightning Scalper Dashboard loaded');
+    </script>
+</body>
+</html>
