@@ -1,0 +1,48 @@
+{
+    "application": {
+        "name": "Lightning Scalper",
+        "version": "1.0.0",
+        "debug_mode": true,
+        "auto_start_trading": false,
+        "max_startup_time": 60,
+        "health_check_interval": 30
+    },
+    "system": {
+        "max_clients": 100,
+        "data_update_interval": 1.0,
+        "health_check_interval": 30.0,
+        "signal_generation_interval": 5.0,
+        "auto_reconnect": true,
+        "max_reconnect_attempts": 5,
+        "emergency_stop_loss": 0.1,
+        "max_daily_trades": 1000,
+        "enable_performance_monitoring": true
+    },
+    "trading": {
+        "default_lot_size": 0.01,
+        "max_lot_size": 1.0,
+        "max_spread": 3.0,
+        "min_equity": 100.0,
+        "risk_per_trade": 0.02,
+        "max_simultaneous_trades": 5,
+        "allow_demo_trading": true
+    },
+    "fvg_detection": {
+        "min_fvg_size": 5.0,
+        "max_fvg_age": 300,
+        "confirmation_candles": 2,
+        "volume_threshold": 1.2,
+        "enable_multi_timeframe": true,
+        "min_confluence_score": 60.0
+    },
+    "performance": {
+        "enable_caching": true,
+        "cache_duration": 300,
+        "max_memory_usage": 512,
+        "cleanup_interval": 3600
+    },
+    "clients": {
+        "auto_load_clients": true,
+        "clients_config_file": "config/clients.json"
+    }
+}
