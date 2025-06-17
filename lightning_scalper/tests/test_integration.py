@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-🚀 Lightning Scalper - Integration Test Suite
+Lightning Scalper - Windows Safe Version
+Auto-fixed for Unicode compatibility
+"""
+
+"""
+[ROCKET] Lightning Scalper - Integration Test Suite
 Production-Grade System Integration Testing
 
 This comprehensive test suite validates the entire Lightning Scalper system
@@ -15,7 +21,7 @@ Test Categories:
 - Dashboard Integration Tests
 - End-to-End Trading Flow Tests
 
-Author: Phoenix Trading AI (อาจารย์ฟินิกซ์)
+Author: Phoenix Trading AI (??????????????)
 Version: 1.0.0
 License: Proprietary
 """
@@ -54,22 +60,22 @@ try:
     from data.signal_logger import LightningScalperDataLogger, SignalLogEntry
     from config.config_manager import LightningScalperConfigManager
     from dashboard.web_dashboard import LightningScalperDashboard
-    print("✅ All Lightning Scalper modules imported successfully")
+    print("[CHECK] All Lightning Scalper modules imported successfully")
 except ImportError as e:
-    print(f"❌ Failed to import Lightning Scalper modules: {e}")
+    print(f"[X] Failed to import Lightning Scalper modules: {e}")
     print("   Make sure all files are in the correct directories")
     sys.exit(1)
 
 class LightningScalperIntegrationTests(unittest.TestCase):
     """
-    🧪 Lightning Scalper Integration Test Suite
+    [TEST_TUBE] Lightning Scalper Integration Test Suite
     Comprehensive testing of the entire trading system
     """
     
     @classmethod
     def setUpClass(cls):
         """Set up test environment once for all tests"""
-        print("\n🧪 Setting up Lightning Scalper Integration Test Environment...")
+        print("\n[TEST_TUBE] Setting up Lightning Scalper Integration Test Environment...")
         
         # Create temporary directory for test data
         cls.test_dir = Path(tempfile.mkdtemp(prefix="lightning_test_"))
@@ -90,7 +96,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         )
         
         cls.logger = logging.getLogger('IntegrationTests')
-        cls.logger.info(f"🗂️ Test directory: {cls.test_dir}")
+        cls.logger.info(f"?? Test directory: {cls.test_dir}")
         
         # Test configuration
         cls.test_config = {
@@ -148,27 +154,27 @@ class LightningScalperIntegrationTests(unittest.TestCase):
             ]
         }
         
-        print("✅ Test environment setup complete")
+        print("[CHECK] Test environment setup complete")
     
     @classmethod
     def tearDownClass(cls):
         """Clean up after all tests"""
-        print("\n🧹 Cleaning up test environment...")
+        print("\n? Cleaning up test environment...")
         
         # Remove test directory
         import shutil
         if cls.test_dir.exists():
             shutil.rmtree(cls.test_dir)
         
-        print("✅ Test cleanup complete")
+        print("[CHECK] Test cleanup complete")
     
     def setUp(self):
         """Set up before each test"""
-        self.logger.info(f"\n🧪 Starting test: {self._testMethodName}")
+        self.logger.info(f"\n[TEST_TUBE] Starting test: {self._testMethodName}")
     
     def tearDown(self):
         """Clean up after each test"""
-        self.logger.info(f"✅ Completed test: {self._testMethodName}")
+        self.logger.info(f"[CHECK] Completed test: {self._testMethodName}")
 
     # ===========================================
     # CORE ENGINE TESTS
@@ -176,7 +182,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     def test_01_fvg_detector_initialization(self):
         """Test FVG detector initialization and basic functionality"""
-        print("\n🔍 Testing FVG Detector Initialization...")
+        print("\n[SEARCH] Testing FVG Detector Initialization...")
         
         # Test basic initialization
         detector = EnhancedFVGDetector(CurrencyPair.EURUSD)
@@ -191,11 +197,11 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         self.assertIn('min_gap_percentage', config)
         self.assertIn('confluence_threshold', config)
         
-        print("✅ FVG Detector initialization test passed")
+        print("[CHECK] FVG Detector initialization test passed")
     
     def test_02_fvg_signal_detection(self):
         """Test FVG signal detection with sample data"""
-        print("\n🎯 Testing FVG Signal Detection...")
+        print("\n[TARGET] Testing FVG Signal Detection...")
         
         detector = EnhancedFVGDetector(CurrencyPair.EURUSD)
         
@@ -217,14 +223,14 @@ class LightningScalperIntegrationTests(unittest.TestCase):
             self.assertEqual(signal.timeframe, 'M5')
             self.assertGreater(signal.confluence_score, 0)
             
-            print(f"   📊 Detected {len(signals)} FVG signals")
-            print(f"   🎯 Top signal confluence: {signal.confluence_score:.1f}")
+            print(f"   [CHART] Detected {len(signals)} FVG signals")
+            print(f"   [TARGET] Top signal confluence: {signal.confluence_score:.1f}")
         
-        print("✅ FVG signal detection test passed")
+        print("[CHECK] FVG signal detection test passed")
     
     def test_03_multi_timeframe_analysis(self):
         """Test multi-timeframe signal analysis"""
-        print("\n⏰ Testing Multi-Timeframe Analysis...")
+        print("\n? Testing Multi-Timeframe Analysis...")
         
         detector = EnhancedFVGDetector(CurrencyPair.EURUSD)
         
@@ -247,10 +253,10 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         self.assertIsInstance(execution_signals, list)
         
         total_signals = sum(len(signals) for signals in results.values())
-        print(f"   📊 Total signals across timeframes: {total_signals}")
-        print(f"   🚀 Execution-ready signals: {len(execution_signals)}")
+        print(f"   [CHART] Total signals across timeframes: {total_signals}")
+        print(f"   [ROCKET] Execution-ready signals: {len(execution_signals)}")
         
-        print("✅ Multi-timeframe analysis test passed")
+        print("[CHECK] Multi-timeframe analysis test passed")
 
     # ===========================================
     # TRADE EXECUTION TESTS
@@ -258,7 +264,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     def test_04_trade_executor_initialization(self):
         """Test trade executor initialization"""
-        print("\n⚡ Testing Trade Executor Initialization...")
+        print("\n[LIGHTNING] Testing Trade Executor Initialization...")
         
         executor = TradeExecutor()
         self.assertIsNotNone(executor)
@@ -273,11 +279,11 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         executor.stop_execution_engine()
         self.assertFalse(executor.is_running)
         
-        print("✅ Trade executor initialization test passed")
+        print("[CHECK] Trade executor initialization test passed")
     
     def test_05_client_registration(self):
         """Test client registration and management"""
-        print("\n👥 Testing Client Registration...")
+        print("\n[USERS] Testing Client Registration...")
         
         executor = TradeExecutor()
         
@@ -299,12 +305,12 @@ class LightningScalperIntegrationTests(unittest.TestCase):
             self.assertIn('account_info', summary)
             self.assertIn('pnl', summary)
             
-        print(f"   👥 Successfully registered {len(executor.clients)} clients")
-        print("✅ Client registration test passed")
+        print(f"   [USERS] Successfully registered {len(executor.clients)} clients")
+        print("[CHECK] Client registration test passed")
     
     def test_06_signal_execution(self):
         """Test FVG signal execution"""
-        print("\n🎯 Testing Signal Execution...")
+        print("\n[TARGET] Testing Signal Execution...")
         
         executor = TradeExecutor()
         executor.start_execution_engine()
@@ -333,9 +339,9 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         
         executor.stop_execution_engine()
         
-        print(f"   🎯 Signal executed successfully")
-        print(f"   📊 Execution stats: {stats['total_executions']} total")
-        print("✅ Signal execution test passed")
+        print(f"   [TARGET] Signal executed successfully")
+        print(f"   [CHART] Execution stats: {stats['total_executions']} total")
+        print("[CHECK] Signal execution test passed")
 
     # ===========================================
     # SYSTEM CONTROLLER TESTS
@@ -343,7 +349,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     def test_07_system_controller_initialization(self):
         """Test main system controller initialization"""
-        print("\n🚀 Testing System Controller Initialization...")
+        print("\n[ROCKET] Testing System Controller Initialization...")
         
         controller = LightningScalperController()
         self.assertIsNotNone(controller)
@@ -351,11 +357,11 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         self.assertIsNotNone(controller.fvg_detector)
         self.assertIsNotNone(controller.trade_executor)
         
-        print("✅ System controller initialization test passed")
+        print("[CHECK] System controller initialization test passed")
     
     async def test_08_system_startup_and_shutdown(self):
         """Test system startup and shutdown process"""
-        print("\n🔄 Testing System Startup and Shutdown...")
+        print("\n[REFRESH] Testing System Startup and Shutdown...")
         
         controller = LightningScalperController()
         
@@ -373,11 +379,11 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         # Test shutdown
         await controller.shutdown()
         
-        print("✅ System startup and shutdown test passed")
+        print("[CHECK] System startup and shutdown test passed")
     
     def test_09_client_management_integration(self):
         """Test client management through controller"""
-        print("\n👥 Testing Client Management Integration...")
+        print("\n[USERS] Testing Client Management Integration...")
         
         controller = LightningScalperController()
         
@@ -397,8 +403,8 @@ class LightningScalperIntegrationTests(unittest.TestCase):
             self.assertIsNotNone(summary)
             self.assertIn('account_info', summary)
         
-        print(f"   👥 Managed {len(self.test_config['test_clients'])} clients")
-        print("✅ Client management integration test passed")
+        print(f"   [USERS] Managed {len(self.test_config['test_clients'])} clients")
+        print("[CHECK] Client management integration test passed")
 
     # ===========================================
     # DATA LOGGER TESTS
@@ -406,7 +412,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     def test_10_data_logger_initialization(self):
         """Test signal data logger initialization"""
-        print("\n🗄️ Testing Data Logger Initialization...")
+        print("\n[DATABASE] Testing Data Logger Initialization...")
         
         logger = LightningScalperDataLogger(data_dir=str(self.data_dir))
         self.assertIsNotNone(logger)
@@ -418,11 +424,11 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         logger.stop_logging()
         self.assertFalse(logger.is_running)
         
-        print("✅ Data logger initialization test passed")
+        print("[CHECK] Data logger initialization test passed")
     
     def test_11_signal_logging(self):
         """Test signal logging functionality"""
-        print("\n📝 Testing Signal Logging...")
+        print("\n[MEMO] Testing Signal Logging...")
         
         logger = LightningScalperDataLogger(data_dir=str(self.data_dir))
         logger.start_logging()
@@ -468,9 +474,9 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         
         logger.stop_logging()
         
-        print(f"   📝 Logged {stats['signals_logged']} signals")
-        print(f"   ⚡ Logged {stats['executions_logged']} executions")
-        print("✅ Signal logging test passed")
+        print(f"   [MEMO] Logged {stats['signals_logged']} signals")
+        print(f"   [LIGHTNING] Logged {stats['executions_logged']} executions")
+        print("[CHECK] Signal logging test passed")
 
     # ===========================================
     # CONFIGURATION TESTS
@@ -478,7 +484,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     def test_12_config_manager(self):
         """Test configuration manager"""
-        print("\n⚙️ Testing Configuration Manager...")
+        print("\n[SETTINGS] Testing Configuration Manager...")
         
         config_manager = LightningScalperConfigManager(config_dir=str(self.config_dir))
         self.assertIsNotNone(config_manager)
@@ -500,10 +506,10 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         self.assertIn('clients', summary)
         self.assertIn('brokers', summary)
         
-        print(f"   ⚙️ System: {summary['system']['environment']}")
-        print(f"   📊 Trading pairs: {summary['trading']['active_pairs']}")
-        print(f"   👥 Clients: {summary['clients']['total']}")
-        print("✅ Configuration manager test passed")
+        print(f"   [SETTINGS] System: {summary['system']['environment']}")
+        print(f"   [CHART] Trading pairs: {summary['trading']['active_pairs']}")
+        print(f"   [USERS] Clients: {summary['clients']['total']}")
+        print("[CHECK] Configuration manager test passed")
 
     # ===========================================
     # DASHBOARD TESTS
@@ -511,7 +517,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     def test_13_dashboard_initialization(self):
         """Test web dashboard initialization (without actually starting server)"""
-        print("\n🌐 Testing Dashboard Initialization...")
+        print("\n[GLOBE] Testing Dashboard Initialization...")
         
         # Test dashboard creation
         dashboard = LightningScalperDashboard(controller=None, port=0)  # Port 0 to avoid conflicts
@@ -531,10 +537,10 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         signals_data = dashboard._get_demo_signals_data()
         self.assertIsInstance(signals_data, list)
         
-        print(f"   🌐 Dashboard routes configured")
-        print(f"   📊 Demo clients: {len(clients_data)}")
-        print(f"   🎯 Demo signals: {len(signals_data)}")
-        print("✅ Dashboard initialization test passed")
+        print(f"   [GLOBE] Dashboard routes configured")
+        print(f"   [CHART] Demo clients: {len(clients_data)}")
+        print(f"   [TARGET] Demo signals: {len(signals_data)}")
+        print("[CHECK] Dashboard initialization test passed")
 
     # ===========================================
     # END-TO-END TESTS
@@ -542,7 +548,7 @@ class LightningScalperIntegrationTests(unittest.TestCase):
     
     async def test_14_end_to_end_trading_flow(self):
         """Test complete end-to-end trading flow"""
-        print("\n🔄 Testing End-to-End Trading Flow...")
+        print("\n[REFRESH] Testing End-to-End Trading Flow...")
         
         # 1. Initialize system
         controller = LightningScalperController()
@@ -585,14 +591,14 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         logger.stop_logging()
         await controller.shutdown()
         
-        print("   🔄 Complete trading flow executed successfully")
-        print(f"   📊 Final system status: {status['status']}")
-        print(f"   📝 Signals logged: {stats['signals_logged']}")
-        print("✅ End-to-end trading flow test passed")
+        print("   [REFRESH] Complete trading flow executed successfully")
+        print(f"   [CHART] Final system status: {status['status']}")
+        print(f"   [MEMO] Signals logged: {stats['signals_logged']}")
+        print("[CHECK] End-to-end trading flow test passed")
     
     def test_15_performance_and_stress(self):
         """Test system performance under load"""
-        print("\n⚡ Testing Performance and Stress...")
+        print("\n[LIGHTNING] Testing Performance and Stress...")
         
         # Initialize components
         detector = EnhancedFVGDetector(CurrencyPair.EURUSD)
@@ -632,10 +638,10 @@ class LightningScalperIntegrationTests(unittest.TestCase):
         self.assertGreater(clients_registered, 0)
         self.assertGreaterEqual(signals_generated, 0)  # May be 0 if no valid patterns
         
-        print(f"   👥 Clients registered: {clients_registered}")
-        print(f"   🎯 Signals generated: {signals_generated}")
-        print(f"   ⚡ System handled load successfully")
-        print("✅ Performance and stress test passed")
+        print(f"   [USERS] Clients registered: {clients_registered}")
+        print(f"   [TARGET] Signals generated: {signals_generated}")
+        print(f"   [LIGHTNING] System handled load successfully")
+        print("[CHECK] Performance and stress test passed")
 
     # ===========================================
     # HELPER METHODS
@@ -780,11 +786,11 @@ class TestRunner:
     async def run_all_tests(self):
         """Run all integration tests with detailed reporting"""
         print("\n" + "="*80)
-        print("🚀 LIGHTNING SCALPER INTEGRATION TEST SUITE")
+        print("[ROCKET] LIGHTNING SCALPER INTEGRATION TEST SUITE")
         print("="*80)
-        print("⚡ Testing complete AI trading system integration")
-        print("🎯 Validating FVG detection, execution, and data logging")
-        print("👥 Multi-client support and risk management")
+        print("[LIGHTNING] Testing complete AI trading system integration")
+        print("[TARGET] Validating FVG detection, execution, and data logging")
+        print("[USERS] Multi-client support and risk management")
         print("="*80)
         
         self.results['start_time'] = time.time()
@@ -838,16 +844,16 @@ class TestRunner:
         
         try:
             # Test async methods manually
-            print("\n🔄 Running async tests...")
+            print("\n[REFRESH] Running async tests...")
             
             await test_instance.test_08_system_startup_and_shutdown()
-            print("✅ test_08_system_startup_and_shutdown - PASSED")
+            print("[CHECK] test_08_system_startup_and_shutdown - PASSED")
             
             await test_instance.test_14_end_to_end_trading_flow()
-            print("✅ test_14_end_to_end_trading_flow - PASSED")
+            print("[CHECK] test_14_end_to_end_trading_flow - PASSED")
             
         except Exception as e:
-            print(f"❌ Async test failed: {e}")
+            print(f"[X] Async test failed: {e}")
             self.results['failed'] += 1
         finally:
             test_instance.tearDownClass()
@@ -863,7 +869,7 @@ class TestRunner:
     def _print_test_results(self):
         """Print detailed test results"""
         print("\n" + "="*80)
-        print("📊 INTEGRATION TEST RESULTS SUMMARY")
+        print("[CHART] INTEGRATION TEST RESULTS SUMMARY")
         print("="*80)
         
         # Test statistics
@@ -873,33 +879,33 @@ class TestRunner:
         errors = self.results['errors']
         skipped = self.results['skipped']
         
-        print(f"📈 Total Tests Run: {total}")
-        print(f"✅ Passed: {passed}")
-        print(f"❌ Failed: {failed}")
-        print(f"🚨 Errors: {errors}")
-        print(f"⏭️ Skipped: {skipped}")
-        print(f"⏱️ Duration: {self.results['duration']:.2f} seconds")
+        print(f"[TRENDING_UP] Total Tests Run: {total}")
+        print(f"[CHECK] Passed: {passed}")
+        print(f"[X] Failed: {failed}")
+        print(f"[SIREN] Errors: {errors}")
+        print(f"?? Skipped: {skipped}")
+        print(f"[TIMER] Duration: {self.results['duration']:.2f} seconds")
         
         # Success rate
         if total > 0:
             success_rate = (passed / total) * 100
-            print(f"🎯 Success Rate: {success_rate:.1f}%")
+            print(f"[TARGET] Success Rate: {success_rate:.1f}%")
         
         print("\n" + "="*80)
         
         # Component status
-        print("🔍 COMPONENT TEST STATUS:")
+        print("[SEARCH] COMPONENT TEST STATUS:")
         print("="*80)
         
         components = [
-            ("🔍 FVG Detection Engine", "Core signal detection and analysis"),
-            ("⚡ Trade Execution System", "Order management and execution"),
-            ("🚀 Main System Controller", "Central orchestration"),
-            ("🗄️ Data Logger", "Signal and performance logging"),
-            ("⚙️ Configuration Manager", "System configuration"),
-            ("🌐 Web Dashboard", "Real-time monitoring interface"),
-            ("👥 Client Management", "Multi-client support"),
-            ("🔄 End-to-End Flow", "Complete trading workflow")
+            ("[SEARCH] FVG Detection Engine", "Core signal detection and analysis"),
+            ("[LIGHTNING] Trade Execution System", "Order management and execution"),
+            ("[ROCKET] Main System Controller", "Central orchestration"),
+            ("[DATABASE] Data Logger", "Signal and performance logging"),
+            ("[SETTINGS] Configuration Manager", "System configuration"),
+            ("[GLOBE] Web Dashboard", "Real-time monitoring interface"),
+            ("[USERS] Client Management", "Multi-client support"),
+            ("[REFRESH] End-to-End Flow", "Complete trading workflow")
         ]
         
         for component, description in components:
@@ -908,31 +914,31 @@ class TestRunner:
         print("\n" + "="*80)
         
         if failed == 0 and errors == 0:
-            print("🎉 ALL TESTS PASSED! Lightning Scalper is ready for production!")
-            print("✨ System integration validated successfully")
-            print("🚀 Ready to deploy for 80+ clients")
+            print("[PARTY] ALL TESTS PASSED! Lightning Scalper is ready for production!")
+            print("? System integration validated successfully")
+            print("[ROCKET] Ready to deploy for 80+ clients")
         else:
-            print("⚠️ Some tests failed. Please review the errors above.")
-            print("🔧 Fix issues before production deployment")
+            print("[WARNING] Some tests failed. Please review the errors above.")
+            print("[TOOL] Fix issues before production deployment")
         
         print("="*80)
         
         # Next steps
-        print("\n🎯 NEXT STEPS:")
+        print("\n[TARGET] NEXT STEPS:")
         if failed == 0 and errors == 0:
-            print("1. 🌐 Create HTML templates for web dashboard")
-            print("2. 🛡️ Implement enhanced risk manager")
-            print("3. 🔧 Set up production configuration")
-            print("4. 📊 Deploy monitoring and alerting")
-            print("5. 👥 Onboard clients with real MT5 connections")
+            print("1. [GLOBE] Create HTML templates for web dashboard")
+            print("2. [SHIELD] Implement enhanced risk manager")
+            print("3. [TOOL] Set up production configuration")
+            print("4. [CHART] Deploy monitoring and alerting")
+            print("5. [USERS] Onboard clients with real MT5 connections")
         else:
-            print("1. 🔍 Review and fix failing tests")
-            print("2. 🧪 Re-run integration tests")
-            print("3. 📋 Validate all components work together")
+            print("1. [SEARCH] Review and fix failing tests")
+            print("2. [TEST_TUBE] Re-run integration tests")
+            print("3. [CLIPBOARD] Validate all components work together")
         
-        print("\n💡 Use this command to run specific test categories:")
+        print("\n[BULB] Use this command to run specific test categories:")
         print("   python -m pytest tests/ -v -k 'test_name'")
-        print("\n🚀 Lightning Scalper Integration Testing Complete!")
+        print("\n[ROCKET] Lightning Scalper Integration Testing Complete!")
 
 
 # ===========================================
@@ -941,7 +947,7 @@ class TestRunner:
 
 async def main():
     """Main test execution function"""
-    print("🧪 Lightning Scalper Integration Test Suite")
+    print("[TEST_TUBE] Lightning Scalper Integration Test Suite")
     print("Testing complete AI trading system...")
     
     runner = TestRunner()
@@ -958,8 +964,8 @@ if __name__ == "__main__":
         exit_code = asyncio.run(main())
         sys.exit(exit_code)
     except KeyboardInterrupt:
-        print("\n⚠️ Test interrupted by user")
+        print("\n[WARNING] Test interrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n💀 Test execution failed: {e}")
+        print(f"\n? Test execution failed: {e}")
         sys.exit(1)

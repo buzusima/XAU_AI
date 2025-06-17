@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -812,7 +815,7 @@ if __name__ == "__main__":
     # Initialize for EURUSD
     detector = EnhancedFVGDetector(CurrencyPair.EURUSD)
     
-    print("🚀 Enhanced Lightning Scalper FVG Detection Engine")
+    print("[ROCKET] Enhanced Lightning Scalper FVG Detection Engine")
     print("=" * 60)
     print(f"Currency Pair: {detector.currency_pair.value}")
     print(f"Configuration: {detector.current_config}")
@@ -843,10 +846,10 @@ if __name__ == "__main__":
     # Test advanced detection
     signals = detector.detect_advanced_fvg(sample_data, 'M1')
     
-    print(f"📊 Advanced FVG Signals Detected: {len(signals)}")
+    print(f"[CHART] Advanced FVG Signals Detected: {len(signals)}")
     
     if signals:
-        print("\n🎯 Top Quality Signals:")
+        print("\n[TARGET] Top Quality Signals:")
         for i, signal in enumerate(signals[:3]):
             print(f"\n{i+1}. {signal.fvg_type.value} FVG")
             print(f"   Time: {signal.timestamp}")
@@ -862,9 +865,9 @@ if __name__ == "__main__":
             print(f"   Session: {signal.session}")
             print(f"   Tags: {', '.join(signal.tags)}")
     
-    print(f"\n📈 Detection Statistics:")
+    print(f"\n[TRENDING_UP] Detection Statistics:")
     print(f"   Total Signals: {detector.stats['total_signals']}")
     print(f"   High Quality: {detector.stats['high_quality_signals']}")
     
-    print("\n✅ Enhanced FVG Detection Engine Ready for Production!")
-    print("🎯 Next: Real-time Data Integration & Trade Execution Module")
+    print("\n[CHECK] Enhanced FVG Detection Engine Ready for Production!")
+    print("[TARGET] Next: Real-time Data Integration & Trade Execution Module")

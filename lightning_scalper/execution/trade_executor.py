@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -712,7 +715,7 @@ class TradeExecutor:
 
 # Usage Example and Integration Test
 if __name__ == "__main__":
-    print("🚀 Lightning Scalper Trade Execution Engine")
+    print("[ROCKET] Lightning Scalper Trade Execution Engine")
     print("=" * 60)
     
     # Initialize trade executor
@@ -740,11 +743,11 @@ if __name__ == "__main__":
     
     # Register client
     if executor.register_client(sample_client):
-        print(f"✅ Client {sample_client.client_id} registered successfully")
+        print(f"[CHECK] Client {sample_client.client_id} registered successfully")
     
     # Start execution engine
     executor.start_execution_engine()
-    print("✅ Execution engine started")
+    print("[CHECK] Execution engine started")
     
     # Create sample FVG signal for testing
     from core.lightning_scalper_engine import FVGSignal, FVGType, CurrencyPair, MarketCondition, FVGStatus
@@ -782,19 +785,19 @@ if __name__ == "__main__":
     execution_result = executor.execute_fvg_signal(sample_signal, "CLIENT_001")
     
     if execution_result['success']:
-        print(f"🎯 FVG Signal execution queued successfully")
+        print(f"[TARGET] FVG Signal execution queued successfully")
         print(f"   Request ID: {execution_result['request_id']}")
         print(f"   Estimated Lot Size: {execution_result['estimated_lot_size']}")
         print(f"   Estimated Risk: ${execution_result['estimated_risk']:.2f}")
     else:
-        print(f"❌ FVG Signal execution failed: {execution_result['error']}")
+        print(f"[X] FVG Signal execution failed: {execution_result['error']}")
     
     # Wait for execution
     time.sleep(2)
     
     # Get client summary
     client_summary = executor.get_client_summary("CLIENT_001")
-    print(f"\n📊 Client Summary:")
+    print(f"\n[CHART] Client Summary:")
     print(f"   Balance: ${client_summary['account_info']['balance']:.2f}")
     print(f"   Equity: ${client_summary['account_info']['equity']:.2f}")
     print(f"   Daily P&L: ${client_summary['pnl']['daily']:.2f}")
@@ -803,15 +806,15 @@ if __name__ == "__main__":
     
     # Get execution statistics
     exec_stats = executor.get_execution_statistics()
-    print(f"\n📈 Execution Statistics:")
+    print(f"\n[TRENDING_UP] Execution Statistics:")
     print(f"   Total Executions: {exec_stats['total_executions']}")
     print(f"   Success Rate: {exec_stats['success_rate']:.1f}%")
     print(f"   Average Execution Time: {exec_stats['avg_execution_time']:.3f}s")
     print(f"   Active Positions: {exec_stats['active_positions']}")
     print(f"   Registered Clients: {exec_stats['registered_clients']}")
     
-    print("\n✅ Trade Execution Engine Ready for Production!")
-    print("🎯 Next Step: Broker Integration (MT4/MT5 Bridge)")
+    print("\n[CHECK] Trade Execution Engine Ready for Production!")
+    print("[TARGET] Next Step: Broker Integration (MT4/MT5 Bridge)")
     
     # Stop execution engine
     executor.stop_execution_engine()

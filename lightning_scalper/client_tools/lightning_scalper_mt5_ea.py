@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
-🚀 Lightning Scalper - MetaTrader 5 Expert Advisor
+[ROCKET] Lightning Scalper - MetaTrader 5 Expert Advisor
 Production-Grade MT5 Integration for Lightning Scalper Signals
 
-📍 ไฟล์นี้: client_tools/lightning_scalper_mt5_ea.py
+? ???????: client_tools/lightning_scalper_mt5_ea.py
 
 This EA connects to Lightning Scalper system to receive FVG signals
 and automatically execute trades in MetaTrader 5 platform.
@@ -16,7 +18,7 @@ Features:
 - Performance tracking
 - Data synchronization back to server
 
-Author: Phoenix Trading AI (อาจารย์ฟินิกซ์)
+Author: Phoenix Trading AI (??????????????)
 Version: 1.0.0
 License: Proprietary
 
@@ -41,7 +43,7 @@ from pathlib import Path
 try:
     import MetaTrader5 as mt5
 except ImportError:
-    print("❌ MetaTrader5 package not found!")
+    print("[X] MetaTrader5 package not found!")
     print("   Install with: pip install MetaTrader5")
     sys.exit(1)
 
@@ -56,7 +58,7 @@ try:
         SignalType, OrderStatus
     )
 except ImportError:
-    print("❌ Lightning Scalper SDK not found!")
+    print("[X] Lightning Scalper SDK not found!")
     print("   Make sure lightning_scalper_sdk.py is in the same directory")
     sys.exit(1)
 
@@ -77,7 +79,7 @@ class MT5Position:
 
 class LightningScalperMT5EA:
     """
-    🚀 Lightning Scalper MetaTrader 5 Expert Advisor
+    [ROCKET] Lightning Scalper MetaTrader 5 Expert Advisor
     Automated trading system connecting Lightning Scalper signals to MT5
     """
     
@@ -160,7 +162,7 @@ class LightningScalperMT5EA:
         # Add signal callback
         self.client.add_signal_callback(self._handle_signal)
         
-        self.logger.info(f"🚀 Lightning Scalper MT5 EA initialized for client {client_id}")
+        self.logger.info(f"[ROCKET] Lightning Scalper MT5 EA initialized for client {client_id}")
     
     def connect_mt5(self) -> bool:
         """Connect to MetaTrader 5"""
@@ -182,7 +184,7 @@ class LightningScalperMT5EA:
                 return False
             
             self.mt5_connected = True
-            self.logger.info(f"✅ Connected to MT5 - Account: {account_info.login}")
+            self.logger.info(f"[CHECK] Connected to MT5 - Account: {account_info.login}")
             self.logger.info(f"   Balance: ${account_info.balance:.2f}")
             self.logger.info(f"   Equity: ${account_info.equity:.2f}")
             self.logger.info(f"   Server: {account_info.server}")
@@ -207,7 +209,7 @@ class LightningScalperMT5EA:
         try:
             self.stats['signals_received'] += 1
             
-            self.logger.info(f"📡 Received signal: {signal.currency_pair} {signal.signal_type.value}")
+            self.logger.info(f"[SATELLITE] Received signal: {signal.currency_pair} {signal.signal_type.value}")
             self.logger.info(f"   Entry: {signal.entry_price}")
             self.logger.info(f"   SL: {signal.stop_loss}")
             self.logger.info(f"   TP1: {signal.take_profit_1}")
@@ -247,7 +249,7 @@ class LightningScalperMT5EA:
             self.daily_profit = 0.0
             self.daily_loss = 0.0
             self.last_trade_date = today
-            self.logger.info(f"📅 New trading day: {today}")
+            self.logger.info(f"? New trading day: {today}")
         
         # Check daily trade limit
         if self.daily_trades >= self.max_daily_trades:
@@ -361,7 +363,7 @@ class LightningScalperMT5EA:
                 return
             
             # Order successful
-            self.logger.info(f"✅ Order executed successfully!")
+            self.logger.info(f"[CHECK] Order executed successfully!")
             self.logger.info(f"   Ticket: {result.order}")
             self.logger.info(f"   Volume: {lot_size}")
             self.logger.info(f"   Price: {result.price}")
@@ -497,7 +499,7 @@ class LightningScalperMT5EA:
                             
                             # Log result
                             result_type = "WIN" if trade_result.profit_loss > 0 else "LOSS"
-                            self.logger.info(f"🏁 Position closed: {result_type}")
+                            self.logger.info(f"[CHECKERED_FLAG] Position closed: {result_type}")
                             self.logger.info(f"   Ticket: {ticket}")
                             self.logger.info(f"   Profit: ${trade_result.profit_loss:.2f}")
                             self.logger.info(f"   Pips: {trade_result.profit_loss_pips:.1f}")
@@ -559,7 +561,7 @@ class LightningScalperMT5EA:
     def start(self) -> bool:
         """Start the EA"""
         try:
-            self.logger.info("🚀 Starting Lightning Scalper MT5 EA...")
+            self.logger.info("[ROCKET] Starting Lightning Scalper MT5 EA...")
             
             # Connect to MT5
             if not self.connect_mt5():
@@ -578,7 +580,7 @@ class LightningScalperMT5EA:
             self.monitor_thread.daemon = True
             self.monitor_thread.start()
             
-            self.logger.info("✅ Lightning Scalper MT5 EA started successfully!")
+            self.logger.info("[CHECK] Lightning Scalper MT5 EA started successfully!")
             return True
             
         except Exception as e:
@@ -588,7 +590,7 @@ class LightningScalperMT5EA:
     def stop(self):
         """Stop the EA"""
         try:
-            self.logger.info("🛑 Stopping Lightning Scalper MT5 EA...")
+            self.logger.info("? Stopping Lightning Scalper MT5 EA...")
             
             self.is_running = False
             
@@ -602,7 +604,7 @@ class LightningScalperMT5EA:
             if self.monitor_thread and self.monitor_thread.is_alive():
                 self.monitor_thread.join(timeout=10)
             
-            self.logger.info("✅ Lightning Scalper MT5 EA stopped")
+            self.logger.info("[CHECK] Lightning Scalper MT5 EA stopped")
             
         except Exception as e:
             self.logger.error(f"Error stopping EA: {e}")
@@ -629,15 +631,15 @@ class LightningScalperMT5EA:
                 if account_info:
                     # Check margin level
                     if account_info.margin_level < 200 and account_info.margin_level > 0:
-                        self.logger.warning(f"⚠️ Low margin level: {account_info.margin_level:.1f}%")
+                        self.logger.warning(f"[WARNING] Low margin level: {account_info.margin_level:.1f}%")
                         if account_info.margin_level < 100:
                             self.emergency_stop = True
-                            self.logger.error("🚨 EMERGENCY STOP: Margin call level reached!")
+                            self.logger.error("[SIREN] EMERGENCY STOP: Margin call level reached!")
                     
                     # Check daily loss
                     if self.daily_loss <= self.max_daily_loss:
                         self.emergency_stop = True
-                        self.logger.error(f"🚨 EMERGENCY STOP: Daily loss limit reached: ${self.daily_loss:.2f}")
+                        self.logger.error(f"[SIREN] EMERGENCY STOP: Daily loss limit reached: ${self.daily_loss:.2f}")
                 
                 time.sleep(10)  # Check every 10 seconds
                 
@@ -672,7 +674,7 @@ class LightningScalperMT5EA:
         """Set emergency stop"""
         self.emergency_stop = stop
         if stop:
-            self.logger.warning("🚨 Emergency stop activated")
+            self.logger.warning("[SIREN] Emergency stop activated")
         else:
             self.logger.info("Emergency stop deactivated")
     
@@ -703,16 +705,16 @@ class LightningScalperMT5EA:
                 
                 result = mt5.order_send(close_request)
                 if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                    self.logger.info(f"✅ Position {position.ticket} closed")
+                    self.logger.info(f"[CHECK] Position {position.ticket} closed")
                 else:
-                    self.logger.error(f"❌ Failed to close position {position.ticket}")
+                    self.logger.error(f"[X] Failed to close position {position.ticket}")
             
         except Exception as e:
             self.logger.error(f"Error closing positions: {e}")
 
 def main():
     """Main function for standalone EA execution"""
-    print("🚀 Lightning Scalper MetaTrader 5 Expert Advisor")
+    print("[ROCKET] Lightning Scalper MetaTrader 5 Expert Advisor")
     print("=" * 60)
     
     # Configuration (in production, load from config file)
@@ -733,7 +735,7 @@ def main():
     try:
         # Start EA
         if ea.start():
-            print("✅ EA started successfully!")
+            print("[CHECK] EA started successfully!")
             print("Press Ctrl+C to stop...")
             
             # Run until interrupted
@@ -743,22 +745,22 @@ def main():
                 # Print status every 60 seconds
                 if int(time.time()) % 60 == 0:
                     status = ea.get_status()
-                    print(f"\n📊 Status Update:")
+                    print(f"\n[CHART] Status Update:")
                     print(f"   Signals received: {status['stats']['signals_received']}")
                     print(f"   Trades executed: {status['stats']['trades_executed']}")
                     print(f"   Win rate: {status['stats']['win_rate']:.1%}")
                     print(f"   Daily P&L: ${status['daily_profit']:.2f}")
                     print(f"   Active positions: {status['active_positions']}")
         else:
-            print("❌ Failed to start EA")
+            print("[X] Failed to start EA")
             
     except KeyboardInterrupt:
-        print("\n⌨️ Stopping EA...")
+        print("\n?? Stopping EA...")
         ea.stop()
-        print("👋 Goodbye!")
+        print("? Goodbye!")
     
     except Exception as e:
-        print(f"\n💀 Critical error: {e}")
+        print(f"\n? Critical error: {e}")
         ea.stop()
 
 if __name__ == "__main__":

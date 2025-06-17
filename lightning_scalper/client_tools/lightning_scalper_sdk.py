@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
-🚀 Lightning Scalper - Python Client SDK
+[ROCKET] Lightning Scalper - Python Client SDK
 Production-Grade Client Integration Library
 
 This SDK allows clients to integrate with the Lightning Scalper system,
 receive trading signals, execute trades, and send performance data back
 to the central system for active learning.
 
-📍 ไฟล์นี้: client_tools/lightning_scalper_sdk.py
+? ???????: client_tools/lightning_scalper_sdk.py
 
 Features:
 - Real-time signal reception
@@ -17,7 +19,7 @@ Features:
 - Data synchronization
 - Multi-broker support
 
-Author: Phoenix Trading AI (อาจารย์ฟินิกซ์)
+Author: Phoenix Trading AI (??????????????)
 Version: 1.0.0
 License: Proprietary
 """
@@ -148,7 +150,7 @@ class TradeResult:
 
 class LightningScalperClient:
     """
-    🚀 Lightning Scalper Client SDK
+    [ROCKET] Lightning Scalper Client SDK
     Main client class for integration with Lightning Scalper system
     """
     
@@ -197,7 +199,7 @@ class LightningScalperClient:
             'connection_uptime': 0.0
         }
         
-        self.logger.info(f"🚀 Lightning Scalper Client {client_id} initialized")
+        self.logger.info(f"[ROCKET] Lightning Scalper Client {client_id} initialized")
     
     def _generate_signature(self, message: str) -> str:
         """Generate HMAC signature for authentication"""
@@ -320,7 +322,7 @@ class LightningScalperClient:
                 self.active_signals[signal.signal_id] = signal
                 self.stats['signals_received'] += 1
             
-            self.logger.info(f"📡 New signal: {signal.currency_pair} {signal.signal_type.value} @ {signal.entry_price}")
+            self.logger.info(f"[SATELLITE] New signal: {signal.currency_pair} {signal.signal_type.value} @ {signal.entry_price}")
             
             # Notify callbacks
             for callback in self.signal_callbacks:
@@ -557,7 +559,7 @@ def create_live_client(client_id: str, api_key: str, api_secret: str) -> Lightni
 
 if __name__ == "__main__":
     # Example usage
-    print("🚀 Lightning Scalper Python Client SDK")
+    print("[ROCKET] Lightning Scalper Python Client SDK")
     print("This is a library file. Import it in your trading application.")
     print("\nExample usage:")
     print("""

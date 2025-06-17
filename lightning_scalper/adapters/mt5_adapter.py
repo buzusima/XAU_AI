@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
@@ -847,7 +850,7 @@ class MT5IntegratedExecutor:
 
 # Usage Example and Testing
 if __name__ == "__main__":
-    print("🚀 Lightning Scalper MT5 Adapter")
+    print("[ROCKET] Lightning Scalper MT5 Adapter")
     print("=" * 50)
     
     # Initialize MT5 Adapter
@@ -858,7 +861,7 @@ if __name__ == "__main__":
     password = "your_password"  # Your MT5 password
     server = "YourBroker-Server"  # Your broker's server
     
-    print(f"📡 Attempting to connect to MT5...")
+    print(f"[SATELLITE] Attempting to connect to MT5...")
     print(f"   Login: {login}")
     print(f"   Server: {server}")
     
@@ -869,16 +872,16 @@ if __name__ == "__main__":
         # success = adapter.connect(login, password, server)
         
         # For demo purposes:
-        print("⚠️  Demo Mode: Replace with real MT5 credentials for live trading")
+        print("[WARNING]  Demo Mode: Replace with real MT5 credentials for live trading")
         success = False  # Set to True when you have real credentials
         
         if success:
-            print("✅ Connected to MT5 successfully!")
+            print("[CHECK] Connected to MT5 successfully!")
             
             # Get account info
             account_info = adapter.get_account_info()
             if account_info:
-                print(f"\n💰 Account Information:")
+                print(f"\n[MONEY] Account Information:")
                 print(f"   Login: {account_info.login}")
                 print(f"   Balance: ${account_info.balance:.2f}")
                 print(f"   Equity: ${account_info.equity:.2f}")
@@ -888,7 +891,7 @@ if __name__ == "__main__":
             # Get symbol info
             symbol_info = adapter.get_symbol_info("EURUSD")
             if symbol_info:
-                print(f"\n📊 EURUSD Symbol Info:")
+                print(f"\n[CHART] EURUSD Symbol Info:")
                 print(f"   Bid: {symbol_info.bid:.5f}")
                 print(f"   Ask: {symbol_info.ask:.5f}")
                 print(f"   Spread: {symbol_info.spread:.1f} points")
@@ -898,7 +901,7 @@ if __name__ == "__main__":
             # Get historical data
             df = adapter.get_historical_data("EURUSD", "M5", 10)
             if df is not None:
-                print(f"\n📈 Historical Data (Last 10 M5 candles):")
+                print(f"\n[TRENDING_UP] Historical Data (Last 10 M5 candles):")
                 print(df.tail())
             
             # Test order (demo)
@@ -913,7 +916,7 @@ if __name__ == "__main__":
                 quantity=0.01
             )
             
-            print(f"\n🎯 Test Order Execution:")
+            print(f"\n[TARGET] Test Order Execution:")
             print(f"   Symbol: {test_order.symbol}")
             print(f"   Direction: {test_order.direction.value}")
             print(f"   Volume: {test_order.quantity}")
@@ -922,30 +925,30 @@ if __name__ == "__main__":
             # result = adapter.send_order(test_order)
             # print(f"   Result: {result}")
             
-            print("   ⚠️  Demo Mode: Order not executed")
+            print("   [WARNING]  Demo Mode: Order not executed")
             
             # Health check
             health = adapter.health_check()
-            print(f"\n🏥 Health Check:")
+            print(f"\n? Health Check:")
             for key, value in health.items():
                 print(f"   {key}: {value}")
             
         else:
-            print("❌ Failed to connect to MT5")
+            print("[X] Failed to connect to MT5")
             print("   Ensure MT5 is installed and credentials are correct")
             
     except Exception as e:
-        print(f"❌ Connection error: {e}")
+        print(f"[X] Connection error: {e}")
     
     finally:
         # Clean up
         adapter.disconnect()
     
-    print("\n✅ MT5 Adapter Ready for Production!")
-    print("🎯 Next Step: Integrate with Trade Executor for Live Trading")
+    print("\n[CHECK] MT5 Adapter Ready for Production!")
+    print("[TARGET] Next Step: Integrate with Trade Executor for Live Trading")
     
     # Integration example
-    print("\n🔗 Integration Example:")
+    print("\n? Integration Example:")
     print("```python")
     print("# Initialize components")
     print("adapter = MT5Adapter()")

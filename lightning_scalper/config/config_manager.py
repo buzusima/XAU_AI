@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-🚀 Lightning Scalper - Configuration Manager
+Lightning Scalper - Windows Safe Version
+Auto-fixed for Unicode compatibility
+"""
+
+"""
+[ROCKET] Lightning Scalper - Configuration Manager
 Production-Grade Configuration Management System
 
 Handles all system configurations including:
@@ -180,7 +186,7 @@ class SystemConfig:
 
 class LightningScalperConfigManager:
     """
-    🔧 Lightning Scalper Configuration Manager
+    [TOOL] Lightning Scalper Configuration Manager
     Centralized configuration management for production deployment
     """
     
@@ -225,7 +231,7 @@ class LightningScalperConfigManager:
         self._initialize_default_configs()
         self.load_all_configurations()
         
-        self.logger.info("🔧 Configuration Manager initialized")
+        self.logger.info("[TOOL] Configuration Manager initialized")
     
     def _detect_environment(self) -> str:
         """Detect current environment"""
@@ -247,10 +253,10 @@ class LightningScalperConfigManager:
             key = base64.urlsafe_b64encode(kdf.derive(password_bytes))
             self.cipher_suite = Fernet(key)
             
-            self.logger.info("🔐 Encryption enabled for sensitive data")
+            self.logger.info("? Encryption enabled for sensitive data")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to setup encryption: {e}")
+            self.logger.error(f"[X] Failed to setup encryption: {e}")
             self.cipher_suite = None
     
     def _encrypt_data(self, data: str) -> str:
@@ -320,10 +326,10 @@ class LightningScalperConfigManager:
             # Load environment variables
             self.load_environment_config()
             
-            self.logger.info("✅ All configurations loaded successfully")
+            self.logger.info("[CHECK] All configurations loaded successfully")
             
         except Exception as e:
-            self.logger.error(f"❌ Error loading configurations: {e}")
+            self.logger.error(f"[X] Error loading configurations: {e}")
     
     def load_system_config(self) -> SystemConfig:
         """Load system configuration"""
@@ -337,16 +343,16 @@ class LightningScalperConfigManager:
                     data['environment'] = Environment(data['environment'])
                 
                 self.configs[ConfigType.SYSTEM] = SystemConfig(**data)
-                self.logger.info("✅ System configuration loaded")
+                self.logger.info("[CHECK] System configuration loaded")
             else:
                 # Create default config file
                 self.save_system_config()
-                self.logger.info("📝 Created default system configuration")
+                self.logger.info("[MEMO] Created default system configuration")
             
             return self.configs[ConfigType.SYSTEM]
             
         except Exception as e:
-            self.logger.error(f"❌ Error loading system config: {e}")
+            self.logger.error(f"[X] Error loading system config: {e}")
             return self.configs[ConfigType.SYSTEM]
     
     def save_system_config(self):
@@ -361,10 +367,10 @@ class LightningScalperConfigManager:
             with open(self.system_config_file, 'w') as f:
                 json.dump(data, f, indent=4, default=str)
             
-            self.logger.info("💾 System configuration saved")
+            self.logger.info("? System configuration saved")
             
         except Exception as e:
-            self.logger.error(f"❌ Error saving system config: {e}")
+            self.logger.error(f"[X] Error saving system config: {e}")
     
     def load_trading_config(self) -> TradingConfig:
         """Load trading configuration"""
@@ -374,16 +380,16 @@ class LightningScalperConfigManager:
                     data = json.load(f)
                 
                 self.configs[ConfigType.TRADING] = TradingConfig(**data)
-                self.logger.info("✅ Trading configuration loaded")
+                self.logger.info("[CHECK] Trading configuration loaded")
             else:
                 # Create default config file
                 self.save_trading_config()
-                self.logger.info("📝 Created default trading configuration")
+                self.logger.info("[MEMO] Created default trading configuration")
             
             return self.configs[ConfigType.TRADING]
             
         except Exception as e:
-            self.logger.error(f"❌ Error loading trading config: {e}")
+            self.logger.error(f"[X] Error loading trading config: {e}")
             return self.configs[ConfigType.TRADING]
     
     def save_trading_config(self):
@@ -395,10 +401,10 @@ class LightningScalperConfigManager:
             with open(self.trading_config_file, 'w') as f:
                 json.dump(data, f, indent=4, default=str)
             
-            self.logger.info("💾 Trading configuration saved")
+            self.logger.info("? Trading configuration saved")
             
         except Exception as e:
-            self.logger.error(f"❌ Error saving trading config: {e}")
+            self.logger.error(f"[X] Error saving trading config: {e}")
     
     def load_clients_config(self):
         """Load clients configuration"""
@@ -424,13 +430,13 @@ class LightningScalperConfigManager:
                     client = ClientConfig(**client_data)
                     self.clients[client.client_id] = client
                 
-                self.logger.info(f"✅ Loaded {len(self.clients)} client configurations")
+                self.logger.info(f"[CHECK] Loaded {len(self.clients)} client configurations")
             else:
                 # Create sample clients file
                 self._create_sample_clients_config()
                 
         except Exception as e:
-            self.logger.error(f"❌ Error loading clients config: {e}")
+            self.logger.error(f"[X] Error loading clients config: {e}")
     
     def save_clients_config(self):
         """Save clients configuration"""
@@ -463,10 +469,10 @@ class LightningScalperConfigManager:
             with open(self.clients_config_file, 'w') as f:
                 json.dump(config_data, f, indent=4)
             
-            self.logger.info(f"💾 Saved {len(clients_data)} client configurations")
+            self.logger.info(f"? Saved {len(clients_data)} client configurations")
             
         except Exception as e:
-            self.logger.error(f"❌ Error saving clients config: {e}")
+            self.logger.error(f"[X] Error saving clients config: {e}")
     
     def load_brokers_config(self):
         """Load brokers configuration"""
@@ -486,13 +492,13 @@ class LightningScalperConfigManager:
                     broker = BrokerConfig(**broker_data)
                     self.brokers[broker.broker_id] = broker
                 
-                self.logger.info(f"✅ Loaded {len(self.brokers)} broker configurations")
+                self.logger.info(f"[CHECK] Loaded {len(self.brokers)} broker configurations")
             else:
                 # Create sample brokers file
                 self._create_sample_brokers_config()
                 
         except Exception as e:
-            self.logger.error(f"❌ Error loading brokers config: {e}")
+            self.logger.error(f"[X] Error loading brokers config: {e}")
     
     def save_brokers_config(self):
         """Save brokers configuration"""
@@ -521,10 +527,10 @@ class LightningScalperConfigManager:
             with open(self.brokers_config_file, 'w') as f:
                 json.dump(config_data, f, indent=4)
             
-            self.logger.info(f"💾 Saved {len(brokers_data)} broker configurations")
+            self.logger.info(f"? Saved {len(brokers_data)} broker configurations")
             
         except Exception as e:
-            self.logger.error(f"❌ Error saving brokers config: {e}")
+            self.logger.error(f"[X] Error saving brokers config: {e}")
     
     def load_environment_config(self):
         """Load environment-specific configuration"""
@@ -537,13 +543,13 @@ class LightningScalperConfigManager:
                             key, value = line.split('=', 1)
                             os.environ[key] = value
                 
-                self.logger.info(f"✅ Environment configuration loaded from {self.env_file.name}")
+                self.logger.info(f"[CHECK] Environment configuration loaded from {self.env_file.name}")
             else:
                 # Create default environment file
                 self._create_default_env_file()
                 
         except Exception as e:
-            self.logger.error(f"❌ Error loading environment config: {e}")
+            self.logger.error(f"[X] Error loading environment config: {e}")
     
     def _create_sample_clients_config(self):
         """Create sample clients configuration"""
@@ -578,10 +584,10 @@ class LightningScalperConfigManager:
                 self.clients[client.client_id] = client
             
             self.save_clients_config()
-            self.logger.info("📝 Created sample clients configuration")
+            self.logger.info("[MEMO] Created sample clients configuration")
             
         except Exception as e:
-            self.logger.error(f"❌ Error creating sample clients config: {e}")
+            self.logger.error(f"[X] Error creating sample clients config: {e}")
     
     def _create_sample_brokers_config(self):
         """Create sample brokers configuration"""
@@ -630,10 +636,10 @@ class LightningScalperConfigManager:
                 self.brokers[broker.broker_id] = broker
             
             self.save_brokers_config()
-            self.logger.info("📝 Created sample brokers configuration")
+            self.logger.info("[MEMO] Created sample brokers configuration")
             
         except Exception as e:
-            self.logger.error(f"❌ Error creating sample brokers config: {e}")
+            self.logger.error(f"[X] Error creating sample brokers config: {e}")
     
     def _create_default_env_file(self):
         """Create default environment file"""
@@ -692,10 +698,10 @@ FAST_SIGNALS=false
             with open(self.env_file, 'w') as f:
                 f.write(env_content)
             
-            self.logger.info(f"📝 Created default environment file: {self.env_file.name}")
+            self.logger.info(f"[MEMO] Created default environment file: {self.env_file.name}")
             
         except Exception as e:
-            self.logger.error(f"❌ Error creating environment file: {e}")
+            self.logger.error(f"[X] Error creating environment file: {e}")
     
     def add_client(self, client_config: ClientConfig) -> bool:
         """Add new client configuration"""
@@ -721,7 +727,7 @@ FAST_SIGNALS=false
                 # Save to file
                 self.save_clients_config()
                 
-                self.logger.info(f"✅ Added client: {client_config.client_id}")
+                self.logger.info(f"[CHECK] Added client: {client_config.client_id}")
                 
                 # Trigger watchers
                 self._trigger_config_watchers('client_added', client_config)
@@ -729,7 +735,7 @@ FAST_SIGNALS=false
                 return True
                 
         except Exception as e:
-            self.logger.error(f"❌ Error adding client: {e}")
+            self.logger.error(f"[X] Error adding client: {e}")
             return False
     
     def update_client(self, client_id: str, updates: Dict[str, Any]) -> bool:
@@ -753,7 +759,7 @@ FAST_SIGNALS=false
                 # Save to file
                 self.save_clients_config()
                 
-                self.logger.info(f"✅ Updated client: {client_id}")
+                self.logger.info(f"[CHECK] Updated client: {client_id}")
                 
                 # Trigger watchers
                 self._trigger_config_watchers('client_updated', client)
@@ -761,7 +767,7 @@ FAST_SIGNALS=false
                 return True
                 
         except Exception as e:
-            self.logger.error(f"❌ Error updating client: {e}")
+            self.logger.error(f"[X] Error updating client: {e}")
             return False
     
     def remove_client(self, client_id: str) -> bool:
@@ -778,7 +784,7 @@ FAST_SIGNALS=false
                 # Save to file
                 self.save_clients_config()
                 
-                self.logger.info(f"✅ Removed client: {client_id}")
+                self.logger.info(f"[CHECK] Removed client: {client_id}")
                 
                 # Trigger watchers
                 self._trigger_config_watchers('client_removed', client)
@@ -786,7 +792,7 @@ FAST_SIGNALS=false
                 return True
                 
         except Exception as e:
-            self.logger.error(f"❌ Error removing client: {e}")
+            self.logger.error(f"[X] Error removing client: {e}")
             return False
     
     def add_broker(self, broker_config: BrokerConfig) -> bool:
@@ -808,7 +814,7 @@ FAST_SIGNALS=false
                 # Save to file
                 self.save_brokers_config()
                 
-                self.logger.info(f"✅ Added broker: {broker_config.broker_id}")
+                self.logger.info(f"[CHECK] Added broker: {broker_config.broker_id}")
                 
                 # Trigger watchers
                 self._trigger_config_watchers('broker_added', broker_config)
@@ -816,7 +822,7 @@ FAST_SIGNALS=false
                 return True
                 
         except Exception as e:
-            self.logger.error(f"❌ Error adding broker: {e}")
+            self.logger.error(f"[X] Error adding broker: {e}")
             return False
     
     def _validate_client_config(self, client: ClientConfig) -> bool:
@@ -886,7 +892,7 @@ FAST_SIGNALS=false
             self.is_watching = True
             self.watch_thread = threading.Thread(target=self._config_watch_loop, daemon=True)
             self.watch_thread.start()
-            self.logger.info("👁️ Configuration file watcher started")
+            self.logger.info("?? Configuration file watcher started")
     
     def stop_config_watcher(self):
         """Stop watching configuration files"""
@@ -894,7 +900,7 @@ FAST_SIGNALS=false
             self.is_watching = False
             if self.watch_thread:
                 self.watch_thread.join(timeout=5)
-            self.logger.info("🛑 Configuration file watcher stopped")
+            self.logger.info("? Configuration file watcher stopped")
     
     def _config_watch_loop(self):
         """Background loop for watching config file changes"""
@@ -947,10 +953,10 @@ FAST_SIGNALS=false
                 self.load_brokers_config()
                 self._trigger_config_watchers('brokers_config_reloaded', None)
             
-            self.logger.info(f"🔄 Reloaded configuration: {file_path.name}")
+            self.logger.info(f"[REFRESH] Reloaded configuration: {file_path.name}")
             
         except Exception as e:
-            self.logger.error(f"❌ Error reloading {file_path.name}: {e}")
+            self.logger.error(f"[X] Error reloading {file_path.name}: {e}")
     
     def add_config_watcher(self, event_type: str, callback: Callable):
         """Add callback for configuration changes"""
@@ -993,11 +999,11 @@ FAST_SIGNALS=false
                     backup_file = backup_dir / file_path.name
                     shutil.copy2(file_path, backup_file)
             
-            self.logger.info(f"💾 Configuration backup created: {backup_dir}")
+            self.logger.info(f"? Configuration backup created: {backup_dir}")
             return str(backup_dir)
             
         except Exception as e:
-            self.logger.error(f"❌ Error creating backup: {e}")
+            self.logger.error(f"[X] Error creating backup: {e}")
             return ""
     
     def restore_backup(self, backup_path: str) -> bool:
@@ -1025,11 +1031,11 @@ FAST_SIGNALS=false
             # Reload all configurations
             self.load_all_configurations()
             
-            self.logger.info(f"✅ Configuration restored from backup: {backup_path}")
+            self.logger.info(f"[CHECK] Configuration restored from backup: {backup_path}")
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ Error restoring backup: {e}")
+            self.logger.error(f"[X] Error restoring backup: {e}")
             return False
     
     def get_config_summary(self) -> Dict[str, Any]:
@@ -1063,7 +1069,7 @@ FAST_SIGNALS=false
 # Demo and testing
 def run_demo():
     """Run demo of the configuration manager"""
-    print("🔧 Lightning Scalper Configuration Manager - Demo")
+    print("[TOOL] Lightning Scalper Configuration Manager - Demo")
     print("=" * 60)
     
     # Initialize config manager
@@ -1072,7 +1078,7 @@ def run_demo():
     try:
         # Show config summary
         summary = config_manager.get_config_summary()
-        print(f"📊 Configuration Summary:")
+        print(f"[CHART] Configuration Summary:")
         print(f"   System Environment: {summary['system']['environment']}")
         print(f"   Total Clients: {summary['clients']['total']}")
         print(f"   Active Clients: {summary['clients']['active']}")
@@ -1080,7 +1086,7 @@ def run_demo():
         print(f"   Trading Strategy: {summary['trading']['strategy']}")
         
         # Show client configurations
-        print(f"\n👥 Client Configurations:")
+        print(f"\n[USERS] Client Configurations:")
         for client_id, client in config_manager.get_all_clients().items():
             print(f"   {client_id}: {client.name} ({client.broker_id})")
             print(f"      Active: {client.is_active}, Demo: {client.is_demo}")
@@ -1088,7 +1094,7 @@ def run_demo():
             print(f"      Max Daily Loss: ${client.max_daily_loss}")
         
         # Show broker configurations
-        print(f"\n🏢 Broker Configurations:")
+        print(f"\n? Broker Configurations:")
         for broker_id, broker in config_manager.get_all_brokers().items():
             print(f"   {broker_id}: {broker.name} ({broker.broker_type})")
             print(f"      Servers: {', '.join(broker.server_list)}")
@@ -1107,17 +1113,17 @@ def run_demo():
         )
         
         if config_manager.add_client(new_client):
-            print(f"\n✅ Successfully added test client: {new_client.client_id}")
+            print(f"\n[CHECK] Successfully added test client: {new_client.client_id}")
         
         # Create backup
         backup_path = config_manager.create_backup()
         if backup_path:
-            print(f"\n💾 Backup created: {backup_path}")
+            print(f"\n? Backup created: {backup_path}")
         
-        print(f"\n✅ Demo completed successfully!")
+        print(f"\n[CHECK] Demo completed successfully!")
         
     except Exception as e:
-        print(f"\n❌ Demo error: {e}")
+        print(f"\n[X] Demo error: {e}")
     
     finally:
         config_manager.stop_config_watcher()

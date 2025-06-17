@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-🚀 Lightning Scalper - Real-time Web Dashboard
+Lightning Scalper - Windows Safe Version
+Auto-fixed for Unicode compatibility
+"""
+
+"""
+[ROCKET] Lightning Scalper - Real-time Web Dashboard
 Production-Grade Web Interface for monitoring 80+ clients
 
 Real-time dashboard for monitoring trading signals, client performance,
@@ -39,7 +45,7 @@ try:
     import pandas as pd
     import numpy as np
 except ImportError as e:
-    print(f"❌ Missing web dependencies: {e}")
+    print(f"[X] Missing web dependencies: {e}")
     print("   Install with: pip install flask flask-socketio plotly pandas")
     sys.exit(1)
 
@@ -53,12 +59,12 @@ try:
     from core.lightning_scalper_engine import FVGSignal, FVGType, CurrencyPair
     from execution.trade_executor import ClientAccount, Position, Order
 except ImportError as e:
-    print(f"❌ Failed to import core modules: {e}")
+    print(f"[X] Failed to import core modules: {e}")
     sys.exit(1)
 
 class LightningScalperDashboard:
     """
-    🌐 Lightning Scalper Real-time Web Dashboard
+    [GLOBE] Lightning Scalper Real-time Web Dashboard
     Production web interface for monitoring trading operations
     """
     
@@ -109,7 +115,7 @@ class LightningScalperDashboard:
         self._setup_routes()
         self._setup_socket_events()
         
-        self.logger.info("🌐 Lightning Scalper Dashboard initialized")
+        self.logger.info("[GLOBE] Lightning Scalper Dashboard initialized")
     
     
     def _setup_template_filters(self):
@@ -295,7 +301,7 @@ class LightningScalperDashboard:
             """Handle client connection"""
             client_id = request.sid
             self.connected_clients.add(client_id)
-            self.logger.info(f"🔗 Dashboard client connected: {client_id}")
+            self.logger.info(f"? Dashboard client connected: {client_id}")
             
             # Send initial data
             emit('system_status', self._get_cached_system_status())
@@ -314,7 +320,7 @@ class LightningScalperDashboard:
                     if not self.room_subscriptions[room]:
                         del self.room_subscriptions[room]
             
-            self.logger.info(f"🔌 Dashboard client disconnected: {client_id}")
+            self.logger.info(f"? Dashboard client disconnected: {client_id}")
         
         @self.socketio.on('subscribe_to_updates')
         def handle_subscribe(data):
@@ -329,7 +335,7 @@ class LightningScalperDashboard:
                 self.room_subscriptions[room] = set()
             self.room_subscriptions[room].add(client_id)
             
-            self.logger.debug(f"📡 Client {client_id} subscribed to {update_type} updates")
+            self.logger.debug(f"[SATELLITE] Client {client_id} subscribed to {update_type} updates")
         
         @self.socketio.on('unsubscribe_from_updates')
         def handle_unsubscribe(data):
@@ -542,7 +548,7 @@ class LightningScalperDashboard:
         }
     
     def _get_demo_clients_data(self) -> List[Dict[str, Any]]:
-        """Get demo clients data - แก้ไข structure ให้ตรงกับ template"""
+        """Get demo clients data - ????? structure ????????? template"""
         return [
             {
                 'client_id': 'CLIENT_001',
@@ -691,11 +697,11 @@ class LightningScalperDashboard:
             </style>
         </head>
         <body>
-            <h1>⚠️ {title}</h1>
+            <h1>[WARNING] {title}</h1>
             <div class="error">
                 <h3>Error Details:</h3>
                 <p>{message}</p>
-                <a href="/" style="color: #88ff88;">← Back to Dashboard</a>
+                <a href="/" style="color: #88ff88;">? Back to Dashboard</a>
             </div>
         </body>
         </html>
@@ -737,7 +743,7 @@ class LightningScalperDashboard:
         
         self.update_thread = threading.Thread(target=update_loop, daemon=True)
         self.update_thread.start()
-        self.logger.info("📡 Background update thread started")
+        self.logger.info("[SATELLITE] Background update thread started")
     
     def run(self, **kwargs):
         """Run the dashboard server"""
@@ -751,8 +757,8 @@ class LightningScalperDashboard:
             if self.controller:
                 self._subscribe_to_controller_events()
             
-            self.logger.info(f"🌐 Starting Lightning Scalper Dashboard on {self.host}:{self.port}")
-            self.logger.info(f"🔗 Dashboard URL: http://{self.host}:{self.port}")
+            self.logger.info(f"[GLOBE] Starting Lightning Scalper Dashboard on {self.host}:{self.port}")
+            self.logger.info(f"? Dashboard URL: http://{self.host}:{self.port}")
             
             # Run the Flask-SocketIO server
             self.socketio.run(self.app, 
@@ -762,7 +768,7 @@ class LightningScalperDashboard:
                             **kwargs)
                             
         except Exception as e:
-            self.logger.error(f"❌ Failed to start dashboard: {e}")
+            self.logger.error(f"[X] Failed to start dashboard: {e}")
             raise
     
     def _subscribe_to_controller_events(self):
@@ -793,7 +799,7 @@ class LightningScalperDashboard:
         def on_emergency_stop(event_type, data):
             """Handle emergency stop event"""
             self.socketio.emit('emergency_alert', {
-                'message': f"🚨 EMERGENCY STOP: {data['reason']}",
+                'message': f"[SIREN] EMERGENCY STOP: {data['reason']}",
                 'timestamp': datetime.now().isoformat()
             })
         
@@ -802,14 +808,14 @@ class LightningScalperDashboard:
         self.controller.subscribe_to_events('execution_complete', on_execution_complete)
         self.controller.subscribe_to_events('emergency_stop', on_emergency_stop)
         
-        self.logger.info("📡 Subscribed to controller events")
+        self.logger.info("[SATELLITE] Subscribed to controller events")
     
     def stop(self):
         """Stop the dashboard"""
         self.is_running = False
         if self.update_thread:
             self.update_thread.join(timeout=5)
-        self.logger.info("🛑 Dashboard stopped")
+        self.logger.info("? Dashboard stopped")
 
 def create_dashboard_app(controller: Optional[LightningScalperController] = None,
                         host: str = '0.0.0.0', port: int = 5000, debug: bool = False) -> LightningScalperDashboard:
@@ -819,11 +825,11 @@ def create_dashboard_app(controller: Optional[LightningScalperController] = None
 # Demo/Testing functionality
 def run_standalone_demo():
     """Run dashboard in standalone demo mode"""
-    print("🌐 Lightning Scalper Dashboard - Demo Mode")
+    print("[GLOBE] Lightning Scalper Dashboard - Demo Mode")
     print("=" * 50)
-    print("🔗 Dashboard will be available at: http://localhost:5000")
-    print("📊 Demo data will be displayed (no real trading)")
-    print("⌨️ Press Ctrl+C to stop")
+    print("? Dashboard will be available at: http://localhost:5000")
+    print("[CHART] Demo data will be displayed (no real trading)")
+    print("?? Press Ctrl+C to stop")
     print("=" * 50)
     
     # Create dashboard without controller (demo mode)
@@ -832,9 +838,9 @@ def run_standalone_demo():
     try:
         dashboard.run()
     except KeyboardInterrupt:
-        print("\n👋 Demo stopped")
+        print("\n? Demo stopped")
     except Exception as e:
-        print(f"\n❌ Demo error: {e}")
+        print(f"\n[X] Demo error: {e}")
 
 if __name__ == "__main__":
     run_standalone_demo()

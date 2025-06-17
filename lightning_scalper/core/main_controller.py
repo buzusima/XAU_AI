@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Lightning Scalper - Windows Safe Version
+Auto-fixed for Unicode compatibility
+"""
+
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -66,7 +73,7 @@ class SystemMetrics:
 
 class LightningScalperController:
     """
-    🚀 Production Lightning Scalper Main Controller
+    [ROCKET] Production Lightning Scalper Main Controller
     Central orchestration system for 80+ client AI trading operations
     """
     
@@ -128,7 +135,7 @@ class LightningScalperController:
         self._setup_logging()
         self.logger = logging.getLogger('LightningScalperController')
         
-        self.logger.info("🚀 Lightning Scalper Controller initialized")
+        self.logger.info("[ROCKET] Lightning Scalper Controller initialized")
     
     def _setup_logging(self):
         """Setup comprehensive logging system"""
@@ -194,32 +201,32 @@ class LightningScalperController:
     async def start_system(self) -> bool:
         """Start the complete Lightning Scalper system"""
         try:
-            self.logger.info("🚀 Starting Lightning Scalper System...")
+            self.logger.info("[ROCKET] Starting Lightning Scalper System...")
             self.status = SystemStatus.STARTING
             
             # 1. Start trade executor
             self.trade_executor.start_execution_engine()
-            self.logger.info("✅ Trade Executor started")
+            self.logger.info("[CHECK] Trade Executor started")
             
             # 2. Initialize data feeds
             await self._initialize_data_feeds()
-            self.logger.info("✅ Data feeds initialized")
+            self.logger.info("[CHECK] Data feeds initialized")
             
             # 3. Start background threads
             self._start_background_threads()
-            self.logger.info("✅ Background threads started")
+            self.logger.info("[CHECK] Background threads started")
             
             # 4. System ready
             self.status = SystemStatus.RUNNING
             self.start_time = datetime.now()
             
-            self.logger.info("🎯 Lightning Scalper System is RUNNING!")
+            self.logger.info("[TARGET] Lightning Scalper System is RUNNING!")
             self._trigger_event('system_started', {'timestamp': datetime.now()})
             
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to start system: {e}")
+            self.logger.error(f"[X] Failed to start system: {e}")
             self.status = SystemStatus.ERROR
             return False
     
@@ -235,7 +242,7 @@ class LightningScalperController:
                 sample_data = self._generate_sample_data(symbol, timeframe)
                 self.data_feeds[symbol][timeframe] = sample_data
         
-        self.logger.info(f"✅ Data feeds initialized for {len(self.currency_pairs)} pairs")
+        self.logger.info(f"[CHECK] Data feeds initialized for {len(self.currency_pairs)} pairs")
     
     def _generate_sample_data(self, symbol: str, timeframe: str, periods: int = 200) -> pd.DataFrame:
         """Generate realistic sample OHLCV data"""
@@ -618,7 +625,7 @@ class LightningScalperController:
                     
                     if success:
                         connection.connection_attempts = 0
-                        self.logger.info(f"✅ Client {client_id} reconnected successfully")
+                        self.logger.info(f"[CHECK] Client {client_id} reconnected successfully")
                     else:
                         connection.connection_attempts += 1
                         
@@ -654,11 +661,11 @@ class LightningScalperController:
                 with self.client_lock:
                     self.client_connections[client_id] = connection
                 
-                self.logger.info(f"✅ Client {client_id} added and connected successfully")
+                self.logger.info(f"[CHECK] Client {client_id} added and connected successfully")
                 self._trigger_event('client_added', {'client_id': client_id})
                 return True
             else:
-                self.logger.error(f"❌ Failed to connect MT5 for client {client_id}")
+                self.logger.error(f"[X] Failed to connect MT5 for client {client_id}")
                 return False
                 
         except Exception as e:
@@ -774,7 +781,7 @@ class LightningScalperController:
         try:
             # Check global daily loss limit
             if abs(self.metrics.total_pnl_today) > self.config['risk']['global_daily_loss_limit']:
-                self.logger.critical("🚨 GLOBAL DAILY LOSS LIMIT EXCEEDED!")
+                self.logger.critical("[SIREN] GLOBAL DAILY LOSS LIMIT EXCEEDED!")
                 self.emergency_stop()
                 return
             
@@ -785,7 +792,7 @@ class LightningScalperController:
             )
             
             if total_positions > self.config['risk']['max_concurrent_trades']:
-                self.logger.warning("⚠️ Maximum concurrent trades limit approached")
+                self.logger.warning("[WARNING] Maximum concurrent trades limit approached")
                 # Could implement position size reduction here
             
         except Exception as e:
@@ -813,7 +820,7 @@ class LightningScalperController:
                 for connection in self.client_connections.values():
                     connection.auto_trading = False
             
-            self.logger.critical(f"🚨 EMERGENCY STOP: {reason}")
+            self.logger.critical(f"[SIREN] EMERGENCY STOP: {reason}")
             self._trigger_event('emergency_stop', {'reason': reason})
             
         except Exception as e:
@@ -834,7 +841,7 @@ class LightningScalperController:
                     for connection in self.client_connections.values():
                         connection.auto_trading = True
                 
-                self.logger.info("✅ Operations resumed after emergency stop")
+                self.logger.info("[CHECK] Operations resumed after emergency stop")
                 self._trigger_event('operations_resumed', {'timestamp': datetime.now()})
                 
         except Exception as e:
@@ -917,7 +924,7 @@ class LightningScalperController:
     async def shutdown(self):
         """Graceful system shutdown"""
         try:
-            self.logger.info("🔄 Shutting down Lightning Scalper System...")
+            self.logger.info("[REFRESH] Shutting down Lightning Scalper System...")
             self.status = SystemStatus.STOPPING
             
             # Stop background threads
@@ -936,7 +943,7 @@ class LightningScalperController:
             self.executor_pool.shutdown(wait=True)
             
             self.status = SystemStatus.STOPPING
-            self.logger.info("✅ Lightning Scalper System shutdown complete")
+            self.logger.info("[CHECK] Lightning Scalper System shutdown complete")
             
         except Exception as e:
             self.logger.error(f"Error during shutdown: {e}")
@@ -944,7 +951,7 @@ class LightningScalperController:
 # Demonstration and Testing
 async def main():
     """Demo the Lightning Scalper Controller"""
-    print("🚀 Lightning Scalper Production Controller")
+    print("[ROCKET] Lightning Scalper Production Controller")
     print("=" * 60)
     
     # Initialize controller
@@ -953,10 +960,10 @@ async def main():
     # Start system
     success = await controller.start_system()
     if not success:
-        print("❌ Failed to start system")
+        print("[X] Failed to start system")
         return
     
-    print("✅ System started successfully!")
+    print("[CHECK] System started successfully!")
     
     # Add sample clients
     sample_clients = [
@@ -1013,22 +1020,22 @@ async def main():
     ]
     
     # Note: In demo mode, MT5 connections will fail
-    print("\n📝 Demo Mode: Adding sample clients...")
+    print("\n[MEMO] Demo Mode: Adding sample clients...")
     for client_data in sample_clients:
         # For demo, we'll register clients without MT5 connection
         client_account = ClientAccount(**client_data['account_info'])
         controller.trade_executor.register_client(client_account)
-        print(f"   ✅ {client_data['client_id']} registered (Demo Mode)")
+        print(f"   [CHECK] {client_data['client_id']} registered (Demo Mode)")
     
     # Simulate running for a short time
-    print("\n🔄 Running system simulation...")
+    print("\n[REFRESH] Running system simulation...")
     
     # Let system run for a few seconds
     await asyncio.sleep(5)
     
     # Get system status
     status = controller.get_system_status()
-    print(f"\n📊 System Status:")
+    print(f"\n[CHART] System Status:")
     print(f"   Status: {status['status']}")
     print(f"   Uptime: {status['metrics']['uptime_hours']:.2f} hours")
     print(f"   Signals Today: {status['metrics']['signals_today']}")
@@ -1036,7 +1043,7 @@ async def main():
     print(f"   Average Signal Quality: {status['metrics']['avg_signal_quality']:.1f}")
     
     # Show recent signals
-    print(f"\n🎯 Recent Signals Generated: {len(controller.signal_history)}")
+    print(f"\n[TARGET] Recent Signals Generated: {len(controller.signal_history)}")
     for i, signal_log in enumerate(list(controller.signal_history)[-3:]):
         signal = signal_log['signal']
         print(f"   {i+1}. {signal.currency_pair.value} {signal.fvg_type.value}")
@@ -1045,11 +1052,11 @@ async def main():
         print(f"      Priority: {signal_log['priority']}")
     
     # Shutdown gracefully
-    print(f"\n🔄 Shutting down system...")
+    print(f"\n[REFRESH] Shutting down system...")
     await controller.shutdown()
-    print("✅ System shutdown complete!")
+    print("[CHECK] System shutdown complete!")
     
-    print("\n🎯 Next Steps:")
+    print("\n[TARGET] Next Steps:")
     print("   1. Integrate with real MT5 broker connections")
     print("   2. Add Web Dashboard for monitoring 80+ clients")
     print("   3. Implement Signal Logger for Active Learning")

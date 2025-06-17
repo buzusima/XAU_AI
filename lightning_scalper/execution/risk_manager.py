@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-🛡️ Lightning Scalper - Advanced Risk Management System
+Lightning Scalper - Windows Safe Version
+Auto-fixed for Unicode compatibility
+"""
+
+"""
+[SHIELD] Lightning Scalper - Advanced Risk Management System
 Production-Grade Risk Control for 80+ Client Trading Operations
 
 This comprehensive risk management system provides multi-layered protection
@@ -16,7 +22,7 @@ Features:
 - Market volatility monitoring
 - Risk reporting and analytics
 
-Author: Phoenix Trading AI (อาจารย์ฟินิกซ์)
+Author: Phoenix Trading AI (??????????????)
 Version: 1.0.0
 License: Proprietary
 """
@@ -46,7 +52,7 @@ try:
     from execution.trade_executor import ClientAccount, Position, Order
     from data.signal_logger import LightningScalperDataLogger
 except ImportError as e:
-    print(f"❌ Failed to import core modules: {e}")
+    print(f"[X] Failed to import core modules: {e}")
 
 class RiskLevel(Enum):
     """Risk level classifications"""
@@ -147,7 +153,7 @@ class MarketRiskData:
 
 class LightningScalperRiskManager:
     """
-    🛡️ Lightning Scalper Advanced Risk Management System
+    [SHIELD] Lightning Scalper Advanced Risk Management System
     Multi-layered protection for production trading operations
     """
     
@@ -216,7 +222,7 @@ class LightningScalperRiskManager:
         # Initialize correlation matrix
         self._initialize_correlation_matrix()
         
-        self.logger.info("🛡️ Lightning Scalper Risk Manager initialized")
+        self.logger.info("[SHIELD] Lightning Scalper Risk Manager initialized")
     
     def _initialize_correlation_matrix(self):
         """Initialize currency correlation matrix"""
@@ -271,11 +277,11 @@ class LightningScalperRiskManager:
                 # Set up default risk limits
                 self._setup_default_risk_limits(client_account.client_id)
                 
-                self.logger.info(f"🛡️ Risk profile created for client {client_account.client_id}")
+                self.logger.info(f"[SHIELD] Risk profile created for client {client_account.client_id}")
                 return True
                 
         except Exception as e:
-            self.logger.error(f"❌ Error adding client risk profile: {e}")
+            self.logger.error(f"[X] Error adding client risk profile: {e}")
             return False
     
     def _setup_default_risk_limits(self, client_id: str):
@@ -300,7 +306,7 @@ class LightningScalperRiskManager:
             self.is_monitoring = True
             self.monitoring_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
             self.monitoring_thread.start()
-            self.logger.info("📊 Risk monitoring started")
+            self.logger.info("[CHART] Risk monitoring started")
     
     def stop_monitoring(self):
         """Stop risk monitoring"""
@@ -308,7 +314,7 @@ class LightningScalperRiskManager:
             self.is_monitoring = False
             if self.monitoring_thread:
                 self.monitoring_thread.join(timeout=10)
-            self.logger.info("🛑 Risk monitoring stopped")
+            self.logger.info("? Risk monitoring stopped")
     
     def _monitoring_loop(self):
         """Background risk monitoring loop"""
@@ -327,7 +333,7 @@ class LightningScalperRiskManager:
                 time.sleep(self.monitoring_interval)
                 
             except Exception as e:
-                self.logger.error(f"❌ Error in risk monitoring loop: {e}")
+                self.logger.error(f"[X] Error in risk monitoring loop: {e}")
                 time.sleep(30)  # Longer sleep on error
     
     def _perform_system_risk_check(self):
@@ -350,7 +356,7 @@ class LightningScalperRiskManager:
                 self._update_risk_levels()
                 
         except Exception as e:
-            self.logger.error(f"❌ Error in system risk check: {e}")
+            self.logger.error(f"[X] Error in system risk check: {e}")
     
     def _check_global_limits(self):
         """Check system-wide risk limits"""
@@ -472,31 +478,31 @@ class LightningScalperRiskManager:
             })
             
         except Exception as e:
-            self.logger.error(f"❌ Error executing risk action {action} for {client_id}: {e}")
+            self.logger.error(f"[X] Error executing risk action {action} for {client_id}: {e}")
     
     def _reduce_position_sizes(self, client_id: str):
         """Reduce position sizes for client"""
         # This would integrate with trade executor to reduce position sizes
-        self.logger.warning(f"⚠️ Reducing position sizes for client {client_id}")
+        self.logger.warning(f"[WARNING] Reducing position sizes for client {client_id}")
         self.stats['positions_closed'] += 1
     
     def _block_new_trades(self, client_id: str):
         """Block new trades for client"""
         profile = self.client_profiles[client_id]
         profile.is_trading_enabled = False
-        self.logger.warning(f"🚫 Blocking new trades for client {client_id}")
+        self.logger.warning(f"? Blocking new trades for client {client_id}")
         self.stats['signals_blocked'] += 1
     
     def _close_partial_positions(self, client_id: str):
         """Close partial positions for client"""
         # This would integrate with trade executor to close positions
-        self.logger.warning(f"📉 Closing partial positions for client {client_id}")
+        self.logger.warning(f"[TRENDING_DOWN] Closing partial positions for client {client_id}")
         self.stats['positions_closed'] += 1
     
     def _close_all_positions(self, client_id: str):
         """Close all positions for client"""
         # This would integrate with trade executor to close all positions
-        self.logger.critical(f"🚨 Closing ALL positions for client {client_id}")
+        self.logger.critical(f"[SIREN] Closing ALL positions for client {client_id}")
         self.stats['positions_closed'] += 1
     
     def _trigger_emergency_stop(self, reason: str):
@@ -517,7 +523,7 @@ class LightningScalperRiskManager:
                 RiskAction.EMERGENCY_STOP
             )
             
-            self.logger.critical(f"🚨 EMERGENCY STOP TRIGGERED: {reason}")
+            self.logger.critical(f"[SIREN] EMERGENCY STOP TRIGGERED: {reason}")
             
             # Trigger callbacks
             self._trigger_risk_callbacks('emergency_stop', {'reason': reason})
@@ -663,7 +669,7 @@ class LightningScalperRiskManager:
                     }
                     
         except Exception as e:
-            self.logger.error(f"❌ Error evaluating signal risk: {e}")
+            self.logger.error(f"[X] Error evaluating signal risk: {e}")
             return {
                 'approved': False,
                 'reason': f'Risk evaluation error: {str(e)}',
@@ -692,7 +698,7 @@ class LightningScalperRiskManager:
             return total_corr_exposure
             
         except Exception as e:
-            self.logger.error(f"❌ Error calculating correlation exposure: {e}")
+            self.logger.error(f"[X] Error calculating correlation exposure: {e}")
             return new_position_value  # Return conservative estimate
     
     def _assess_market_volatility_risk(self, currency_pair: str) -> float:
@@ -720,7 +726,7 @@ class LightningScalperRiskManager:
             return min(base_risk, 1.0)  # Cap at 1.0
             
         except Exception as e:
-            self.logger.error(f"❌ Error assessing volatility risk: {e}")
+            self.logger.error(f"[X] Error assessing volatility risk: {e}")
             return 0.5  # Return moderate risk as default
     
     def _has_major_news_today(self, currency_pair: str) -> bool:
@@ -762,7 +768,7 @@ class LightningScalperRiskManager:
                 self._check_client_limits(client_id)
                 
         except Exception as e:
-            self.logger.error(f"❌ Error updating client P&L: {e}")
+            self.logger.error(f"[X] Error updating client P&L: {e}")
     
     def update_client_positions(self, client_id: str, positions_data: Dict[str, Any]):
         """Update client position information"""
@@ -785,7 +791,7 @@ class LightningScalperRiskManager:
                 )
                 
         except Exception as e:
-            self.logger.error(f"❌ Error updating client positions: {e}")
+            self.logger.error(f"[X] Error updating client positions: {e}")
     
     def _check_correlation_exposure(self):
         """Check system-wide correlation exposure"""
@@ -823,7 +829,7 @@ class LightningScalperRiskManager:
                             )
                             
         except Exception as e:
-            self.logger.error(f"❌ Error checking correlation exposure: {e}")
+            self.logger.error(f"[X] Error checking correlation exposure: {e}")
     
     def _update_risk_levels(self):
         """Update risk levels for all clients"""
@@ -866,7 +872,7 @@ class LightningScalperRiskManager:
                 self._update_performance_multipliers(client_id, risk_score)
                 
         except Exception as e:
-            self.logger.error(f"❌ Error updating risk levels: {e}")
+            self.logger.error(f"[X] Error updating risk levels: {e}")
     
     def _update_performance_multipliers(self, client_id: str, risk_score: float):
         """Update performance-based multipliers"""
@@ -908,7 +914,7 @@ class LightningScalperRiskManager:
             self._update_news_events()
             
         except Exception as e:
-            self.logger.error(f"❌ Error updating market risk data: {e}")
+            self.logger.error(f"[X] Error updating market risk data: {e}")
     
     def _update_news_events(self):
         """Update major news events (placeholder)"""
@@ -977,7 +983,7 @@ class LightningScalperRiskManager:
                     'avg_signal_quality': 0
                 })
             except Exception as e:
-                self.logger.error(f"❌ Error logging risk event: {e}")
+                self.logger.error(f"[X] Error logging risk event: {e}")
         
         return event
     
@@ -994,7 +1000,7 @@ class LightningScalperRiskManager:
         self.alerts_queue.append(alert)
         self.stats['alerts_generated'] += 1
         
-        self.logger.warning(f"⚠️ Risk Alert [{level.value}] {client_id}: {message}")
+        self.logger.warning(f"[WARNING] Risk Alert [{level.value}] {client_id}: {message}")
     
     def _process_risk_alerts(self):
         """Process pending risk alerts"""
@@ -1016,14 +1022,14 @@ class LightningScalperRiskManager:
                 try:
                     callback(event_type, data)
                 except Exception as e:
-                    self.logger.error(f"❌ Error in risk callback: {e}")
+                    self.logger.error(f"[X] Error in risk callback: {e}")
         except Exception as e:
-            self.logger.error(f"❌ Error triggering risk callbacks: {e}")
+            self.logger.error(f"[X] Error triggering risk callbacks: {e}")
     
     def subscribe_to_risk_events(self, event_type: str, callback: Callable):
         """Subscribe to risk management events"""
         self.risk_callbacks[event_type].append(callback)
-        self.logger.debug(f"📡 Subscribed to risk event: {event_type}")
+        self.logger.debug(f"[SATELLITE] Subscribed to risk event: {event_type}")
     
     def get_risk_summary(self) -> Dict[str, Any]:
         """Get comprehensive risk management summary"""
@@ -1088,7 +1094,7 @@ class LightningScalperRiskManager:
                 }
                 
         except Exception as e:
-            self.logger.error(f"❌ Error generating risk summary: {e}")
+            self.logger.error(f"[X] Error generating risk summary: {e}")
             return {'error': str(e)}
     
     def reset_daily_limits(self):
@@ -1105,10 +1111,10 @@ class LightningScalperRiskManager:
                 self.total_system_pnl = 0.0
                 self.emergency_stop_active = False
                 
-                self.logger.info("🔄 Daily risk limits reset")
+                self.logger.info("[REFRESH] Daily risk limits reset")
                 
         except Exception as e:
-            self.logger.error(f"❌ Error resetting daily limits: {e}")
+            self.logger.error(f"[X] Error resetting daily limits: {e}")
     
     def enable_emergency_mode(self):
         """Enable emergency trading mode with stricter limits"""
@@ -1122,16 +1128,16 @@ class LightningScalperRiskManager:
                     profile.performance_multiplier *= 0.5
                     profile.volatility_multiplier *= 0.8
                 
-                self.logger.warning("🚨 Emergency trading mode enabled - All limits reduced")
+                self.logger.warning("[SIREN] Emergency trading mode enabled - All limits reduced")
                 
         except Exception as e:
-            self.logger.error(f"❌ Error enabling emergency mode: {e}")
+            self.logger.error(f"[X] Error enabling emergency mode: {e}")
 
 
 # Demo and testing functionality
 def demo_risk_manager():
     """Demonstrate the risk management system"""
-    print("🛡️ Lightning Scalper Risk Manager - Demo")
+    print("[SHIELD] Lightning Scalper Risk Manager - Demo")
     print("=" * 60)
     
     # Initialize risk manager
@@ -1178,11 +1184,11 @@ def demo_risk_manager():
     # Add clients to risk manager
     for client in sample_clients:
         success = risk_manager.add_client(client)
-        print(f"✅ Added client {client.client_id}: {success}")
+        print(f"[CHECK] Added client {client.client_id}: {success}")
     
     # Start monitoring
     risk_manager.start_monitoring()
-    print("📊 Risk monitoring started")
+    print("[CHART] Risk monitoring started")
     
     # Test signal evaluation
     from core.lightning_scalper_engine import FVGSignal, FVGType, CurrencyPair, MarketCondition, FVGStatus
@@ -1217,7 +1223,7 @@ def demo_risk_manager():
     
     # Evaluate signal risk for each client
     for client in sample_clients:
-        print(f"\n🎯 Testing signal evaluation for {client.client_id}:")
+        print(f"\n[TARGET] Testing signal evaluation for {client.client_id}:")
         
         risk_result = risk_manager.evaluate_signal_risk(test_signal, client.client_id, 0.1)
         
@@ -1232,7 +1238,7 @@ def demo_risk_manager():
             print(f"   Reason: {risk_result.get('reason', 'N/A')}")
     
     # Simulate some P&L changes
-    print(f"\n📊 Simulating P&L changes...")
+    print(f"\n[CHART] Simulating P&L changes...")
     risk_manager.update_client_pnl("RISK_TEST_001", -150.0)  # Losing trade
     risk_manager.update_client_pnl("RISK_TEST_002", 75.0)    # Winning trade
     
@@ -1249,14 +1255,14 @@ def demo_risk_manager():
     # Get risk summary
     summary = risk_manager.get_risk_summary()
     
-    print(f"\n📈 Risk Management Summary:")
+    print(f"\n[TRENDING_UP] Risk Management Summary:")
     print(f"   Total System P&L: ${summary['global_metrics']['total_system_pnl']:.2f}")
     print(f"   Active Clients: {summary['client_metrics']['active_clients']}/{summary['client_metrics']['total_clients']}")
     print(f"   High Risk Clients: {summary['client_metrics']['high_risk_clients']}")
     print(f"   Risk Checks Performed: {summary['statistics']['risk_checks_performed']}")
     print(f"   Alerts Generated: {summary['statistics']['alerts_generated']}")
     
-    print(f"\n👥 Client Risk Status:")
+    print(f"\n[USERS] Client Risk Status:")
     for client_id, details in summary['client_details'].items():
         print(f"   {client_id}:")
         print(f"     Risk Level: {details['risk_level']}")
@@ -1265,14 +1271,14 @@ def demo_risk_manager():
         print(f"     Current Exposure: ${details['exposure']:.2f}")
     
     # Test emergency scenario
-    print(f"\n🚨 Testing Emergency Scenario...")
+    print(f"\n[SIREN] Testing Emergency Scenario...")
     risk_manager.update_client_pnl("RISK_TEST_001", -300.0)  # Large loss triggering limit
     
     time.sleep(2)
     
     # Final summary
     final_summary = risk_manager.get_risk_summary()
-    print(f"\n📊 Final Status:")
+    print(f"\n[CHART] Final Status:")
     print(f"   Emergency Stop: {final_summary['global_metrics']['emergency_stop_active']}")
     print(f"   Recent Events: {len(final_summary['recent_events'])}")
     
@@ -1281,7 +1287,7 @@ def demo_risk_manager():
     
     # Stop monitoring
     risk_manager.stop_monitoring()
-    print(f"\n✅ Risk Manager Demo Complete!")
+    print(f"\n[CHECK] Risk Manager Demo Complete!")
 
 
 if __name__ == "__main__":

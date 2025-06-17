@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
-🚀 Lightning Scalper - Signal Data Logger
+[ROCKET] Lightning Scalper - Signal Data Logger
 Production-Grade Data Collection System for Active Learning
 
 This module handles comprehensive data logging for all trading signals,
@@ -49,7 +51,7 @@ try:
     from execution.trade_executor import Order, Position, OrderStatus, TradeDirection
     from adapters.mt5_adapter import MT5Position, MT5AccountInfo
 except ImportError as e:
-    print(f"❌ Failed to import core modules: {e}")
+    print(f"[X] Failed to import core modules: {e}")
     sys.exit(1)
 
 class LogLevel(Enum):
@@ -186,7 +188,7 @@ class PerformanceLogEntry:
     calmar_ratio: Optional[float] = None
 class LightningScalperDataLogger:
     """
-    🗄️ Lightning Scalper Data Logger
+    [DATABASE] Lightning Scalper Data Logger
     Comprehensive data collection system for ML and performance analysis
     """
     
@@ -237,7 +239,7 @@ class LightningScalperDataLogger:
         # Initialize database
         self._initialize_database()
         
-        self.logger.info("🗄️ Lightning Scalper Data Logger initialized")
+        self.logger.info("[DATABASE] Lightning Scalper Data Logger initialized")
     
     def _initialize_database(self):
         """Initialize SQLite database with required tables"""
@@ -373,10 +375,10 @@ class LightningScalperDataLogger:
                 
                 conn.commit()
                 
-            self.logger.info("✅ Database initialized successfully")
+            self.logger.info("[CHECK] Database initialized successfully")
             
         except Exception as e:
-            self.logger.error(f"❌ Database initialization failed: {e}")
+            self.logger.error(f"[X] Database initialization failed: {e}")
             raise
     
     def start_logging(self):
@@ -388,7 +390,7 @@ class LightningScalperDataLogger:
             self.flush_thread = threading.Thread(target=self._flush_loop, daemon=True)
             self.flush_thread.start()
             
-            self.logger.info("🚀 Data logging system started")
+            self.logger.info("[ROCKET] Data logging system started")
     
     def stop_logging(self):
         """Stop the data logging system and flush remaining data"""
@@ -402,7 +404,7 @@ class LightningScalperDataLogger:
             if self.flush_thread:
                 self.flush_thread.join(timeout=10)
             
-            self.logger.info("🛑 Data logging system stopped")
+            self.logger.info("? Data logging system stopped")
     
     def _flush_loop(self):
         """Background thread for periodic buffer flushing"""
@@ -946,7 +948,7 @@ class LightningScalperDataLogger:
 # Demo and testing
 def run_demo():
     """Run demo of the data logger"""
-    print("🗄️ Lightning Scalper Data Logger - Demo")
+    print("[DATABASE] Lightning Scalper Data Logger - Demo")
     print("=" * 50)
     
     # Initialize logger
@@ -988,7 +990,7 @@ def run_demo():
         
         # Log signal
         logger.log_signal(sample_signal, client_id="DEMO_CLIENT", lot_size=0.1)
-        print("✅ Sample signal logged")
+        print("[CHECK] Sample signal logged")
         
         # Log execution
         execution_data = {
@@ -1008,7 +1010,7 @@ def run_demo():
         }
         
         logger.log_execution(execution_data)
-        print("✅ Sample execution logged")
+        print("[CHECK] Sample execution logged")
         
         # Update signal outcome
         outcome_data = {
@@ -1019,32 +1021,32 @@ def run_demo():
         }
         
         logger.update_signal_outcome('DEMO_SIGNAL_001', outcome_data)
-        print("✅ Signal outcome updated")
+        print("[CHECK] Signal outcome updated")
         
         # Flush data
         logger.flush_buffers()
-        print("✅ Data flushed to database")
+        print("[CHECK] Data flushed to database")
         
         # Get statistics
         stats = logger.get_statistics()
-        print(f"\n📊 Statistics:")
+        print(f"\n[CHART] Statistics:")
         print(f"   Signals logged: {stats['signals_logged']}")
         print(f"   Executions logged: {stats['executions_logged']}")
         print(f"   Database records: {stats['signals_count']}")
         
         # Export data
         export_files = logger.export_data(DataFormat.CSV)
-        print(f"\n💾 Exported files:")
+        print(f"\n? Exported files:")
         for table, filepath in export_files.items():
             print(f"   {table}: {filepath}")
         
         # Create ML dataset
         X, y = logger.create_ml_dataset()
-        print(f"\n🤖 ML Dataset: {len(X)} samples, {len(X.columns) if not X.empty else 0} features")
+        print(f"\n? ML Dataset: {len(X)} samples, {len(X.columns) if not X.empty else 0} features")
         
     finally:
         logger.stop_logging()
-        print("\n✅ Demo completed!")
+        print("\n[CHECK] Demo completed!")
 
 if __name__ == "__main__":
     run_demo()
