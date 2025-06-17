@@ -33,14 +33,16 @@ from pathlib import Path
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent.absolute()
+LIGHTNING_SCALPER_PATH = PROJECT_ROOT / "lightning_scalper"
 sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(LIGHTNING_SCALPER_PATH))
 
 # Import our core modules
 try:
-    from core.main_controller import LightningScalperController
-    from core.lightning_scalper_engine import CurrencyPair
-    from execution.trade_executor import ClientAccount
-    from adapters.mt5_adapter import MT5Adapter
+    from lightning_scalper.core.main_controller import LightningScalperController
+    from lightning_scalper.core.lightning_scalper_engine import CurrencyPair
+    from lightning_scalper.execution.trade_executor import ClientAccount
+    from lightning_scalper.adapters.mt5_adapter import MT5Adapter
 except ImportError as e:
     print(f"[X] Failed to import core modules: {e}")
     print("   Make sure all required files are in the correct directories")
@@ -55,7 +57,7 @@ class LightningScalperApp:
     def __init__(self, config_path: Optional[str] = None):
         self.app_name = "Lightning Scalper"
         self.version = "1.0.0"
-        self.config_path = config_path or "config/settings.json"
+        self.config_path = config_path or "lightning_scalper/config/settings.json"
         
         # Core system
         self.controller: Optional[LightningScalperController] = None
@@ -86,7 +88,7 @@ class LightningScalperApp:
     def _setup_application_logging(self):
         """Setup comprehensive application logging"""
         # Create logs directory if it doesn't exist
-        logs_dir = PROJECT_ROOT / "logs"
+        logs_dir = LIGHTNING_SCALPER_PATH / "logs"
         logs_dir.mkdir(exist_ok=True)
         
         # Setup logging configuration
@@ -97,8 +99,8 @@ class LightningScalperApp:
             level=logging.INFO,
             format=log_format,
             handlers=[
-                logging.FileHandler(logs_dir / 'lightning_scalper_main.log'),
-                logging.StreamHandler(sys.stdout)
+                logging.FileHandler(logs_dir / 'lightning_scalper_main.log', encoding='utf-8'),
+                logging.StreamHandler()
             ]
         )
         
@@ -112,7 +114,7 @@ class LightningScalperApp:
         
         for logger_name in component_loggers:
             logger = logging.getLogger(logger_name)
-            handler = logging.FileHandler(logs_dir / f'{logger_name.lower()}.log')
+            handler = logging.FileHandler(logs_dir / f'{logger_name.lower()}.log', encoding='utf-8')
             handler.setFormatter(logging.Formatter(log_format))
             logger.addHandler(handler)
     
@@ -136,8 +138,8 @@ class LightningScalperApp:
             "application": {
                 "name": self.app_name,
                 "version": self.version,
-                "debug_mode": False,
-                "auto_start_trading": True,
+                "debug_mode": True,
+                "auto_start_trading": False,
                 "max_startup_time": 60,  # seconds
                 "health_check_interval": 30,  # seconds
                 "auto_restart_on_failure": True,
@@ -163,7 +165,8 @@ class LightningScalperApp:
                 "default_timeframes": ["M1", "M5", "M15", "H1"],
                 "min_signal_confluence": 65.0,
                 "max_slippage_pips": 3.0,
-                "default_risk_per_trade": 0.02
+                "default_risk_per_trade": 0.02,
+                "allow_demo_trading": True
             },
             "logging": {
                 "log_level": "INFO",
@@ -174,7 +177,7 @@ class LightningScalperApp:
             },
             "clients": {
                 "auto_load_clients": True,
-                "clients_config_file": "config/clients.json",
+                "clients_config_file": "lightning_scalper/config/clients.json",
                 "default_client_settings": {
                     "max_positions": 5,
                     "max_lot_size": 1.0,
@@ -190,7 +193,7 @@ class LightningScalperApp:
             config_file = PROJECT_ROOT / self.config_path
             
             if config_file.exists():
-                with open(config_file, 'r') as f:
+                with open(config_file, 'r', encoding='utf-8') as f:
                     file_config = json.load(f)
                 
                 # Merge with default config
@@ -224,8 +227,8 @@ class LightningScalperApp:
         try:
             config_file.parent.mkdir(parents=True, exist_ok=True)
             
-            with open(config_file, 'w') as f:
-                json.dump(self.default_config, f, indent=4)
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.default_config, f, indent=4, ensure_ascii=False)
             
             self.logger.info(f"[MEMO] Created default config file: {config_file}")
             
@@ -241,11 +244,16 @@ class LightningScalperApp:
             clients_file = PROJECT_ROOT / config['clients']['clients_config_file']
             
             if clients_file.exists():
-                with open(clients_file, 'r') as f:
+                with open(clients_file, 'r', encoding='utf-8') as f:
                     clients_data = json.load(f)
                 
                 self.logger.info(f"[CHECK] Loaded {len(clients_data)} client configurations")
-                return clients_data.get('clients', [])
+                
+                # Handle both list and dict formats
+                if isinstance(clients_data, list):
+                    return clients_data
+                else:
+                    return clients_data.get('clients', [])
             else:
                 self.logger.warning(f"[WARNING] Clients config file {clients_file} not found")
                 
@@ -262,45 +270,40 @@ class LightningScalperApp:
         try:
             clients_file.parent.mkdir(parents=True, exist_ok=True)
             
-            sample_clients = {
-                "clients": [
-                    {
+            sample_clients = [
+                {
+                    "client_id": "DEMO_CLIENT_001",
+                    "is_demo": True,
+                    "mt5_login": 12345001,
+                    "mt5_password": "REPLACE_WITH_REAL_PASSWORD",
+                    "mt5_server": "REPLACE_WITH_REAL_SERVER",
+                    "account_info": {
                         "client_id": "DEMO_CLIENT_001",
-                        "mt5_login": 12345001,
-                        "mt5_password": "REPLACE_WITH_REAL_PASSWORD",
-                        "mt5_server": "REPLACE_WITH_REAL_SERVER",
-                        "account_info": {
-                            "client_id": "DEMO_CLIENT_001",
-                            "account_number": "12345001",
-                            "broker": "MetaTrader5",
-                            "currency": "USD",
-                            "balance": 10000.0,
-                            "equity": 10000.0,
-                            "margin": 0.0,
-                            "free_margin": 10000.0,
-                            "margin_level": 0.0,
-                            "max_daily_loss": 200.0,
-                            "max_weekly_loss": 500.0,
-                            "max_monthly_loss": 1500.0,
-                            "max_positions": 5,
-                            "max_lot_size": 1.0
-                        },
+                        "account_number": "12345001",
+                        "broker": "MetaTrader5",
+                        "currency": "USD",
+                        "balance": 10000.0,
+                        "equity": 10000.0,
+                        "margin": 0.0,
+                        "free_margin": 10000.0,
+                        "margin_level": 0.0,
+                        "max_daily_loss": 200.0,
+                        "max_weekly_loss": 500.0,
+                        "max_monthly_loss": 1500.0,
+                        "max_positions": 5,
+                        "max_lot_size": 1.0,
                         "preferred_pairs": ["EURUSD", "GBPUSD", "USDJPY"],
-                        "risk_multiplier": 1.0,
-                        "max_signals_per_hour": 8,
-                        "auto_trading": True,
-                        "is_demo": True
-                    }
-                ],
-                "_instructions": {
-                    "note": "This is a sample configuration file. Replace with real client data.",
-                    "security": "NEVER commit real passwords to version control",
-                    "demo_mode": "Set 'is_demo': true for testing without real trading"
+                        "trading_sessions": ["London", "NewYork"]
+                    },
+                    "preferred_pairs": ["EURUSD", "GBPUSD", "USDJPY"],
+                    "risk_multiplier": 1.0,
+                    "max_signals_per_hour": 8,
+                    "auto_trading": True
                 }
-            }
+            ]
             
-            with open(clients_file, 'w') as f:
-                json.dump(sample_clients, f, indent=4)
+            with open(clients_file, 'w', encoding='utf-8') as f:
+                json.dump(sample_clients, f, indent=4, ensure_ascii=False)
             
             self.logger.info(f"[MEMO] Created sample clients file: {clients_file}")
             
@@ -337,18 +340,25 @@ class LightningScalperApp:
                     try:
                         # Skip demo clients in production mode
                         if client_data.get('is_demo', False) and not config['application']['debug_mode']:
-                            self.logger.info(f"?? Skipping demo client {client_data['client_id']} (production mode)")
+                            self.logger.info(f"[SKIP] Skipping demo client {client_data['client_id']} (production mode)")
                             continue
                         
                         # Add client to system
                         if config['application']['debug_mode']:
                             # In debug mode, just register without MT5 connection
                             client_account = ClientAccount(**client_data['account_info'])
-                            self.controller.trade_executor.register_client(client_account)
-                            self.logger.info(f"[CHECK] Client {client_data['client_id']} registered (Debug Mode)")
+                            success = self.controller.trade_executor.register_client(client_account)
+                            
+                            if success:
+                                # Also add to controller's active_clients
+                                self.controller.add_client(client_account)
+                                self.logger.info(f"[CHECK] Client {client_data['client_id']} registered (Debug Mode)")
+                            else:
+                                self.logger.warning(f"[WARNING] Failed to register client {client_data['client_id']}")
                         else:
                             # Production mode - full MT5 integration
-                            success = self.controller.add_client(client_data)
+                            client_account = ClientAccount(**client_data['account_info'])
+                            success = self.controller.add_client(client_account)
                             if success:
                                 self.logger.info(f"[CHECK] Client {client_data['client_id']} connected successfully")
                             else:
@@ -356,6 +366,8 @@ class LightningScalperApp:
                     
                     except Exception as e:
                         self.logger.error(f"[X] Error loading client {client_data.get('client_id', 'Unknown')}: {e}")
+            else:
+                self.logger.info("[INFO] No clients to load")
             
             # 4. Setup application monitoring
             if config['system']['enable_performance_monitoring']:
@@ -369,9 +381,9 @@ class LightningScalperApp:
             system_status = self.controller.get_system_status()
             
             self.logger.info("[CHECK] Lightning Scalper Application started successfully!")
-            self.logger.info(f"   ? Startup time: {startup_time:.2f} seconds")
-            self.logger.info(f"   [USERS] Active clients: {system_status['metrics']['active_clients']}")
-            self.logger.info(f"   [CHART] System status: {system_status['status']}")
+            self.logger.info(f"   [TIME] Startup time: {startup_time:.2f} seconds")
+            self.logger.info(f"   [STATUS] System status: {system_status.get('status', 'Unknown')}")
+            self.logger.info(f"   [USERS] Active clients: {system_status.get('metrics', {}).get('active_clients', 0)}")
             
             self.is_running = True
             return True
@@ -388,27 +400,37 @@ class LightningScalperApp:
                     if self.controller:
                         status = self.controller.get_system_status()
                         
-                        # Log performance metrics
-                        self.logger.info(f"[CHART] Performance: "
-                                       f"Signals: {status['metrics']['signals_today']}, "
-                                       f"Trades: {status['metrics']['trades_today']}, "
-                                       f"P&L: ${status['metrics']['pnl_today']:.2f}")
+                        # Log performance metrics every 5 minutes
+                        metrics = status.get('metrics', {})
+                        self.logger.debug(f"[PERFORMANCE] "
+                                       f"Signals: {metrics.get('total_signals_today', 0)}, "
+                                       f"Trades: {metrics.get('executed_trades_today', 0)}, "
+                                       f"P&L: ${metrics.get('total_pnl_today', 0.0):.2f}")
                     
                     # Sleep for monitoring interval
                     self.shutdown_event.wait(300)  # 5 minutes
                     
                 except Exception as e:
-                    self.logger.error(f"Performance monitoring error: {e}")
+                    self.logger.error(f"[X] Performance monitoring error: {e}")
                     time.sleep(60)
         
         monitor_thread = threading.Thread(target=performance_monitor, daemon=True)
         monitor_thread.start()
-        self.logger.info("[CHART] Performance monitoring started")
+        self.logger.info("[CHECK] Performance monitoring started")
     
     async def run(self):
         """Main application run loop"""
         try:
-            self.logger.info("[REFRESH] Entering main application loop...")
+            # Load configuration
+            config = self.load_configuration()
+            
+            # Startup
+            success = await self.startup(config)
+            if not success:
+                self.logger.error("[X] Failed to start Lightning Scalper")
+                return
+            
+            self.logger.info("[ROCKET] Lightning Scalper is running...")
             
             # Main application loop
             while self.is_running and not self.shutdown_event.is_set():
@@ -418,12 +440,13 @@ class LightningScalperApp:
                         status = self.controller.get_system_status()
                         
                         # Check for emergency conditions
-                        if status['safety']['emergency_stop']:
-                            self.logger.critical("[SIREN] Emergency stop detected!")
+                        safety = status.get('safety', {})
+                        if safety.get('emergency_stop', False):
+                            self.logger.critical("[ALERT] Emergency stop detected!")
                             # Could implement auto-restart logic here
                     
                     # Wait for shutdown signal or periodic check
-                    self.shutdown_event.wait(30)  # Check every 30 seconds
+                    await asyncio.sleep(30)  # Check every 30 seconds
                     
                 except Exception as e:
                     self.logger.error(f"[X] Error in main loop: {e}")
@@ -432,11 +455,11 @@ class LightningScalperApp:
                     if self._should_restart():
                         await self._attempt_restart()
                     else:
-                        self.logger.error("? Too many failures, shutting down")
+                        self.logger.error("[X] Too many failures, shutting down")
                         break
             
         except KeyboardInterrupt:
-            self.logger.info("?? Keyboard interrupt received")
+            self.logger.info("[INTERRUPT] Keyboard interrupt received")
         except Exception as e:
             self.logger.error(f"[X] Critical error in main loop: {e}")
         finally:
@@ -479,13 +502,14 @@ class LightningScalperApp:
     async def shutdown(self):
         """Graceful application shutdown"""
         try:
-            self.logger.info("[REFRESH] Initiating graceful shutdown...")
+            self.logger.info("[SATELLITE] Initiating graceful shutdown...")
             self.is_running = False
+            self.shutdown_event.set()
             
             # Calculate total runtime
             if self.start_time:
                 self.stats['total_runtime'] = datetime.now() - self.start_time
-                self.logger.info(f"[CHART] Total runtime: {self.stats['total_runtime']}")
+                self.logger.info(f"[TIME] Total runtime: {self.stats['total_runtime']}")
             
             # Shutdown controller
             if self.controller:
@@ -494,7 +518,7 @@ class LightningScalperApp:
             
             # Final statistics
             self.logger.info("[CHART] Final Statistics:")
-            self.logger.info(f"   ? Startup time: {self.stats['startup_time']:.2f}s")
+            self.logger.info(f"   [TIME] Startup time: {self.stats['startup_time']:.2f}s")
             self.logger.info(f"   [TIMER] Total runtime: {self.stats['total_runtime']}")
             self.logger.info(f"   [REFRESH] Restart count: {self.stats['restart_count']}")
             
@@ -539,8 +563,8 @@ Examples:
     parser.add_argument(
         '--config', '-c',
         type=str,
-        default='config/settings.json',
-        help='Configuration file path (default: config/settings.json)'
+        default='lightning_scalper/config/settings.json',
+        help='Configuration file path (default: lightning_scalper/config/settings.json)'
     )
     
     parser.add_argument(
@@ -570,8 +594,12 @@ Examples:
     
     return parser
 
-async def main():
+def main():
     """Main application entry point"""
+    # Setup UTF-8 encoding for Windows
+    if sys.platform == "win32":
+        os.environ['PYTHONIOENCODING'] = 'utf-8'
+    
     # Parse command line arguments
     parser = create_argument_parser()
     args = parser.parse_args()
@@ -591,59 +619,13 @@ async def main():
     app = LightningScalperApp(config_path=args.config)
     
     try:
-        # Load configuration
-        config = app.load_configuration()
-        
-        # Override config with command line arguments
-        if args.debug:
-            config['application']['debug_mode'] = True
-            config['application']['auto_start_trading'] = not args.clients_only
-        
-        # Start application
-        success = await app.startup(config)
-        
-        if not success:
-            print("[X] Failed to start Lightning Scalper")
-            return 1
-        
-        print("[CHECK] Lightning Scalper started successfully!")
-        print("\n[TARGET] System Status:")
-        status = app.get_app_status()
-        print(f"   Application: {status['application']['name']} v{status['application']['version']}")
-        print(f"   Running: {status['application']['is_running']}")
-        
-        if status['system']:
-            print(f"   Active Clients: {status['system']['metrics']['active_clients']}")
-            print(f"   System Status: {status['system']['status']}")
-        
-        print("\n[BULB] Press Ctrl+C to shutdown gracefully")
-        
-        # Run main application loop
-        await app.run()
-        
-        return 0
-        
+        # Run the application
+        asyncio.run(app.run())
     except KeyboardInterrupt:
-        print("\n?? Keyboard interrupt received")
-        return 0
+        print("\n[INTERRUPT] Application interrupted by user")
     except Exception as e:
-        print(f"\n[X] Critical application error: {e}")
-        return 1
+        print(f"[X] Fatal error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    try:
-        # Check Python version
-        if sys.version_info < (3, 8):
-            print("[X] Python 3.8 or higher is required")
-            sys.exit(1)
-        
-        # Run application
-        exit_code = asyncio.run(main())
-        sys.exit(exit_code)
-        
-    except KeyboardInterrupt:
-        print("\n? Goodbye!")
-        sys.exit(0)
-    except Exception as e:
-        print(f"\n? Fatal error: {e}")
-        sys.exit(1)
+    main()
