@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Lightning Scalper - Ultimate Complete Version
-รวมทุก feature เดิม + แก้ไข imports และปัญหาทั้งหมด
+รวมทุก feature เดิม + แก้ไข imports และปัญหาทั้งหมด + เพิ่ม Dashboard Integration
 """
 
 """
@@ -49,6 +49,19 @@ except ImportError as e:
     print("   Make sure all required files are in the correct directories")
     sys.exit(1)
 
+# Import dashboard module - NEW DASHBOARD INTEGRATION
+try:
+    from dashboard.web_dashboard import LightningScalperDashboard
+    DASHBOARD_AVAILABLE = True
+    print("[✓] Dashboard module imported successfully")
+except ImportError as e:
+    print(f"[WARNING] Dashboard module not available: {e}")
+    print("          System will run without web dashboard")
+    # Create a dummy class for type annotation
+    class LightningScalperDashboard:
+        pass
+    DASHBOARD_AVAILABLE = False
+
 class LightningScalperApp:
     """
     [ROCKET] Lightning Scalper Main Application
@@ -62,6 +75,7 @@ class LightningScalperApp:
     - Comprehensive logging and error handling
     - Risk management integration
     - Real-time dashboard support
+    - MT5 integration for live trading
     """
     
     def __init__(self, config_path: Optional[str] = None):
@@ -71,6 +85,8 @@ class LightningScalperApp:
         
         # Core system components
         self.controller: Optional[LightningScalperController] = None
+        self.dashboard: Optional[LightningScalperDashboard] = None  # NEW: Dashboard component
+        self.dashboard_thread: Optional[threading.Thread] = None    # NEW: Dashboard thread
         self.is_running = False
         self.shutdown_event = threading.Event()
         
@@ -92,7 +108,8 @@ class LightningScalperApp:
             'system_errors': 0,
             'performance_warnings': 0,
             'memory_peaks': [],
-            'cpu_peaks': []
+            'cpu_peaks': [],
+            'dashboard_status': 'disabled'  # NEW: Dashboard status tracking
         }
         
         # Performance monitoring
@@ -235,6 +252,10 @@ class LightningScalperApp:
             signal_name = signal_names.get(signum, f'Signal {signum}')
             self.logger.info(f"[📶] Received {signal_name}, initiating graceful shutdown...")
             self.shutdown_event.set()
+            
+            # Start shutdown in separate thread to avoid blocking
+            shutdown_thread = threading.Thread(target=self._graceful_shutdown)
+            shutdown_thread.start()
         
         try:
             # Unix/Linux signals
@@ -361,8 +382,9 @@ class LightningScalperApp:
             "server": {
                 "host": "localhost",
                 "port": 8080,
-                "enable_dashboard": True,
-                "dashboard_port": 5000,
+                "enable_dashboard": True,        # NEW: Dashboard enabled by default
+                "dashboard_host": "0.0.0.0",    # NEW: Dashboard host
+                "dashboard_port": 5000,          # NEW: Dashboard port
                 "enable_websocket": True,
                 "websocket_port": 8081,
                 "enable_api": True,
@@ -791,6 +813,67 @@ class LightningScalperApp:
         except Exception as e:
             self.logger.error(f"[X] Failed to create sample clients file: {e}")
     
+    def _start_dashboard(self, config: Dict[str, Any]) -> bool:
+        """Start web dashboard in separate thread - NEW DASHBOARD INTEGRATION"""
+        try:
+            if not DASHBOARD_AVAILABLE:
+                self.logger.warning("[DASHBOARD] Dashboard module not available")
+                self.stats['dashboard_status'] = 'unavailable'
+                return False
+            
+            if not config.get('server', {}).get('enable_dashboard', True):
+                self.logger.info("[DASHBOARD] Dashboard disabled in configuration")
+                self.stats['dashboard_status'] = 'disabled'
+                return False
+            
+            # Dashboard configuration
+            dashboard_host = config.get('server', {}).get('dashboard_host', '0.0.0.0')
+            dashboard_port = config.get('server', {}).get('dashboard_port', 5000)
+            debug_mode = config.get('application', {}).get('debug_mode', False)
+            
+            self.logger.info(f"[DASHBOARD] Initializing web dashboard...")
+            self.logger.info(f"            Host: {dashboard_host}")
+            self.logger.info(f"            Port: {dashboard_port}")
+            self.logger.info(f"            Debug: {debug_mode}")
+            
+            # Create dashboard instance
+            self.dashboard = LightningScalperDashboard(
+                controller=self.controller,
+                host=dashboard_host,
+                port=dashboard_port,
+                debug=debug_mode
+            )
+            
+            # Start dashboard in separate thread
+            def run_dashboard():
+                try:
+                    self.logger.info("[DASHBOARD] Starting dashboard server...")
+                    if hasattr(self.dashboard, 'start'):
+                        self.dashboard.start()
+                    elif hasattr(self.dashboard, 'run'):
+                        self.dashboard.run()
+                    else:
+                        self.logger.error("[DASHBOARD] No start/run method found")
+                except Exception as e:
+                    self.logger.error(f"[DASHBOARD] Dashboard error: {e}")
+                    self.stats['dashboard_status'] = 'error'            
+            self.dashboard_thread = threading.Thread(target=run_dashboard, daemon=True)
+            self.dashboard_thread.start()
+            
+            # Give dashboard time to start
+            time.sleep(2)
+            
+            self.logger.info(f"[DASHBOARD] ✅ Web dashboard started successfully!")
+            self.logger.info(f"[DASHBOARD] 🌐 Access URL: http://localhost:{dashboard_port}")
+            self.stats['dashboard_status'] = 'running'
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"[DASHBOARD] Failed to start dashboard: {e}")
+            self.stats['dashboard_status'] = 'error'
+            return False
+    
     async def startup(self, config: Dict[str, Any]) -> bool:
         """Comprehensive application startup sequence"""
         try:
@@ -804,6 +887,7 @@ class LightningScalperApp:
             self.logger.info(f"    Auto Trading: {config['application']['auto_start_trading']}")
             self.logger.info(f"    Performance Monitoring: {config['system']['enable_performance_monitoring']}")
             self.logger.info(f"    Risk Management: {config['risk']['enable_global_safety']}")
+            self.logger.info(f"    Dashboard: {config.get('server', {}).get('enable_dashboard', True)}")  # NEW
             
             # Phase 1: Initialize core controller
             self.logger.info("[🛰] Phase 1: Initializing system controller...")
@@ -840,19 +924,13 @@ class LightningScalperApp:
                         # Create comprehensive client account object
                         client_account = ClientAccount(
                             client_id=client_data['client_id'],
-                            name=client_data.get('name', ''),
-                            description=client_data.get('description', ''),
                             broker=client_data.get('broker', 'unknown'),
                             account_number=client_data.get('account_number', ''),
-                            is_active=client_data.get('is_active', True),
-                            is_demo=client_data.get('is_demo', True),
-                            created_date=client_data.get('created_date'),
-                            risk_settings=client_data.get('risk_settings', {}),
-                            trading_settings=client_data.get('trading_settings', {}),
-                            mt5_settings=client_data.get('mt5_settings', {}),
-                            notifications=client_data.get('notifications', {}),
-                            performance_tracking=client_data.get('performance_tracking', {}),
-                            auto_trading=client_data.get('trading_settings', {}).get('auto_trading', True)
+                            account_type=client_data.get('account_type', 'demo'),
+                            balance=client_data.get('balance', 10000.0),
+                            currency=client_data.get('currency', 'USD'),
+                            leverage=client_data.get('leverage', 100),
+                            max_position_size=client_data.get('max_position_size', 1.0)
                         )
                         
                         # Add client to controller
@@ -875,23 +953,29 @@ class LightningScalperApp:
             else:
                 self.logger.warning("[⚠] No clients loaded - system will run without active clients")
             
-            # Phase 4: Initialize background services
-            self.logger.info("[🔧] Phase 4: Starting background services...")
+            # Phase 4: Start web dashboard - NEW DASHBOARD INTEGRATION
+            self.logger.info("[🌐] Phase 4: Starting web dashboard...")
+            dashboard_success = self._start_dashboard(config)
+            if dashboard_success:
+                self.logger.info("[✅] Dashboard integration successful")
+            else:
+                self.logger.warning("[⚠] Dashboard not available (system will continue)")
+            
+            # Phase 5: Initialize background services
+            self.logger.info("[🔧] Phase 5: Starting background services...")
             self._start_background_services(config)
             
-            # Phase 5: Setup monitoring and alerts
+            # Phase 6: Setup monitoring and alerts
             if config['system']['enable_performance_monitoring']:
-                self.logger.info("[📊] Phase 5: Enabling performance monitoring...")
+                self.logger.info("[📊] Phase 6: Enabling performance monitoring...")
                 self._start_performance_monitoring()
             
             if config['system']['enable_health_checks']:
-                self.logger.info("[🏥] Phase 5: Enabling health monitoring...")
+                self.logger.info("[🏥] Phase 6: Enabling health monitoring...")
                 self._start_health_monitoring()
             
-            # Phase 6: Initialize external integrations
-            self.logger.info("[🌐] Phase 6: Initializing external integrations...")
-            if config.get('server', {}).get('enable_dashboard', False):
-                self.logger.info("[🖥] Dashboard will be available at http://localhost:5000")
+            # Phase 7: Initialize external integrations
+            self.logger.info("[🌐] Phase 7: Initializing external integrations...")
             
             if config.get('notifications', {}).get('enable_email', False):
                 self.logger.info("[📧] Email notifications enabled")
@@ -899,8 +983,8 @@ class LightningScalperApp:
             if config.get('notifications', {}).get('enable_webhook', False):
                 self.logger.info("[🔗] Webhook notifications enabled")
             
-            # Phase 7: Final startup validation
-            self.logger.info("[✅] Phase 7: Final system validation...")
+            # Phase 8: Final startup validation
+            self.logger.info("[✅] Phase 8: Final system validation...")
             system_status = self.controller.get_system_status()
             
             # Calculate and log startup metrics
@@ -912,7 +996,16 @@ class LightningScalperApp:
             self.logger.info(f"   ⏱ Startup time: {self.stats['startup_time']:.2f} seconds")
             self.logger.info(f"   👥 Active clients: {system_status['clients']['active']}")
             self.logger.info(f"   🎯 System status: {system_status['status']}")
-            self.logger.info(f"   🧠 Memory usage: {system_status['metrics']['memory_usage']:.1f} MB")
+            memory_usage = system_status.get('metrics', {}).get('memory_usage', 0.0)
+            self.logger.info(f"   🧠 Memory usage: {memory_usage:.1f} MB")
+            self.logger.info(f"   🌐 Dashboard: {self.stats['dashboard_status']}")  # NEW
+            
+            # NEW: Dashboard URL logging
+            if dashboard_success:
+                dashboard_port = config.get('server', {}).get('dashboard_port', 5000)
+                self.logger.info(f"   🔗 Dashboard URL: http://localhost:{dashboard_port}")
+            
+            self.logger.info("[🎯] System ready for trading operations!")
             
             return True
             
@@ -1176,6 +1269,12 @@ class LightningScalperApp:
                 health_status['issues'].append("Controller not initialized")
                 health_status['overall_healthy'] = False
             
+            # Dashboard health - NEW
+            health_status['checks']['dashboard'] = self.stats['dashboard_status'] in ['running', 'disabled']
+            if self.stats['dashboard_status'] == 'error':
+                health_status['issues'].append("Dashboard is in error state")
+                health_status['overall_healthy'] = False
+            
             # Memory health
             memory_usage = self.performance_metrics.get('memory_usage_mb', 0)
             health_status['checks']['memory'] = memory_usage < self.perf_config['memory_alert_threshold']
@@ -1314,8 +1413,8 @@ class LightningScalperApp:
                     
                     # Run controller main loop
                     if self.controller:
-                        await self.controller.run()
-                    
+                        while self.is_running:
+                            await asyncio.sleep(1)                    
                     # Periodic status logging
                     if current_time - last_status_log >= status_log_interval:
                         self._log_application_status()
@@ -1373,6 +1472,7 @@ class LightningScalperApp:
             self.logger.info(f"    Uptime: {status['application']['uptime']}")
             self.logger.info(f"    Memory: {self.performance_metrics['memory_usage_mb']:.1f}MB")
             self.logger.info(f"    CPU: {self.performance_metrics['cpu_usage_percent']:.1f}%")
+            self.logger.info(f"    Dashboard: {self.stats['dashboard_status']}")  # NEW
             
             if status['system']:
                 metrics = status['system']['metrics']
@@ -1527,6 +1627,102 @@ class LightningScalperApp:
         except Exception as e:
             self.logger.error(f"[X] Enhanced restart attempt failed: {e}")
     
+    def _graceful_shutdown(self):
+        """Perform graceful shutdown - UPDATED WITH DASHBOARD"""
+        try:
+            self.logger.info("[SHUTDOWN] Starting graceful shutdown...")
+            
+            # Stop main loop
+            self.is_running = False
+            
+            # Stop dashboard - NEW
+            if self.dashboard:
+                self.logger.info("[SHUTDOWN] Stopping dashboard...")
+                try:
+                    self.dashboard.stop()
+                except:
+                    pass
+            
+            # Stop controller
+            if self.controller:
+                self.logger.info("[SHUTDOWN] Stopping core system...")
+                asyncio.run(self.controller.shutdown())
+            
+            # Stop background threads
+            self.logger.info("[SHUTDOWN] Stopping background services...")
+            stopped_services = []
+            failed_services = []
+            
+            for service_name, thread in self.background_threads.items():
+                try:
+                    if thread and thread.is_alive():
+                        self.logger.info(f"[SHUTDOWN] Stopping {service_name}...")
+                        thread.join(timeout=5)
+                        if not thread.is_alive():
+                            stopped_services.append(service_name)
+                        else:
+                            failed_services.append(service_name)
+                            self.logger.warning(f"[SHUTDOWN] {service_name} did not stop gracefully")
+                except Exception as e:
+                    failed_services.append(service_name)
+                    self.logger.error(f"[SHUTDOWN] Error stopping {service_name}: {e}")
+            
+            # Generate shutdown report
+            shutdown_report = {
+                'shutdown_time': datetime.now().isoformat(),
+                'startup_time': f"{self.stats['startup_time']:.2f}s" if self.stats['startup_time'] else None,
+                'total_runtime': str(self.stats['total_runtime']),
+                'restart_count': self.stats['restart_count'],
+                'total_clients_served': self.stats['total_clients_served'],
+                'total_signals_processed': self.stats['total_signals_processed'],
+                'total_trades_executed': self.stats['total_trades_executed'],
+                'system_errors': self.stats['system_errors'],
+                'performance_warnings': self.stats['performance_warnings'],
+                'dashboard_status': self.stats['dashboard_status'],  # NEW
+                'services_stopped': stopped_services,
+                'services_failed': failed_services,
+                'final_memory_usage': f"{self.performance_metrics['memory_usage_mb']:.1f}MB",
+                'final_cpu_usage': f"{self.performance_metrics['cpu_usage_percent']:.1f}%"
+            }
+            
+            # Final statistics log
+            self.logger.info("[📊] FINAL SHUTDOWN REPORT:")
+            self.logger.info(f"   ⏱ Startup Time: {shutdown_report['startup_time']}")
+            self.logger.info(f"   ⏰ Total Runtime: {shutdown_report['total_runtime']}")
+            self.logger.info(f"   🔄 Restart Count: {shutdown_report['restart_count']}")
+            self.logger.info(f"   👥 Clients Served: {shutdown_report['total_clients_served']}")
+            self.logger.info(f"   📡 Signals Processed: {shutdown_report['total_signals_processed']}")
+            self.logger.info(f"   💹 Trades Executed: {shutdown_report['total_trades_executed']}")
+            self.logger.info(f"   ❌ System Errors: {shutdown_report['system_errors']}")
+            self.logger.info(f"   ⚠ Performance Warnings: {shutdown_report['performance_warnings']}")
+            self.logger.info(f"   🌐 Dashboard Status: {shutdown_report['dashboard_status']}")  # NEW
+            self.logger.info(f"   🧠 Final Memory Usage: {shutdown_report['final_memory_usage']}")
+            self.logger.info(f"   ⚡ Final CPU Usage: {shutdown_report['final_cpu_usage']}")
+            
+            if stopped_services:
+                self.logger.info(f"   ✅ Services Stopped: {', '.join(stopped_services)}")
+            if failed_services:
+                self.logger.warning(f"   ⚠ Services Failed to Stop: {', '.join(failed_services)}")
+            
+            self.logger.info("[✅] Lightning Scalper Application shutdown complete")
+            
+            # Save shutdown report to file
+            try:
+                reports_dir = PROJECT_ROOT / "reports"
+                reports_dir.mkdir(exist_ok=True)
+                shutdown_report_file = reports_dir / f"shutdown_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                
+                with open(shutdown_report_file, 'w', encoding='utf-8') as f:
+                    json.dump(shutdown_report, f, indent=4, ensure_ascii=False)
+                
+                self.logger.info(f"[📄] Shutdown report saved: {shutdown_report_file}")
+                
+            except Exception as e:
+                self.logger.warning(f"[⚠] Failed to save shutdown report: {e}")
+            
+        except Exception as e:
+            self.logger.error(f"[X] Error during shutdown: {e}")
+    
     async def shutdown(self):
         """Comprehensive graceful application shutdown"""
         try:
@@ -1547,8 +1743,17 @@ class LightningScalperApp:
                 await self.controller.shutdown()
                 self.logger.info("[✓] Core controller shutdown complete")
             
-            # Phase 4: Stop background services
-            self.logger.info("[🔄] Phase 4: Stopping background services...")
+            # Phase 4: Stop dashboard - NEW
+            if self.dashboard:
+                self.logger.info("[🔄] Phase 4: Shutting down dashboard...")
+                try:
+                    self.dashboard.stop()
+                    self.logger.info("[✓] Dashboard shutdown complete")
+                except Exception as e:
+                    self.logger.warning(f"[⚠] Dashboard shutdown error: {e}")
+            
+            # Phase 5: Stop background services
+            self.logger.info("[🔄] Phase 5: Stopping background services...")
             stopped_services = []
             failed_services = []
             
@@ -1566,8 +1771,8 @@ class LightningScalperApp:
                         self.logger.error(f"[X] Error stopping service {service_name}: {e}")
                         failed_services.append(service_name)
             
-            # Phase 5: Close file handles and cleanup resources
-            self.logger.info("[🔄] Phase 5: Cleaning up resources...")
+            # Phase 6: Close file handles and cleanup resources
+            self.logger.info("[🔄] Phase 6: Cleaning up resources...")
             try:
                 # Close logging handlers
                 for handler in logging.getLogger().handlers:
@@ -1576,12 +1781,12 @@ class LightningScalperApp:
             except Exception as e:
                 self.logger.warning(f"[⚠] Error closing log handlers: {e}")
             
-            # Phase 6: Calculate final statistics
+            # Phase 7: Calculate final statistics
             if self.start_time:
                 self.stats['total_runtime'] = datetime.now() - self.start_time
             
-            # Phase 7: Generate shutdown report
-            self.logger.info("[📊] Phase 6: Generating shutdown report...")
+            # Phase 8: Generate shutdown report
+            self.logger.info("[📊] Phase 7: Generating shutdown report...")
             shutdown_report = {
                 'shutdown_time': datetime.now().isoformat(),
                 'total_runtime': str(self.stats['total_runtime']),
@@ -1592,6 +1797,7 @@ class LightningScalperApp:
                 'total_trades_executed': self.stats['total_trades_executed'],
                 'system_errors': self.stats['system_errors'],
                 'performance_warnings': self.stats['performance_warnings'],
+                'dashboard_status': self.stats['dashboard_status'],  # NEW
                 'services_stopped': stopped_services,
                 'services_failed': failed_services,
                 'final_memory_usage': f"{self.performance_metrics['memory_usage_mb']:.1f}MB",
@@ -1608,6 +1814,7 @@ class LightningScalperApp:
             self.logger.info(f"   💹 Trades Executed: {shutdown_report['total_trades_executed']}")
             self.logger.info(f"   ❌ System Errors: {shutdown_report['system_errors']}")
             self.logger.info(f"   ⚠ Performance Warnings: {shutdown_report['performance_warnings']}")
+            self.logger.info(f"   🌐 Dashboard Status: {shutdown_report['dashboard_status']}")  # NEW
             self.logger.info(f"   🧠 Final Memory Usage: {shutdown_report['final_memory_usage']}")
             self.logger.info(f"   ⚡ Final CPU Usage: {shutdown_report['final_cpu_usage']}")
             
@@ -1668,6 +1875,11 @@ class LightningScalperApp:
                     'config_file': self.config_path,
                     'debug_mode': getattr(self, 'debug_mode', False),
                     'auto_restart_enabled': self.default_config['application']['auto_restart_on_failure']
+                },
+                'dashboard': {  # NEW: Dashboard status section
+                    'status': self.stats['dashboard_status'],
+                    'enabled': self.dashboard is not None,
+                    'thread_alive': self.dashboard_thread.is_alive() if self.dashboard_thread else False
                 }
             }
             
@@ -1696,8 +1908,17 @@ class LightningScalperApp:
                     'error': str(e)
                 },
                 'stats': self.stats,
-                'system': None
+                'system': None,
+                'dashboard': {'status': 'error', 'error': str(e)}  # NEW
             }
+    def get_safe_metrics(self):
+        try:
+            if hasattr(self, 'controller') and self.controller:
+                system_status = self.controller.get_system_status()
+                return system_status.get('metrics', {'memory_usage': 0.0, 'cpu_usage': 0.0})
+            return {'memory_usage': 0.0, 'cpu_usage': 0.0}
+        except Exception as e:
+            return {'memory_usage': 0.0, 'cpu_usage': 0.0}
 
 def create_argument_parser() -> argparse.ArgumentParser:
     """Create comprehensive command line argument parser"""
@@ -1715,6 +1936,8 @@ Examples:
   python main.py --performance-mode       # High performance mode
   python main.py --maintenance-mode       # Maintenance mode
   python main.py --safe-mode              # Safe mode with minimal features
+  python main.py --disable-dashboard      # Disable web dashboard
+  python main.py --port 8080              # Custom dashboard port
         """
     )
     
@@ -1811,13 +2034,13 @@ Examples:
     parser.add_argument(
         '--port',
         type=int,
-        help='Override server port'
+        help='Override dashboard port'  # NEW: Dashboard port override
     )
     
     parser.add_argument(
         '--disable-dashboard',
         action='store_true',
-        help='Disable web dashboard'
+        help='Disable web dashboard'  # NEW: Disable dashboard option
     )
     
     parser.add_argument(
@@ -1898,6 +2121,8 @@ async def main():
             filters.append("LIVE CLIENTS ONLY")
         if args.no_clients:
             filters.append("NO CLIENTS")
+        if args.disable_dashboard:  # NEW
+            filters.append("DASHBOARD DISABLED")
         
         if filters:
             print(f"Filters: {', '.join(filters)}")
@@ -1976,10 +2201,10 @@ async def main():
         if args.max_clients:
             config['system']['max_clients'] = args.max_clients
         
-        if args.port:
-            config['server']['port'] = args.port
+        if args.port:  # NEW: Dashboard port override
+            config['server']['dashboard_port'] = args.port
         
-        if args.disable_dashboard:
+        if args.disable_dashboard:  # NEW: Disable dashboard
             config['server']['enable_dashboard'] = False
         
         if args.disable_api:
@@ -2012,8 +2237,19 @@ async def main():
         if running_services:
             print(f"   Background Services: {', '.join(running_services)}")
         
+        # NEW: Dashboard status
+        dashboard_info = status.get('dashboard', {})
+        if dashboard_info.get('enabled', False):
+            dashboard_status = dashboard_info.get('status', 'unknown')
+            dashboard_port = config.get('server', {}).get('dashboard_port', 5000)
+            print(f"   Dashboard: {dashboard_status} (Port {dashboard_port})")
+            if dashboard_status == 'running':
+                print(f"   Dashboard URL: http://localhost:{dashboard_port}")
+        
         print("\n[💡] Press Ctrl+C to shutdown gracefully")
-        print("[📊] Dashboard: http://localhost:5000 (if enabled)")
+        if not args.disable_dashboard and config.get('server', {}).get('enable_dashboard', True):
+            dashboard_port = config.get('server', {}).get('dashboard_port', 5000)
+            print(f"[📊] Dashboard: http://localhost:{dashboard_port}")
         print("[🔌] API: http://localhost:9000 (if enabled)")
         
         # Run main application loop

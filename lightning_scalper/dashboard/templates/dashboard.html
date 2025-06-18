@@ -3,216 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lightning Scalper Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Lightning Scalper - Real-time Trading Dashboard</title>
+    
+    <!-- CSS Frameworks -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
         :root {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --bg-card: #333333;
-            --color-primary: #00d4ff;
-            --color-success: #22c55e;
-            --color-warning: #f59e0b;
-            --color-danger: #ef4444;
-            --text-primary: #ffffff;
-            --text-secondary: #888888;
-            --border: #444444;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            --primary-color: #1a1a1a;
+            --secondary-color: #2d2d2d;
+            --accent-color: #007bff;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --text-light: #ffffff;
+            --text-muted: #6c757d;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.5;
-            overflow-x: hidden;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            min-height: 100vh;
         }
 
-        .container {
-            max-width: 1200px;
+        .navbar {
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--accent-color) !important;
+        }
+
+        .main-container {
+            padding: 20px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 1rem;
-        }
-
-        /* Header - Simplified */
-        .header {
-            text-align: center;
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 600;
-            color: var(--color-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1rem;
-        }
-
-        .status {
-            display: inline-block;
-            background: var(--color-success);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-        }
-
-        /* Navigation - Simplified */
-        .nav {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .nav-btn {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: background-color 0.2s ease;
-        }
-
-        .nav-btn:hover, .nav-btn.active {
-            background: var(--color-primary);
-            color: var(--bg-primary);
-        }
-
-        /* Stats Grid - Simplified */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
+            background: linear-gradient(135deg, rgba(45, 45, 45, 0.8) 0%, rgba(26, 26, 26, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
 
-        .stat-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 123, 255, 0.2);
+            border-color: rgba(0, 123, 255, 0.3);
         }
 
-        .stat-icon {
-            color: var(--color-primary);
-            font-size: 1.2rem;
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .stat-title {
-            color: var(--text-secondary);
+        .stat-label {
+            color: var(--text-muted);
             font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .stat-change {
-            font-size: 0.8rem;
-            color: var(--color-success);
-        }
-
-        /* Simple Chart Container */
-        .chart-section {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-        }
-
-        .chart-title {
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        .simple-chart {
-            height: 200px;
-            background: var(--bg-secondary);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            position: relative;
+        .clients-table {
+            background: rgba(45, 45, 45, 0.8);
+            border-radius: 15px;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Simple SVG Chart */
-        .chart-svg {
-            width: 100%;
-            height: 100%;
+        .table-dark {
+            --bs-table-bg: transparent;
         }
 
-        .chart-line {
-            fill: none;
-            stroke: var(--color-primary);
-            stroke-width: 2;
+        .table-dark td, .table-dark th {
+            border-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
         }
 
-        .chart-area {
-            fill: var(--color-primary);
-            opacity: 0.1;
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
         }
 
-        /* Activity List - Simplified */
-        .activity-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
+        .status-online {
+            background: rgba(40, 167, 69, 0.2);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
         }
 
-        .activity-title {
+        .status-offline {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .signals-container {
+            background: rgba(45, 45, 45, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .signal-item {
+            background: rgba(26, 26, 26, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+        .signal-item:hover {
+            background: rgba(26, 26, 26, 0.8);
+            transform: translateX(5px);
+        }
+
+        .signal-currency {
+            font-weight: bold;
             font-size: 1.1rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
+            color: var(--accent-color);
+        }
+
+        .signal-type-buy {
+            color: var(--success-color);
+        }
+
+        .signal-type-sell {
+            color: var(--danger-color);
         }
 
         .activity-list {
-            list-style: none;
+            background: rgba(45, 45, 45, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .activity-item {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border);
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .activity-item:last-child {
@@ -220,328 +168,505 @@
         }
 
         .activity-icon {
-            width: 24px;
-            height: 24px;
-            background: var(--color-primary);
-            border-radius: 4px;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-right: 15px;
+            background: var(--accent-color);
             color: white;
-            font-size: 0.7rem;
         }
 
-        .activity-text {
-            flex: 1;
-            font-size: 0.9rem;
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
         }
 
-        .activity-time {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
+        .pulse {
+            animation: pulse 2s infinite;
         }
 
-        /* Performance Section - Simplified */
-        .performance {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
 
-        .perf-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
         }
 
-        .perf-label {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-bottom: 0.25rem;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .perf-value {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--color-primary);
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            margin-top: 2rem;
-            padding: 1rem;
-            border-top: 1px solid var(--border);
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
-
-        /* Responsive */
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .container {
-                padding: 0.5rem;
+            .main-container {
+                padding: 10px;
             }
             
-            .chart-section {
-                grid-template-columns: 1fr;
+            .stat-number {
+                font-size: 2rem;
             }
             
-            .nav {
-                flex-direction: column;
-                align-items: center;
+            .table-responsive {
+                font-size: 0.9rem;
             }
-            
-            .stats {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Remove heavy animations */
-        .fade-in {
-            opacity: 1;
-        }
-
-        /* Simplified loading */
-        .loading {
-            color: var(--color-primary);
-        }
-
-        /* Remove expensive transitions */
-        * {
-            transition: none !important;
-            animation: none !important;
-        }
-
-        /* Only keep essential hover effects */
-        .nav-btn:hover {
-            background: var(--color-primary);
-            color: var(--bg-primary);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
                 <i class="fas fa-bolt"></i> Lightning Scalper
-            </div>
-            <p class="subtitle">AI-Powered FVG Trading System</p>
-            <div class="status">
-                <i class="fas fa-circle"></i> System Running
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-user"></i> IB Dashboard
+                </span>
             </div>
         </div>
+    </nav>
 
-        <!-- Navigation -->
-        <div class="nav">
-            <a href="/" class="nav-btn active">
-                <i class="fas fa-home"></i> Dashboard
-            </a>
-            <a href="/clients" class="nav-btn">
-                <i class="fas fa-users"></i> Clients
-            </a>
-            <a href="/signals" class="nav-btn">
-                <i class="fas fa-chart-line"></i> Signals
-            </a>
-            <a href="/analytics" class="nav-btn">
-                <i class="fas fa-chart-pie"></i> Analytics
-            </a>
-            <a href="/api/system_status" class="nav-btn">
-                <i class="fas fa-cog"></i> API
-            </a>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <i class="fas fa-users stat-icon"></i>
-                    <span class="stat-title">Active Clients</span>
-                </div>
-                <div class="stat-value" id="active-clients">{{ client_count | default(5) }}</div>
-                <div class="stat-change">+2 from yesterday</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <i class="fas fa-chart-line stat-icon"></i>
-                    <span class="stat-title">Today's Signals</span>
-                </div>
-                <div class="stat-value" id="todays-signals">{{ system_status.metrics.total_signals_today | default(23) }}</div>
-                <div class="stat-change">+15% vs average</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <i class="fas fa-dollar-sign stat-icon"></i>
-                    <span class="stat-title">Total P&L Today</span>
-                </div>
-                <div class="stat-value" id="total-pnl">${{ system_status.metrics.total_pnl_today | default(1247.50) | safe_round(2) }}</div>
-                <div class="stat-change">+$324 profit</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <i class="fas fa-percentage stat-icon"></i>
-                    <span class="stat-title">Win Rate</span>
-                </div>
-                <div class="stat-value" id="win-rate">{{ system_status.metrics.avg_signal_quality | default(73.5) | safe_round(1) }}%</div>
-                <div class="stat-change">+2.1% this week</div>
-            </div>
-        </div>
-
-        <!-- Charts -->
-        <div class="chart-section">
-            <div class="chart-card">
-                <h3 class="chart-title">
-                    <i class="fas fa-chart-area"></i> Performance Overview
-                </h3>
-                <div class="simple-chart">
-                    <svg class="chart-svg" viewBox="0 0 300 100">
-                        <defs>
-                            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style="stop-color:var(--color-primary);stop-opacity:0.3" />
-                                <stop offset="100%" style="stop-color:var(--color-primary);stop-opacity:0" />
-                            </linearGradient>
-                        </defs>
-                        <path class="chart-area" d="M0,80 L50,70 L100,60 L150,45 L200,35 L250,25 L300,20 L300,100 L0,100 Z" fill="url(#chartGradient)"/>
-                        <path class="chart-line" d="M0,80 L50,70 L100,60 L150,45 L200,35 L250,25 L300,20"/>
-                    </svg>
-                </div>
-            </div>
-
-            <div class="activity-card">
-                <h3 class="activity-title">
-                    <i class="fas fa-clock"></i> Recent Activity
-                </h3>
-                <ul class="activity-list" id="recent-activity">
-                    <li class="activity-item">
-                        <div class="activity-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="activity-text">EURUSD Bullish Signal</div>
-                        <div class="activity-time">2m ago</div>
-                    </li>
-                    <li class="activity-item">
-                        <div class="activity-icon">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div class="activity-text">Client connected</div>
-                        <div class="activity-time">5m ago</div>
-                    </li>
-                    <li class="activity-item">
-                        <div class="activity-icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="activity-text">GBPUSD +15 pips</div>
-                        <div class="activity-time">8m ago</div>
-                    </li>
-                    <li class="activity-item">
-                        <div class="activity-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <div class="activity-text">Risk check passed</div>
-                        <div class="activity-time">12m ago</div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Performance Indicators -->
-        <div class="performance">
-            <div class="perf-card">
-                <div class="perf-label">System Uptime</div>
-                <div class="perf-value">99.8%</div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-label">Response Time</div>
-                <div class="perf-value">45ms</div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-label">Active Positions</div>
-                <div class="perf-value">{{ system_status.metrics.executed_trades_today | default(17) }}</div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-label">Risk Level</div>
-                <div class="perf-value" style="color: var(--color-success);">Low</div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <p>Lightning Scalper v1.0.0 - Last updated: {{ last_update}}</p>
-            <p>? 2024 Phoenix Trading AI</p>
+    <!-- Connection Status -->
+    <div class="connection-status">
+        <div id="connection-indicator" class="badge bg-success pulse">
+            <i class="fas fa-wifi"></i> Connected
         </div>
     </div>
 
-    <script>
-        // Simplified JavaScript - No heavy libraries
-        
-        // Simple auto-refresh (reduced frequency)
-        setInterval(function() {
-            fetch('/api/system_status')
-                .then(response => response.json())
-                .then(data => {
-                    // Update only essential stats
-                    const signalsEl = document.getElementById('todays-signals');
-                    const pnlEl = document.getElementById('total-pnl');
-                    
-                    if (signalsEl && data.metrics) {
-                        signalsEl.textContent = data.metrics.total_signals_today || 0;
-                    }
-                    if (pnlEl && data.metrics) {
-                        pnlEl.textContent = '$' + (data.metrics.total_pnl_today || 0).toFixed(2);
-                    }
-                })
-                .catch(error => {
-                    // Silent error handling
-                    console.log('Status update failed:', error);
-                });
-        }, 60000); // Reduced to 1 minute
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1><i class="fas fa-chart-line"></i> Trading Dashboard</h1>
+                <p class="text-muted">Real-time monitoring of Lightning Scalper AI Trading System</p>
+            </div>
+        </div>
 
-        // Simple activity updater
-        function addActivity(text, icon, time) {
-            const activityList = document.getElementById('recent-activity');
-            if (!activityList) return;
-            
-            const newItem = document.createElement('li');
-            newItem.className = 'activity-item';
-            newItem.innerHTML = `
-                <div class="activity-icon">
-                    <i class="fas fa-${icon}"></i>
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <div class="stat-number text-primary" id="active-clients">{{ clients_count or 0 }}</div>
+                    <div class="stat-label">Active Clients</div>
                 </div>
-                <div class="activity-text">${text}</div>
-                <div class="activity-time">${time}</div>
-            `;
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <div class="stat-number text-success" id="todays-signals">{{ todays_signals or 0 }}</div>
+                    <div class="stat-label">Today's Signals</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <div class="stat-number text-warning" id="active-positions">{{ active_positions or 0 }}</div>
+                    <div class="stat-label">Active Positions</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <div class="stat-number text-info" id="total-pnl">${{ total_pnl or 0 }}</div>
+                    <div class="stat-label">Total P&L Today</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="row">
+            <!-- Clients Table -->
+            <div class="col-lg-8">
+                <div class="clients-table mb-4">
+                    <div class="p-3 border-bottom" style="border-color: rgba(255,255,255,0.1) !important;">
+                        <h5><i class="fas fa-users"></i> Client Status</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Client ID</th>
+                                    <th>Status</th>
+                                    <th>Balance</th>
+                                    <th>P&L Today</th>
+                                    <th>Positions</th>
+                                    <th>Last Active</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table-body">
+                                <!-- Demo data -->
+                                <tr>
+                                    <td><strong>CLIENT_001</strong></td>
+                                    <td><span class="status-badge status-online">Online</span></td>
+                                    <td>$10,000.00</td>
+                                    <td class="text-success">+$245.50</td>
+                                    <td>3</td>
+                                    <td>2 min ago</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CLIENT_002</strong></td>
+                                    <td><span class="status-badge status-online">Online</span></td>
+                                    <td>$25,000.00</td>
+                                    <td class="text-success">+$890.25</td>
+                                    <td>5</td>
+                                    <td>5 min ago</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CLIENT_003</strong></td>
+                                    <td><span class="status-badge status-offline">Offline</span></td>
+                                    <td>$5,000.00</td>
+                                    <td class="text-danger">-$125.75</td>
+                                    <td>1</td>
+                                    <td>1 hour ago</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="col-lg-4">
+                <div class="activity-list mb-4">
+                    <h5 class="mb-3"><i class="fas fa-history"></i> Recent Activity</h5>
+                    <div id="recent-activity">
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <div><strong>EURUSD BUY Signal</strong></div>
+                                <small class="text-muted">2 minutes ago</small>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon bg-success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div>
+                                <div><strong>Trade Executed</strong></div>
+                                <small class="text-muted">CLIENT_001 - GBPUSD</small>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon bg-warning">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div>
+                                <div><strong>Client Connected</strong></div>
+                                <small class="text-muted">CLIENT_002 online</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signals Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="signals-container">
+                    <h5 class="mb-3"><i class="fas fa-signal"></i> Latest Signals</h5>
+                    <div id="signals-list">
+                        <div class="signal-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <div class="signal-currency">EURUSD</div>
+                                    <small class="text-muted">M5</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="signal-type-buy"><i class="fas fa-arrow-up"></i> BUY</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>Entry: <strong>1.10850</strong></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>TP: <strong>1.11150</strong></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>SL: <strong>1.10550</strong></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>Confluence: <strong>89.5%</strong></div>
+                                    <small class="text-muted">14:25</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="signal-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <div class="signal-currency">GBPUSD</div>
+                                    <small class="text-muted">M5</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="signal-type-sell"><i class="fas fa-arrow-down"></i> SELL</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>Entry: <strong>1.25340</strong></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>TP: <strong>1.25090</strong></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>SL: <strong>1.25590</strong></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div>Confluence: <strong>82.1%</strong></div>
+                                    <small class="text-muted">14:18</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    
+    <script>
+        // Lightning Scalper Dashboard JavaScript
+        class LightningDashboard {
+            constructor() {
+                this.socket = null;
+                this.connectionStatus = document.getElementById('connection-indicator');
+                this.isConnected = false;
+                this.retryCount = 0;
+                this.maxRetries = 5;
+                
+                this.init();
+            }
             
-            activityList.insertBefore(newItem, activityList.firstChild);
+            init() {
+                this.setupWebSocket();
+                this.setupEventListeners();
+                this.startHeartbeat();
+                console.log('⚡ Lightning Scalper Dashboard initialized');
+            }
             
-            // Keep only 4 items
-            while (activityList.children.length > 4) {
-                activityList.removeChild(activityList.lastChild);
+            setupWebSocket() {
+                try {
+                    this.socket = io({
+                        transports: ['websocket', 'polling'],
+                        timeout: 10000,
+                        reconnection: true,
+                        reconnectionAttempts: this.maxRetries,
+                        reconnectionDelay: 2000
+                    });
+                    
+                    this.socket.on('connect', () => {
+                        console.log('✅ WebSocket connected');
+                        this.isConnected = true;
+                        this.retryCount = 0;
+                        this.updateConnectionStatus(true);
+                        this.subscribeToUpdates();
+                    });
+                    
+                    this.socket.on('disconnect', () => {
+                        console.log('❌ WebSocket disconnected');
+                        this.isConnected = false;
+                        this.updateConnectionStatus(false);
+                    });
+                    
+                    this.socket.on('system_status', (data) => {
+                        this.updateSystemStats(data);
+                    });
+                    
+                    this.socket.on('new_signal', (data) => {
+                        this.addNewSignal(data.signal);
+                        this.addActivity('New Signal: ' + data.signal.currency_pair, 'chart-line', 'Just now');
+                    });
+                    
+                    this.socket.on('client_update', (data) => {
+                        this.updateClientRow(data);
+                    });
+                    
+                    this.socket.on('trade_executed', (data) => {
+                        this.addActivity('Trade Executed: ' + data.symbol, 'check', 'Just now');
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ WebSocket setup failed:', error);
+                    this.fallbackMode();
+                }
+            }
+            
+            subscribeToUpdates() {
+                if (this.socket && this.isConnected) {
+                    this.socket.emit('subscribe_to_updates', { type: 'all' });
+                }
+            }
+            
+            updateConnectionStatus(connected) {
+                if (connected) {
+                    this.connectionStatus.className = 'badge bg-success pulse';
+                    this.connectionStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+                } else {
+                    this.connectionStatus.className = 'badge bg-danger';
+                    this.connectionStatus.innerHTML = '<i class="fas fa-wifi"></i> Disconnected';
+                }
+            }
+            
+            updateSystemStats(data) {
+                try {
+                    if (data.metrics) {
+                        const activeClients = document.getElementById('active-clients');
+                        const todaysSignals = document.getElementById('todays-signals');
+                        const activePositions = document.getElementById('active-positions');
+                        const totalPnl = document.getElementById('total-pnl');
+                        
+                        if (activeClients) activeClients.textContent = data.metrics.active_clients || 0;
+                        if (todaysSignals) todaysSignals.textContent = data.metrics.total_signals_today || 0;
+                        if (activePositions) activePositions.textContent = data.metrics.active_positions || 0;
+                        if (totalPnl) totalPnl.textContent = '$' + (data.metrics.total_pnl_today || 0).toFixed(2);
+                    }
+                } catch (error) {
+                    console.error('Error updating stats:', error);
+                }
+            }
+            
+            addNewSignal(signal) {
+                const signalsList = document.getElementById('signals-list');
+                const signalHtml = `
+                    <div class="signal-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <div class="signal-currency">${signal.currency_pair}</div>
+                                <small class="text-muted">${signal.timeframe}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="signal-type-${signal.type.toLowerCase()}">
+                                    <i class="fas fa-arrow-${signal.type === 'BUY' ? 'up' : 'down'}"></i> ${signal.type}
+                                </span>
+                            </div>
+                            <div class="col-md-2">
+                                <div>Entry: <strong>${signal.entry_price}</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div>TP: <strong>${signal.target_1}</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div>SL: <strong>${signal.stop_loss}</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div>Confluence: <strong>${signal.confluence_score}%</strong></div>
+                                <small class="text-muted">Just now</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                signalsList.insertAdjacentHTML('afterbegin', signalHtml);
+                
+                // Keep only latest 10 signals
+                const signals = signalsList.children;
+                while (signals.length > 10) {
+                    signalsList.removeChild(signals[signals.length - 1]);
+                }
+            }
+            
+            addActivity(text, icon, time) {
+                const activityList = document.getElementById('recent-activity');
+                const activityHtml = `
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-${icon}"></i>
+                        </div>
+                        <div>
+                            <div><strong>${text}</strong></div>
+                            <small class="text-muted">${time}</small>
+                        </div>
+                    </div>
+                `;
+                
+                activityList.insertAdjacentHTML('afterbegin', activityHtml);
+                
+                // Keep only latest 5 activities
+                const activities = activityList.children;
+                while (activities.length > 5) {
+                    activityList.removeChild(activities[activities.length - 1]);
+                }
+            }
+            
+            setupEventListeners() {
+                // Refresh button if exists
+                const refreshBtn = document.getElementById('refresh-btn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        this.refreshData();
+                    });
+                }
+            }
+            
+            fallbackMode() {
+                console.log('🔄 Falling back to polling mode');
+                // Fallback to regular HTTP polling if WebSocket fails
+                setInterval(() => {
+                    this.fetchSystemStatus();
+                }, 30000); // Poll every 30 seconds
+            }
+            
+            async fetchSystemStatus() {
+                try {
+                    const response = await fetch('/api/system_status');
+                    const data = await response.json();
+                    this.updateSystemStats(data);
+                } catch (error) {
+                    console.error('Error fetching system status:', error);
+                }
+            }
+            
+            startHeartbeat() {
+                setInterval(() => {
+                    if (this.socket && this.isConnected) {
+                        this.socket.emit('heartbeat');
+                    }
+                }, 30000); // Send heartbeat every 30 seconds
+            }
+            
+            refreshData() {
+                if (this.isConnected) {
+                    this.socket.emit('request_full_update');
+                } else {
+                    this.fetchSystemStatus();
+                }
             }
         }
-
-        // Simple WebSocket (optional)
-        try {
-            if (typeof io !== 'undefined') {
-                const socket = io();
-                socket.on('new_signal', function(data) {
-                    addActivity(
-                        `${data.signal.currency_pair} ${data.signal.type}`,
-                        'chart-line',
-                        'Just now'
-                    );
-                });
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            window.dashboard = new LightningDashboard();
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('📱 Page hidden - reducing updates');
+            } else {
+                console.log('👁️ Page visible - resuming full updates');
+                if (window.dashboard) {
+                    window.dashboard.refreshData();
+                }
             }
-        } catch (e) {
-            // WebSocket not available - that's fine
-        }
-
-        console.log('Lightning Scalper Dashboard loaded');
+        });
     </script>
 </body>
 </html>
