@@ -1,0 +1,8 @@
+flask==2.3.3
+flask-socketio==5.3.6
+python-socketio==5.8.0
+python-engineio==4.7.1
+eventlet==0.33.3
+MetaTrader5==5.0.45.0
+cryptography==41.0.7
+pyinstaller==6.2.0
