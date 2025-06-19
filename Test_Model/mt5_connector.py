@@ -2,11 +2,13 @@ import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 import logging
 from dataclasses import dataclass
 import asyncio
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +17,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MT5Config:
     """การตั้งค่าเชื่อมต่อ MT5"""
-    login: int
-    password: str
-    server: str
+    login: int = 0
+    password: str = ""
+    server: str = ""
     timeout: int = 60000
     path: str = ""
 
@@ -38,7 +40,7 @@ class MT5Position:
     magic: int = 0
 
 class MT5Connector:
-    """คลาสหลักสำหรับเชื่อมต่อและควบคุม MT5"""
+    """คลาสหลักสำหรับเชื่อมต่อและควบคุม MT5 - Thread Safe"""
     
     def __init__(self, config: Optional[MT5Config] = None):
         self.config = config
@@ -46,26 +48,60 @@ class MT5Connector:
         self.account_info = None
         self.symbols_info = {}
         self.last_prices = {}
+        self._lock = threading.Lock()
+        self._executor = ThreadPoolExecutor(max_workers=4)
+        self._connection_attempts = 0
+        self._max_attempts = 3
         
     async def auto_connect(self) -> bool:
-        """เชื่อมต่อ MT5 อัตโนมัติ (ใช้บัญชีที่ login ไว้แล้ว)"""
+        """เชื่อมต่อ MT5 อัตโนมัติ - Thread Safe"""
+        with self._lock:
+            try:
+                self._connection_attempts += 1
+                logger.info(f"🔄 MT5 Connection Attempt {self._connection_attempts}/{self._max_attempts}")
+                
+                # รัน MT5 initialization ใน thread pool
+                loop = asyncio.get_event_loop()
+                success = await loop.run_in_executor(self._executor, self._sync_connect)
+                
+                if success:
+                    self.is_connected = True
+                    self._connection_attempts = 0
+                    logger.info("🎉 MT5 Auto-Connected Successfully!")
+                    await self._log_connection_info()
+                    return True
+                else:
+                    if self._connection_attempts >= self._max_attempts:
+                        logger.error("❌ Max connection attempts reached")
+                        return False
+                    
+                    # Retry with exponential backoff
+                    retry_delay = min(2 ** self._connection_attempts, 30)
+                    logger.warning(f"⏳ Retrying in {retry_delay} seconds...")
+                    await asyncio.sleep(retry_delay)
+                    return await self.auto_connect()
+                    
+            except Exception as e:
+                logger.error(f"❌ Error auto-connecting to MT5: {e}")
+                return False
+    
+    def _sync_connect(self) -> bool:
+        """Synchronous MT5 connection for thread pool"""
         try:
-            logger.info("🔄 Attempting MT5 Auto-Connection...")
-            
             # เริ่มต้น MT5
             if not mt5.initialize():
                 error_code = mt5.last_error()
                 logger.error(f"❌ MT5 initialize failed: {error_code}")
                 return False
             
-            # ตรวจสอบว่ามีการ login อยู่แล้วหรือไม่
+            # ตรวจสอบบัญชี
             account_info = mt5.account_info()
             if account_info is None:
-                logger.error("❌ No active MT5 account found. Please login to MT5 first.")
+                logger.error("❌ No active MT5 account found")
                 mt5.shutdown()
                 return False
             
-            # ตรวจสอบการเชื่อมต่อ terminal
+            # ตรวจสอบ terminal
             terminal_info = mt5.terminal_info()
             if terminal_info is None:
                 logger.error("❌ Cannot get MT5 terminal info")
@@ -74,53 +110,54 @@ class MT5Connector:
             
             # เก็บข้อมูลบัญชี
             self.account_info = account_info
-            self.is_connected = True
-            
-            logger.info("🎉 MT5 Auto-Connected Successfully!")
-            logger.info(f"📊 Account: {account_info.login}")
-            logger.info(f"💰 Balance: ${account_info.balance:,.2f}")
-            logger.info(f"📈 Equity: ${account_info.equity:,.2f}")
-            logger.info(f"🏢 Broker: {account_info.company}")
-            
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error auto-connecting to MT5: {e}")
+            logger.error(f"❌ Sync connect error: {e}")
             return False
     
-    def disconnect(self):
-        """ตัดการเชื่อมต่อ MT5"""
-        try:
-            if self.is_connected:
-                mt5.shutdown()
-                self.is_connected = False
-                logger.info("🔌 Disconnected from MT5")
-        except Exception as e:
-            logger.error(f"Error disconnecting from MT5: {e}")
+    async def _log_connection_info(self):
+        """Log connection information"""
+        if self.account_info:
+            logger.info(f"📊 Account: {self.account_info.login}")
+            logger.info(f"💰 Balance: ${self.account_info.balance:,.2f}")
+            logger.info(f"📈 Equity: ${self.account_info.equity:,.2f}")
+            logger.info(f"🏢 Broker: {self.account_info.company}")
     
-    def get_account_info(self) -> Optional[Dict]:
-        """ได้ข้อมูลบัญชีแบบ Real-time"""
+    async def disconnect(self):
+        """ตัดการเชื่อมต่อ MT5 - Async Safe"""
+        with self._lock:
+            try:
+                if self.is_connected:
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(self._executor, mt5.shutdown)
+                    self.is_connected = False
+                    logger.info("🔌 Disconnected from MT5")
+            except Exception as e:
+                logger.error(f"Error disconnecting from MT5: {e}")
+            finally:
+                self._executor.shutdown(wait=False)
+    
+    async def get_account_info(self) -> Optional[Dict]:
+        """ได้ข้อมูลบัญชีแบบ Async"""
+        if not self.is_connected:
+            return None
+        
         try:
-            if not self.is_connected:
-                return None
+            loop = asyncio.get_event_loop()
+            account = await loop.run_in_executor(self._executor, mt5.account_info)
             
-            # ดึงข้อมูลล่าสุดจาก MT5
-            account = mt5.account_info()
             if account is None:
                 logger.warning("Cannot retrieve account info - connection lost?")
+                self.is_connected = False
                 return None
             
             # อัพเดทข้อมูลใน cache
             self.account_info = account
             
             # คำนวณข้อมูลเพิ่มเติม
-            margin_level = 0
-            if account.margin > 0:
-                margin_level = (account.equity / account.margin) * 100
-            
-            profit_percentage = 0
-            if account.balance > 0:
-                profit_percentage = (account.profit / account.balance) * 100
+            margin_level = (account.equity / account.margin * 100) if account.margin > 0 else 0
+            profit_percentage = (account.profit / account.balance * 100) if account.balance > 0 else 0
             
             return {
                 "login": account.login,
@@ -145,45 +182,29 @@ class MT5Connector:
             logger.error(f"Error getting account info: {e}")
             return None
     
-    def get_symbol_info(self, symbol: str) -> Optional[Dict]:
-        """ได้ข้อมูลคู่สกุลเงิน"""
+    async def get_current_prices(self, symbols: List[str]) -> Dict[str, Dict]:
+        """ได้ราคาปัจจุบันแบบ Async"""
+        if not self.is_connected:
+            return {}
+        
         try:
-            if not self.is_connected:
-                return None
-            
-            symbol_info = mt5.symbol_info(symbol)
-            if symbol_info is None:
-                logger.warning(f"Symbol {symbol} not found")
-                return None
-            
-            return {
-                "name": symbol_info.name,
-                "bid": symbol_info.bid,
-                "ask": symbol_info.ask,
-                "spread": symbol_info.spread,
-                "digits": symbol_info.digits,
-                "point": symbol_info.point,
-                "volume_min": symbol_info.volume_min,
-                "volume_max": symbol_info.volume_max,
-                "volume_step": symbol_info.volume_step,
-                "contract_size": symbol_info.trade_contract_size,
-                "margin_initial": symbol_info.margin_initial,
-                "swap_long": symbol_info.swap_long,
-                "swap_short": symbol_info.swap_short
-            }
+            loop = asyncio.get_event_loop()
+            prices = await loop.run_in_executor(
+                self._executor, 
+                self._get_prices_sync, 
+                symbols
+            )
+            return prices
             
         except Exception as e:
-            logger.error(f"Error getting symbol info for {symbol}: {e}")
-            return None
+            logger.error(f"Error getting current prices: {e}")
+            return {}
     
-    def get_current_prices(self, symbols: List[str]) -> Dict[str, Dict]:
-        """ได้ราคาปัจจุบันของคู่สกุลเงิน"""
-        try:
-            if not self.is_connected:
-                return {}
-            
-            prices = {}
-            for symbol in symbols:
+    def _get_prices_sync(self, symbols: List[str]) -> Dict[str, Dict]:
+        """Synchronous price fetching"""
+        prices = {}
+        for symbol in symbols:
+            try:
                 tick = mt5.symbol_info_tick(symbol)
                 if tick is not None:
                     prices[symbol] = {
@@ -191,26 +212,30 @@ class MT5Connector:
                         "ask": tick.ask,
                         "spread": tick.ask - tick.bid,
                         "time": datetime.fromtimestamp(tick.time),
-                        "volume": tick.volume if hasattr(tick, 'volume') else 0
+                        "volume": getattr(tick, 'volume', 0)
                     }
-                    
-                    # เก็บราคาล่าสุด
                     self.last_prices[symbol] = prices[symbol]
-                else:
-                    logger.warning(f"Cannot get tick data for {symbol}")
-            
-            return prices
+            except Exception as e:
+                logger.warning(f"Cannot get tick data for {symbol}: {e}")
+        return prices
+    
+    async def get_positions(self) -> List[MT5Position]:
+        """ได้รายการโพซิชั่นแบบ Async"""
+        if not self.is_connected:
+            return []
+        
+        try:
+            loop = asyncio.get_event_loop()
+            positions = await loop.run_in_executor(self._executor, self._get_positions_sync)
+            return positions
             
         except Exception as e:
-            logger.error(f"Error getting current prices: {e}")
-            return {}
+            logger.error(f"Error getting positions: {e}")
+            return []
     
-    def get_positions(self) -> List[MT5Position]:
-        """ได้รายการโพซิชั่นปัจจุบัน"""
+    def _get_positions_sync(self) -> List[MT5Position]:
+        """Synchronous positions fetching"""
         try:
-            if not self.is_connected:
-                return []
-            
             positions = mt5.positions_get()
             if positions is None:
                 return []
@@ -234,44 +259,64 @@ class MT5Connector:
                 mt5_positions.append(mt5_pos)
             
             return mt5_positions
-            
         except Exception as e:
-            logger.error(f"Error getting positions: {e}")
+            logger.error(f"Error in _get_positions_sync: {e}")
             return []
     
-    def place_market_order(self, symbol: str, order_type: str, volume: float, 
-                          comment: str = "AI_Recovery_Bot", magic: int = 234000) -> Optional[Dict]:
-        """วางออเดอร์ Market Order"""
+    async def place_market_order(self, symbol: str, order_type: str, volume: float, 
+                                comment: str = "AI_Recovery_Bot", magic: int = 234000) -> Optional[Dict]:
+        """วางออเดอร์ Market Order แบบ Async"""
+        if not self.is_connected:
+            logger.error("Not connected to MT5")
+            return None
+        
         try:
-            if not self.is_connected:
-                logger.error("Not connected to MT5")
-                return None
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                self._executor,
+                self._place_order_sync,
+                symbol, order_type, volume, comment, magic
+            )
+            return result
             
-            # ตรวจสอบว่า symbol มีอยู่
+        except Exception as e:
+            logger.error(f"Error placing order: {e}")
+            return None
+    
+    def _place_order_sync(self, symbol: str, order_type: str, volume: float, 
+                         comment: str, magic: int) -> Optional[Dict]:
+        """Synchronous order placement"""
+        try:
+            # ตรวจสอบ symbol
             symbol_info = mt5.symbol_info(symbol)
             if symbol_info is None:
                 logger.error(f"Symbol {symbol} not found")
                 return None
             
-            # เปิดใช้งาน symbol
+            # เปิดใช้งาน symbol ถ้าจำเป็น
             if not symbol_info.visible:
                 if not mt5.symbol_select(symbol, True):
                     logger.error(f"Failed to enable symbol {symbol}")
                     return None
             
-            # กำหนดประเภทออเดอร์
+            # กำหนดประเภทออเดอร์และราคา
+            tick = mt5.symbol_info_tick(symbol)
+            if tick is None:
+                logger.error(f"Cannot get tick data for {symbol}")
+                return None
+            
             if order_type.upper() == "BUY":
                 trade_type = mt5.ORDER_TYPE_BUY
-                price = mt5.symbol_info_tick(symbol).ask
+                price = tick.ask
             elif order_type.upper() == "SELL":
                 trade_type = mt5.ORDER_TYPE_SELL
-                price = mt5.symbol_info_tick(symbol).bid
+                price = tick.bid
             else:
                 logger.error(f"Invalid order type: {order_type}")
                 return None
             
-            # ปรับปรุงขนาด volume ให้ตรงกับข้อกำหนด
-            volume = self._normalize_volume(symbol, volume)
+            # ปรับปรุงขนาด volume
+            volume = self._normalize_volume_sync(symbol, volume)
             
             # สร้างคำขอ
             request = {
@@ -294,7 +339,7 @@ class MT5Connector:
                 logger.error(f"❌ Order failed: {result.retcode} - {result.comment}")
                 return None
             
-            logger.info(f"✅ Order placed successfully: {order_type} {volume} {symbol} at {result.price}")
+            logger.info(f"✅ Order placed: {order_type} {volume} {symbol} at {result.price}")
             
             return {
                 "ticket": result.order,
@@ -307,15 +352,26 @@ class MT5Connector:
             }
             
         except Exception as e:
-            logger.error(f"Error placing order: {e}")
+            logger.error(f"Error in _place_order_sync: {e}")
             return None
     
-    def close_position(self, ticket: int) -> bool:
-        """ปิดโพซิชั่น"""
+    async def close_position(self, ticket: int) -> bool:
+        """ปิดโพซิชั่นแบบ Async"""
+        if not self.is_connected:
+            return False
+        
         try:
-            if not self.is_connected:
-                return False
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(self._executor, self._close_position_sync, ticket)
+            return result
             
+        except Exception as e:
+            logger.error(f"Error closing position {ticket}: {e}")
+            return False
+    
+    def _close_position_sync(self, ticket: int) -> bool:
+        """Synchronous position closing"""
+        try:
             # หาข้อมูลโพซิชั่น
             position = mt5.positions_get(ticket=ticket)
             if not position:
@@ -324,13 +380,18 @@ class MT5Connector:
             
             pos = position[0]
             
-            # กำหนดประเภทออเดอร์ปิด
+            # กำหนดประเภทออเดอร์ปิดและราคา
+            tick = mt5.symbol_info_tick(pos.symbol)
+            if tick is None:
+                logger.error(f"Cannot get tick data for {pos.symbol}")
+                return False
+            
             if pos.type == mt5.POSITION_TYPE_BUY:
                 trade_type = mt5.ORDER_TYPE_SELL
-                price = mt5.symbol_info_tick(pos.symbol).bid
+                price = tick.bid
             else:
                 trade_type = mt5.ORDER_TYPE_BUY
-                price = mt5.symbol_info_tick(pos.symbol).ask
+                price = tick.ask
             
             # สร้างคำขอปิดโพซิชั่น
             request = {
@@ -358,13 +419,13 @@ class MT5Connector:
             return True
             
         except Exception as e:
-            logger.error(f"Error closing position {ticket}: {e}")
+            logger.error(f"Error in _close_position_sync: {e}")
             return False
     
-    def close_all_positions(self, symbol: Optional[str] = None) -> int:
-        """ปิดโพซิชั่นทั้งหมด"""
+    async def close_all_positions(self, symbol: Optional[str] = None) -> int:
+        """ปิดโพซิชั่นทั้งหมดแบบ Async"""
         try:
-            positions = self.get_positions()
+            positions = await self.get_positions()
             closed_count = 0
             
             for pos in positions:
@@ -372,10 +433,10 @@ class MT5Connector:
                 if symbol and pos.symbol != symbol:
                     continue
                 
-                if self.close_position(pos.ticket):
+                if await self.close_position(pos.ticket):
                     closed_count += 1
                     # รอสักพักก่อนปิดตัวต่อไป
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.1)
             
             logger.info(f"✅ Closed {closed_count} positions")
             return closed_count
@@ -384,8 +445,8 @@ class MT5Connector:
             logger.error(f"Error closing all positions: {e}")
             return 0
     
-    def _normalize_volume(self, symbol: str, volume: float) -> float:
-        """ปรับปรุงขนาด volume ให้ถูกต้อง"""
+    def _normalize_volume_sync(self, symbol: str, volume: float) -> float:
+        """ปรับปรุงขนาด volume ให้ถูกต้อง - Sync version"""
         try:
             symbol_info = mt5.symbol_info(symbol)
             if symbol_info is None:
@@ -413,7 +474,7 @@ class MT5Connector:
             logger.error(f"Error normalizing volume: {e}")
             return volume
     
-    def check_market_hours(self) -> bool:
+    async def check_market_hours(self) -> bool:
         """ตรวจสอบว่าตลาดเปิดอยู่หรือไม่"""
         try:
             # ตรวจสอบเวลาปัจจุบัน
@@ -435,6 +496,34 @@ class MT5Connector:
         except Exception as e:
             logger.error(f"Error checking market hours: {e}")
             return True  # Default เปิด
+    
+    async def health_check(self) -> Dict[str, Union[bool, str]]:
+        """ตรวจสอบสุขภาพของการเชื่อมต่อ"""
+        try:
+            if not self.is_connected:
+                return {"connected": False, "status": "Not connected"}
+            
+            # ทดสอบดึงข้อมูลบัญชี
+            account_info = await self.get_account_info()
+            if account_info is None:
+                self.is_connected = False
+                return {"connected": False, "status": "Connection lost"}
+            
+            # ทดสอบดึงราคา
+            test_symbols = ['EURUSD']
+            prices = await self.get_current_prices(test_symbols)
+            
+            return {
+                "connected": True,
+                "status": "Healthy",
+                "account_login": account_info.get('login'),
+                "prices_available": len(prices) > 0,
+                "market_open": await self.check_market_hours()
+            }
+            
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return {"connected": False, "status": f"Error: {str(e)}"}
 
 # ฟังก์ชันสำหรับ API Server ใช้
 async def initialize_mt5_auto():
@@ -448,100 +537,45 @@ async def initialize_mt5_auto():
         logger.error("❌ Failed to auto-connect MT5")
         return None
 
-# ตัวอย่างการใช้งาน AUTO CONNECT
-async def test_auto_connection():
-    """ทดสอบการเชื่อมต่อแบบอัตโนมัติ"""
+# ตัวอย่างการใช้งาน
+async def test_improved_connection():
+    """ทดสอบการเชื่อมต่อแบบใหม่"""
     connector = MT5Connector()
     
-    print("🔄 Attempting MT5 Auto-Connection...")
-    print("📝 Make sure MT5 is running and logged in first!")
+    print("🔄 Testing Improved MT5 Connection...")
     print("-" * 50)
     
     try:
-        # เชื่อมต่อแบบอัตโนมัติ
+        # เชื่อมต่อ
         if await connector.auto_connect():
-            print("✅ Auto-Connected Successfully!")
-            print()
+            print("✅ Connected Successfully!")
             
-            # แสดงข้อมูลบัญชีแบบละเอียด
-            account = connector.get_account_info()
-            if account:
-                print("📊 Account Information:")
-                print(f"   Account Number: {account['login']}")
-                print(f"   Account Name: {account.get('name', 'N/A')}")
-                print(f"   Broker: {account['company']}")
-                print(f"   Server: {account['server']}")
-                print(f"   Currency: {account['currency']}")
-                print(f"   Leverage: 1:{account['leverage']}")
-                print()
-                print("💰 Financial Information:")
-                print(f"   Balance: ${account['balance']:,.2f}")
-                print(f"   Equity: ${account['equity']:,.2f}")
-                print(f"   Margin Used: ${account['margin']:,.2f}")
-                print(f"   Free Margin: ${account['free_margin']:,.2f}")
-                print(f"   Margin Level: {account['margin_level']:.2f}%")
-                print(f"   Current Profit: ${account['profit']:,.2f} ({account['profit_percentage']:+.2f}%)")
-                print()
-                print("⚙️ Trading Settings:")
-                print(f"   Trading Allowed: {'✅ Yes' if account['trade_allowed'] else '❌ No'}")
-                print(f"   Expert Advisors: {'✅ Enabled' if account['trade_expert'] else '❌ Disabled'}")
+            # ทดสอบ health check
+            health = await connector.health_check()
+            print(f"🔍 Health Check: {health}")
             
-            # ทดสอบดึงราคา
-            print("\n📈 Testing Price Data:")
-            symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD']
-            prices = connector.get_current_prices(symbols)
+            # ทดสอบดึงข้อมูลแบบ concurrent
+            tasks = [
+                connector.get_account_info(),
+                connector.get_current_prices(['EURUSD', 'GBPUSD']),
+                connector.get_positions()
+            ]
             
-            for symbol, price_data in prices.items():
-                spread_pips = price_data['spread'] * (10000 if 'JPY' not in symbol and 'XAU' not in symbol else 100 if 'JPY' in symbol else 10)
-                decimals = 5 if 'JPY' not in symbol and 'XAU' not in symbol else 3 if 'JPY' in symbol else 2
-                print(f"   {symbol}: {price_data['bid']:.{decimals}f} / {price_data['ask']:.{decimals}f} (Spread: {spread_pips:.1f} pips)")
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            account_info, prices, positions = results
             
-            # ทดสอบดูโพซิชั่น
-            positions = connector.get_positions()
-            print(f"\n🎯 Current Positions: {len(positions)}")
-            
-            if positions:
-                for pos in positions:
-                    direction = "📈 BUY" if pos.type == 0 else "📉 SELL"
-                    profit_color = "🟢" if pos.profit >= 0 else "🔴"
-                    print(f"   {direction} {pos.symbol} {pos.volume} lots")
-                    print(f"   Entry: {pos.price_open:.5f} | Current: {pos.price_current:.5f}")
-                    print(f"   Profit: {profit_color} ${pos.profit:.2f}")
-                    print(f"   Comment: {pos.comment}")
-                    print()
-            else:
-                print("   No open positions")
-            
-            # ตรวจสอบเวลาตลาด
-            market_open = connector.check_market_hours()
-            print(f"\n🕐 Market Status: {'🟢 Open' if market_open else '🔴 Closed'}")
+            print(f"📊 Account: {account_info.get('login') if account_info else 'Error'}")
+            print(f"📈 Prices: {len(prices) if isinstance(prices, dict) else 'Error'} symbols")
+            print(f"🎯 Positions: {len(positions) if isinstance(positions, list) else 'Error'}")
             
         else:
-            print("❌ Auto-Connection Failed!")
-            print()
-            print("💡 Troubleshooting Tips:")
-            print("   1. Make sure MT5 is running")
-            print("   2. Login to your MT5 account first")
-            print("   3. Enable 'Allow automated trading' in MT5 settings:")
-            print("      - Tools → Options → Expert Advisors")
-            print("      - ✅ Allow automated trading")
-            print("      - ✅ Allow DLL imports")
-            print("   4. Check if Python can access MT5 (run as administrator if needed)")
-            print("   5. Make sure MT5 terminal is not busy (close other EAs)")
-    
+            print("❌ Connection Failed!")
+            
     except Exception as e:
-        print(f"❌ Error: {e}")
-        print("\n🔧 Common Solutions:")
-        print("   - Restart MT5 terminal")
-        print("   - Check Windows Defender/Antivirus")
-        print("   - Run Python as Administrator")
-        print("   - Update MetaTrader5 Python package: pip install --upgrade MetaTrader5")
+        print(f"❌ Test Error: {e}")
     
     finally:
-        connector.disconnect()
+        await connector.disconnect()
 
 if __name__ == "__main__":
-    # รันทดสอบแบบ Auto Connect
-    print("🚀 MT5 Connector Test Suite")
-    print("=" * 50)
-    asyncio.run(test_auto_connection())
+    asyncio.run(test_improved_connection())

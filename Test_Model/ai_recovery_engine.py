@@ -8,6 +8,10 @@ from enum import Enum
 import asyncio
 import json
 from abc import ABC, abstractmethod
+
+# Import ML Data Collection
+from ml_data_logger import MLDataCollector, MLDataIntegration, MLTrainingRecord
+
 from mt5_connector import MT5Connector, MT5Config
 
 # Setup logging
@@ -43,6 +47,12 @@ class TradingSettings:
     use_grid_recovery: bool = True
     use_basket_recovery: bool = True
     use_arbitrage_recovery: bool = True
+    
+    # ML Data Collection Settings
+    enable_ml_logging: bool = True
+    client_id: str = "client_001"
+    collect_market_data: bool = True
+    collect_technical_indicators: bool = True
 
 @dataclass
 class Position:
@@ -59,6 +69,11 @@ class Position:
     parent_position_id: Optional[str] = None
     position_id: str = field(default_factory=lambda: f"pos_{datetime.now().timestamp()}")
     mt5_ticket: Optional[int] = None  # MT5 ticket number
+    
+    # ML Data Fields
+    signal_strength: float = 0.0
+    confidence: float = 0.0
+    strategy_context: Dict = field(default_factory=dict)
 
 @dataclass
 class MarketData:
@@ -68,6 +83,11 @@ class MarketData:
     spread: float
     timestamp: datetime
     volume: float = 0.0
+    
+    # Extended market data for ML
+    volatility_1h: Optional[float] = None
+    volatility_4h: Optional[float] = None
+    session_type: Optional[str] = None  # london, ny, asia
 
 class MT5CurrencyPairs:
     """คลาสสำหรับจัดการคู่สกุลเงิน MT5"""
@@ -192,8 +212,61 @@ class RiskManager:
         self.daily_pnl += realized_pnl
         self.monthly_pnl += realized_pnl
 
+class TechnicalIndicators:
+    """คลาสสำหรับคำนวณ Technical Indicators สำหรับ ML"""
+    
+    @staticmethod
+    def calculate_rsi(prices: List[float], period: int = 14) -> Optional[float]:
+        """คำนวณ RSI"""
+        try:
+            if len(prices) < period + 1:
+                return None
+            
+            deltas = np.diff(prices)
+            gains = np.where(deltas > 0, deltas, 0)
+            losses = np.where(deltas < 0, -deltas, 0)
+            
+            avg_gains = np.mean(gains[-period:])
+            avg_losses = np.mean(losses[-period:])
+            
+            if avg_losses == 0:
+                return 100
+            
+            rs = avg_gains / avg_losses
+            rsi = 100 - (100 / (1 + rs))
+            return float(rsi)
+        except:
+            return None
+    
+    @staticmethod
+    def calculate_sma(prices: List[float], period: int) -> Optional[float]:
+        """คำนวณ Simple Moving Average"""
+        try:
+            if len(prices) < period:
+                return None
+            return float(np.mean(prices[-period:]))
+        except:
+            return None
+    
+    @staticmethod
+    def calculate_ema(prices: List[float], period: int) -> Optional[float]:
+        """คำนวณ Exponential Moving Average"""
+        try:
+            if len(prices) < period:
+                return None
+            
+            multiplier = 2 / (period + 1)
+            ema = prices[0]
+            
+            for price in prices[1:]:
+                ema = (price * multiplier) + (ema * (1 - multiplier))
+            
+            return float(ema)
+        except:
+            return None
+
 class RecoveryEngine:
-    """เครื่องยนต์หลักสำหรับ Recovery Trading"""
+    """เครื่องยนต์หลักสำหรับ Recovery Trading พร้อม ML Data Collection"""
     
     def __init__(self, settings: TradingSettings):
         self.settings = settings
@@ -208,6 +281,25 @@ class RecoveryEngine:
         self.mt5_connector = None
         self.mt5_positions = {}  # Map position_id to MT5 ticket
         
+        # ML Data Collection Integration
+        self.ml_collector = None
+        self.ml_integration = None
+        self.price_history = {}  # เก็บประวัติราคาสำหรับ technical indicators
+        
+        # Initialize ML Data Collection
+        if settings.enable_ml_logging:
+            self._initialize_ml_collection()
+    
+    def _initialize_ml_collection(self):
+        """เริ่มต้น ML Data Collection"""
+        try:
+            self.ml_collector = MLDataCollector(
+                db_path=f"data/ml_training_{self.settings.client_id}.db"
+            )
+            logger.info("✅ ML Data Collection initialized")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize ML Data Collection: {e}")
+    
     async def initialize_mt5(self):
         """เริ่มต้นการเชื่อมต่อ MT5"""
         try:
@@ -228,41 +320,51 @@ class RecoveryEngine:
         if not await self.initialize_mt5():
             logger.error("Cannot start AI Engine without MT5 connection")
             return False
+        
+        # Initialize ML Data Collection
+        if self.ml_collector:
+            await self.ml_collector.initialize()
+            self.ml_integration = MLDataIntegration(self, self.ml_collector)
+            logger.info("✅ ML Data Collection ready")
             
         self.is_running = True
-        logger.info("🚀 AI Recovery Engine Started with Live MT5 Connection")
+        logger.info("🚀 AI Recovery Engine Started with Live MT5 Connection and ML Logging")
         
         # เริ่ม main trading loop
-        await self.main_trading_loop()
+        asyncio.create_task(self.main_trading_loop())
         return True
     
     async def stop_engine(self):
         """หยุด AI Engine"""
         self.is_running = False
         if self.mt5_connector:
-            self.mt5_connector.disconnect()
+            await self.mt5_connector.disconnect()
         logger.info("⏹️ AI Recovery Engine Stopped")
     
     async def main_trading_loop(self):
-        """Loop หลักของการเทรด"""
+        """Loop หลักของการเทรด พร้อม ML Data Collection"""
         while self.is_running:
             try:
                 # 1. อัพเดทข้อมูลตลาดจาก MT5
                 await self.update_market_data_from_mt5()
                 
-                # 2. อัพเดท P&L ของโพซิชั่นจาก MT5
+                # 2. เก็บข้อมูลตลาดสำหรับ ML (ทุก tick)
+                if self.ml_integration:
+                    await self._collect_market_data_for_ml()
+                
+                # 3. อัพเดท P&L ของโพซิชั่นจาก MT5
                 await self.update_positions_from_mt5()
                 
-                # 3. วิเคราะห์สถานการณ์ตลาด
+                # 4. วิเคราะห์สถานการณ์ตลาด
                 await self.analyze_market_regime()
                 
-                # 4. ตรวจสอบโอกาสในการเทรด
+                # 5. ตรวจสอบโอกาสในการเทรด
                 await self.check_trading_opportunities()
                 
-                # 5. ดำเนินการแก้ไม้ถ้าจำเป็น
+                # 6. ดำเนินการแก้ไม้ถ้าจำเป็น
                 await self.execute_recovery_strategy()
                 
-                # 6. ตรวจสอบเงื่อนไขปิดโพซิชั่น
+                # 7. ตรวจสอบเงื่อนไขปิดโพซิชั่น
                 await self.check_exit_conditions()
                 
                 # รอ 2 วินาทีก่อนรอบต่อไป
@@ -272,45 +374,159 @@ class RecoveryEngine:
                 logger.error(f"Error in main trading loop: {e}")
                 await asyncio.sleep(5)
     
+    async def _collect_market_data_for_ml(self):
+        """เก็บข้อมูลตลาดสำหรับ ML Training"""
+        try:
+            for symbol, market_data in self.market_data.items():
+                # เก็บประวัติราคา
+                if symbol not in self.price_history:
+                    self.price_history[symbol] = []
+                
+                self.price_history[symbol].append({
+                    'timestamp': market_data.timestamp,
+                    'price': market_data.bid,
+                    'volume': market_data.volume
+                })
+                
+                # เก็บแค่ 200 records ล่าสุด
+                if len(self.price_history[symbol]) > 200:
+                    self.price_history[symbol] = self.price_history[symbol][-200:]
+                
+                # คำนวณ Technical Indicators
+                prices = [item['price'] for item in self.price_history[symbol]]
+                technical_data = self._calculate_technical_indicators(prices)
+                
+                # สร้าง ML Training Record
+                now = datetime.now()
+                record = MLTrainingRecord(
+                    timestamp=now,
+                    record_id=f"{symbol}_{now.timestamp()}",
+                    client_id=self.settings.client_id,
+                    
+                    # Market Data
+                    symbol=symbol,
+                    timeframe="M1",
+                    open_price=market_data.bid,  # Simplified for tick data
+                    high_price=market_data.ask,
+                    low_price=market_data.bid,
+                    close_price=market_data.bid,
+                    volume=market_data.volume,
+                    spread=market_data.spread,
+                    
+                    # Technical Indicators
+                    **technical_data,
+                    
+                    # Market Context
+                    market_regime=self.current_regime.value,
+                    hour_of_day=now.hour,
+                    day_of_week=now.weekday(),
+                    is_london_session=self._is_london_session(now),
+                    is_ny_session=self._is_ny_session(now),
+                    is_asia_session=self._is_asia_session(now),
+                    
+                    # Portfolio Context
+                    account_equity=self.settings.account_balance,
+                    portfolio_risk_pct=self._calculate_portfolio_risk(),
+                    
+                    # Data Quality
+                    data_completeness=0.9,  # TODO: Calculate actual completeness
+                    data_source="mt5_live"
+                )
+                
+                # บันทึกข้อมูล (แต่ไม่ทุก tick เพื่อไม่ให้ database ใหญ่เกินไป)
+                if now.second % 10 == 0:  # เก็บทุก 10 วินาที
+                    await self.ml_collector.record_ml_data(record)
+                
+        except Exception as e:
+            logger.error(f"Error collecting market data for ML: {e}")
+    
+    def _calculate_technical_indicators(self, prices: List[float]) -> Dict:
+        """คำนวณ Technical Indicators"""
+        try:
+            if len(prices) < 20:
+                return {}
+            
+            return {
+                'sma_5': TechnicalIndicators.calculate_sma(prices, 5),
+                'sma_20': TechnicalIndicators.calculate_sma(prices, 20),
+                'sma_50': TechnicalIndicators.calculate_sma(prices, 50),
+                'ema_12': TechnicalIndicators.calculate_ema(prices, 12),
+                'ema_26': TechnicalIndicators.calculate_ema(prices, 26),
+                'rsi_14': TechnicalIndicators.calculate_rsi(prices, 14)
+            }
+        except Exception as e:
+            logger.error(f"Error calculating technical indicators: {e}")
+            return {}
+    
+    def _is_london_session(self, dt: datetime) -> bool:
+        """ตรวจสอบว่าเป็น London Session หรือไม่"""
+        return 8 <= dt.hour < 16
+    
+    def _is_ny_session(self, dt: datetime) -> bool:
+        """ตรวจสอบว่าเป็น NY Session หรือไม่"""
+        return 13 <= dt.hour < 21
+    
+    def _is_asia_session(self, dt: datetime) -> bool:
+        """ตรวจสอบว่าเป็น Asia Session หรือไม่"""
+        return 0 <= dt.hour < 8
+    
+    def _calculate_portfolio_risk(self) -> float:
+        """คำนวณความเสี่ยงของพอร์ต"""
+        try:
+            unrealized_pnl = self._calculate_unrealized_pnl()
+            return (abs(unrealized_pnl) / self.settings.account_balance) * 100
+        except:
+            return 0.0
+    
     async def update_market_data_from_mt5(self):
         """อัพเดทข้อมูลตลาดจาก MT5"""
         if not self.mt5_connector or not self.mt5_connector.is_connected:
             return
             
         try:
-            # ดึงราคาปัจจุบันจาก MT5
-            prices = self.mt5_connector.get_current_prices(self.settings.enabled_pairs)
+            # ดึงราคาปัจจุบันจาก MT5 พร้อม await
+            prices = await self.mt5_connector.get_current_prices(self.settings.enabled_pairs)
             
             for symbol, price_data in prices.items():
+                # เพิ่มการคำนวณ session type
+                now = datetime.now()
+                session_type = "asia"
+                if self._is_london_session(now):
+                    session_type = "london"
+                elif self._is_ny_session(now):
+                    session_type = "ny"
+                
                 self.market_data[symbol] = MarketData(
                     symbol=symbol,
                     bid=price_data['bid'],
                     ask=price_data['ask'],
                     spread=price_data['spread'],
                     timestamp=price_data['time'],
-                    volume=price_data.get('volume', 0)
+                    volume=price_data.get('volume', 0),
+                    session_type=session_type
                 )
                 
         except Exception as e:
             logger.error(f"Error updating market data from MT5: {e}")
     
     async def update_positions_from_mt5(self):
-        """อัพเดทโพซิชั่นจาก MT5"""
+        """อัพเดทโพซิชั่นจาก MT5 และเก็บข้อมูลสำหรับ ML"""
         if not self.mt5_connector or not self.mt5_connector.is_connected:
             return
             
         try:
-            # ดึงโพซิชั่นจาก MT5
-            mt5_positions = self.mt5_connector.get_positions()
+            # ดึงโพซิชั่นจาก MT5 พร้อม await
+            mt5_positions = await self.mt5_connector.get_positions()
             
             # อัพเดทโพซิชั่นที่มีอยู่
-            for pos_id, position in self.positions.items():
+            for pos_id, position in list(self.positions.items()):
                 if position.mt5_ticket:
                     # หาโพซิชั่นที่ตรงกันใน MT5
                     mt5_pos = next((p for p in mt5_positions if p.ticket == position.mt5_ticket), None)
                     
                     if mt5_pos:
                         # อัพเดทข้อมูลจาก MT5
+                        old_pnl = position.pnl
                         position.current_price = mt5_pos.price_current
                         position.pnl = mt5_pos.profit
                         
@@ -320,14 +536,144 @@ class RecoveryEngine:
                             position.pnl_pips = (position.current_price - position.entry_price) / pip_value
                         else:
                             position.pnl_pips = (position.entry_price - position.current_price) / pip_value
+                        
+                        # เก็บข้อมูลการเปลี่ยนแปลง PnL สำหรับ ML (ถ้ามีการเปลี่ยนแปลงมาก)
+                        if self.ml_integration and abs(position.pnl - old_pnl) > 1:  # เปลี่ยนแปลงมากกว่า $1
+                            await self._record_position_update_for_ml(position, old_pnl)
                     else:
-                        # โพซิชั่นถูกปิดใน MT5 แล้ว
+                        # โพซิชั่นถูกปิดใน MT5 แล้ว - บันทึก trade result สำหรับ ML
+                        if self.ml_integration:
+                            await self._record_trade_close_for_ml(position)
+                        
                         logger.info(f"Position {position.symbol} closed in MT5")
-                        # ลบออกจากระบบ
                         del self.positions[pos_id]
                         
         except Exception as e:
             logger.error(f"Error updating positions from MT5: {e}")
+    
+    async def _record_position_update_for_ml(self, position: Position, old_pnl: float):
+        """บันทึกการอัพเดทโพซิชั่นสำหรับ ML"""
+        try:
+            now = datetime.now()
+            hold_duration = int((now - position.timestamp).total_seconds() / 60)
+            
+            # สร้าง partial ML record สำหรับ position update
+            record = MLTrainingRecord(
+                timestamp=now,
+                record_id=f"update_{position.position_id}_{now.timestamp()}",
+                client_id=self.settings.client_id,
+                symbol=position.symbol,
+                timeframe="POSITION_UPDATE",
+                
+                # ใช้ current price เป็น OHLC
+                open_price=position.current_price,
+                high_price=position.current_price,
+                low_price=position.current_price,
+                close_price=position.current_price,
+                volume=0,
+                spread=0,
+                
+                # Position context
+                entry_price=position.entry_price,
+                actual_pnl=position.pnl,
+                actual_pips=position.pnl_pips,
+                hold_duration_minutes=hold_duration,
+                
+                # AI context
+                recovery_level=position.recovery_level,
+                is_recovery_trade=position.is_recovery,
+                position_size=position.size,
+                
+                # Portfolio context
+                account_equity=self.settings.account_balance,
+                portfolio_risk_pct=self._calculate_portfolio_risk(),
+                
+                data_source="position_update"
+            )
+            
+            await self.ml_collector.record_ml_data(record)
+            
+        except Exception as e:
+            logger.error(f"Error recording position update for ML: {e}")
+    
+    async def _record_trade_close_for_ml(self, position: Position):
+        """บันทึกการปิดเทรดสำหรับ ML"""
+        try:
+            now = datetime.now()
+            hold_duration = int((now - position.timestamp).total_seconds() / 60)
+            
+            # กำหนด trade result
+            trade_result = "BREAKEVEN"
+            win_quality = None
+            loss_severity = None
+            
+            if position.pnl > 5:
+                trade_result = "WIN"
+                if position.pnl > 50:
+                    win_quality = "BIG"
+                elif position.pnl > 20:
+                    win_quality = "MEDIUM"
+                else:
+                    win_quality = "SMALL"
+            elif position.pnl < -5:
+                trade_result = "LOSS"
+                if position.pnl < -50:
+                    loss_severity = "BIG"
+                elif position.pnl < -20:
+                    loss_severity = "MEDIUM"
+                else:
+                    loss_severity = "SMALL"
+            
+            # คำนวณ return percentage
+            return_pct = (position.pnl / (position.size * 100000)) * 100  # Simplified calculation
+            
+            record = MLTrainingRecord(
+                timestamp=now,
+                record_id=f"close_{position.position_id}",
+                client_id=self.settings.client_id,
+                symbol=position.symbol,
+                timeframe="TRADE_CLOSE",
+                
+                # Trade data
+                open_price=position.entry_price,
+                high_price=max(position.entry_price, position.current_price),
+                low_price=min(position.entry_price, position.current_price),
+                close_price=position.current_price,
+                volume=0,
+                spread=0,
+                
+                # AI Decision (from position context)
+                ai_predicted_direction=position.direction,
+                ai_signal_strength=position.signal_strength,
+                ai_confidence=position.confidence,
+                strategy_used=position.strategy_context.get('strategy', 'unknown'),
+                
+                # Actual Results
+                actual_direction=position.direction,
+                entry_price=position.entry_price,
+                exit_price=position.current_price,
+                actual_pips=position.pnl_pips,
+                actual_pnl=position.pnl,
+                actual_return_pct=return_pct,
+                hold_duration_minutes=hold_duration,
+                trade_result=trade_result,
+                win_quality=win_quality,
+                loss_severity=loss_severity,
+                
+                # Context
+                recovery_level=position.recovery_level,
+                is_recovery_trade=position.is_recovery,
+                position_size=position.size,
+                account_equity=self.settings.account_balance,
+                
+                data_source="trade_close"
+            )
+            
+            await self.ml_collector.record_ml_data(record)
+            logger.info(f"📊 ML Trade Close recorded: {position.symbol} {trade_result} ${position.pnl:.2f}")
+            
+        except Exception as e:
+            logger.error(f"Error recording trade close for ML: {e}")
     
     async def analyze_market_regime(self):
         """วิเคราะห์สถานการณ์ตลาด"""
@@ -359,21 +705,20 @@ class RecoveryEngine:
             logger.error(f"Error analyzing market regime: {e}")
     
     async def check_trading_opportunities(self):
-        """ตรวจสอบโอกาสในการเทรด"""
+        """ตรวจสอบโอกาสในการเทรด พร้อมเก็บข้อมูล ML"""
         if not self.risk_manager.check_risk_limits(self._calculate_total_exposure(), self._calculate_unrealized_pnl()):
             return
         
         # ตรวจสอบสัญญาณการเทรดสำหรับแต่ละคู่เงิน
         for symbol in self.settings.enabled_pairs:
             if symbol in self.market_data and not self._has_initial_position(symbol):
-                signal = await self._analyze_trading_signal(symbol)
+                signal_data = await self._analyze_trading_signal(symbol)
                 
-                if signal:
-                    await self._place_initial_order_mt5(symbol, signal)
+                if signal_data and signal_data.get('signal'):
+                    await self._place_initial_order_mt5(symbol, signal_data)
     
-    async def _analyze_trading_signal(self, symbol: str) -> Optional[str]:
-        """วิเคราะห์สัญญาณการเทรด"""
-        # Simple signal based on market regime and spread
+    async def _analyze_trading_signal(self, symbol: str) -> Optional[Dict]:
+        """วิเคราะห์สัญญาณการเทรด พร้อมเก็บข้อมูล"""
         try:
             market = self.market_data[symbol]
             
@@ -385,17 +730,75 @@ class RecoveryEngine:
             # Simple random signal for demo (ในระบบจริงจะใช้ technical indicators)
             import random
             signal_strength = random.random()
+            confidence = random.uniform(0.4, 0.9)
+            
+            signal_data = {
+                'signal': None,
+                'signal_strength': signal_strength,
+                'confidence': confidence,
+                'analysis_time': datetime.now(),
+                'spread': market.spread,
+                'session': market.session_type
+            }
             
             if signal_strength > 0.98:  # 2% chance for BUY
-                return "BUY"
+                signal_data['signal'] = "BUY"
+                signal_data['predicted_pips'] = random.uniform(10, 50)
             elif signal_strength < 0.02:  # 2% chance for SELL  
-                return "SELL"
+                signal_data['signal'] = "SELL"
+                signal_data['predicted_pips'] = random.uniform(10, 50)
+            
+            # เก็บข้อมูลการวิเคราะห์สำหรับ ML (แม้ไม่มี signal)
+            if self.ml_integration:
+                await self._record_signal_analysis_for_ml(symbol, signal_data)
                 
-            return None
+            return signal_data
             
         except Exception as e:
             logger.error(f"Error analyzing trading signal for {symbol}: {e}")
             return None
+    
+    async def _record_signal_analysis_for_ml(self, symbol: str, signal_data: Dict):
+        """บันทึกการวิเคราะห์สัญญาณสำหรับ ML"""
+        try:
+            now = datetime.now()
+            
+            record = MLTrainingRecord(
+                timestamp=now,
+                record_id=f"signal_{symbol}_{now.timestamp()}",
+                client_id=self.settings.client_id,
+                symbol=symbol,
+                timeframe="SIGNAL_ANALYSIS",
+                
+                # Market data
+                open_price=self.market_data[symbol].bid,
+                high_price=self.market_data[symbol].ask,
+                low_price=self.market_data[symbol].bid,
+                close_price=self.market_data[symbol].bid,
+                volume=self.market_data[symbol].volume,
+                spread=signal_data['spread'],
+                
+                # AI Analysis
+                ai_predicted_direction=signal_data.get('signal'),
+                ai_signal_strength=signal_data['signal_strength'],
+                ai_confidence=signal_data['confidence'],
+                ai_predicted_pips=signal_data.get('predicted_pips'),
+                
+                # Context
+                market_regime=self.current_regime.value,
+                hour_of_day=now.hour,
+                day_of_week=now.weekday(),
+                account_equity=self.settings.account_balance,
+                
+                data_source="signal_analysis"
+            )
+            
+            # บันทึกเฉพาะตอนที่มี signal เท่านั้น (เพื่อไม่ให้ข้อมูลเยอะเกินไป)
+            if signal_data.get('signal'):
+                await self.ml_collector.record_ml_data(record)
+                
+        except Exception as e:
+            logger.error(f"Error recording signal analysis for ML: {e}")
     
     def _has_initial_position(self, symbol: str) -> bool:
         """ตรวจสอบว่ามีโพซิชั่นเริ่มต้นในคู่เงินนี้หรือไม่"""
@@ -404,16 +807,17 @@ class RecoveryEngine:
                 return True
         return False
     
-    async def _place_initial_order_mt5(self, symbol: str, direction: str):
-        """วางออเดอร์เริ่มต้นใน MT5"""
+    async def _place_initial_order_mt5(self, symbol: str, signal_data: Dict):
+        """วางออเดอร์เริ่มต้นใน MT5 พร้อมเก็บข้อมูล ML"""
         if not self.mt5_connector:
             return
             
         try:
+            direction = signal_data['signal']
             lot_size = self.risk_manager.calculate_position_size(symbol, 0)
             
             # วางออเดอร์ใน MT5
-            result = self.mt5_connector.place_market_order(
+            result = await self.mt5_connector.place_market_order(
                 symbol=symbol,
                 order_type=direction,
                 volume=lot_size,
@@ -421,7 +825,7 @@ class RecoveryEngine:
             )
             
             if result:
-                # สร้าง Position object
+                # สร้าง Position object พร้อม ML context
                 market = self.market_data[symbol]
                 entry_price = market.ask if direction == "BUY" else market.bid
                 
@@ -433,11 +837,22 @@ class RecoveryEngine:
                     current_price=entry_price,
                     recovery_level=0,
                     is_recovery=False,
-                    mt5_ticket=result['ticket']
+                    mt5_ticket=result['ticket'],
+                    signal_strength=signal_data['signal_strength'],
+                    confidence=signal_data['confidence'],
+                    strategy_context={
+                        'strategy': 'initial_entry',
+                        'predicted_pips': signal_data.get('predicted_pips'),
+                        'analysis_time': signal_data['analysis_time'].isoformat()
+                    }
                 )
                 
                 self.positions[position.position_id] = position
                 self.mt5_positions[position.position_id] = result['ticket']
+                
+                # บันทึกการเปิดเทรดสำหรับ ML
+                if self.ml_integration:
+                    await self._record_trade_open_for_ml(position, signal_data)
                 
                 logger.info(f"✅ Placed {direction} order for {symbol}: {lot_size} lots at {entry_price}")
             else:
@@ -445,6 +860,55 @@ class RecoveryEngine:
                 
         except Exception as e:
             logger.error(f"Error placing MT5 order for {symbol}: {e}")
+    
+    async def _record_trade_open_for_ml(self, position: Position, signal_data: Dict):
+        """บันทึกการเปิดเทรดสำหรับ ML"""
+        try:
+            record = MLTrainingRecord(
+                timestamp=position.timestamp,
+                record_id=f"open_{position.position_id}",
+                client_id=self.settings.client_id,
+                symbol=position.symbol,
+                timeframe="TRADE_OPEN",
+                
+                # Market data at entry
+                open_price=position.entry_price,
+                high_price=position.entry_price,
+                low_price=position.entry_price,
+                close_price=position.entry_price,
+                volume=0,
+                spread=signal_data.get('spread', 0),
+                
+                # AI Decision
+                ai_predicted_direction=position.direction,
+                ai_signal_strength=position.signal_strength,
+                ai_confidence=position.confidence,
+                ai_predicted_pips=signal_data.get('predicted_pips'),
+                strategy_used="initial_entry",
+                
+                # Trade context
+                entry_price=position.entry_price,
+                position_size=position.size,
+                recovery_level=position.recovery_level,
+                is_recovery_trade=position.is_recovery,
+                
+                # Market context
+                market_regime=self.current_regime.value,
+                hour_of_day=position.timestamp.hour,
+                day_of_week=position.timestamp.weekday(),
+                
+                # Portfolio context
+                account_equity=self.settings.account_balance,
+                portfolio_risk_pct=self._calculate_portfolio_risk(),
+                
+                data_source="trade_open"
+            )
+            
+            await self.ml_collector.record_ml_data(record)
+            logger.info(f"📊 ML Trade Open recorded: {position.symbol} {position.direction}")
+            
+        except Exception as e:
+            logger.error(f"Error recording trade open for ML: {e}")
     
     async def execute_recovery_strategy(self):
         """ดำเนินการกลยุทธ์แก้ไม้"""
@@ -470,7 +934,7 @@ class RecoveryEngine:
                     recovery_size = self.risk_manager.calculate_position_size(pair, losing_position.recovery_level + 1)
                     
                     # วางออเดอร์แก้ไม้ใน MT5
-                    result = self.mt5_connector.place_market_order(
+                    result = await self.mt5_connector.place_market_order(
                         symbol=pair,
                         order_type=losing_position.direction,
                         volume=recovery_size,
@@ -490,11 +954,22 @@ class RecoveryEngine:
                             recovery_level=losing_position.recovery_level + 1,
                             is_recovery=True,
                             parent_position_id=losing_position.position_id,
-                            mt5_ticket=result['ticket']
+                            mt5_ticket=result['ticket'],
+                            signal_strength=0.7,  # Recovery trades have different signal strength
+                            confidence=0.6,
+                            strategy_context={
+                                'strategy': 'correlation_recovery',
+                                'parent_symbol': losing_position.symbol,
+                                'parent_loss': losing_position.pnl
+                            }
                         )
                         
                         self.positions[recovery_position.position_id] = recovery_position
                         losing_position.recovery_level += 1
+                        
+                        # บันทึกการเปิด recovery trade สำหรับ ML
+                        if self.ml_integration:
+                            await self._record_recovery_trade_for_ml(recovery_position, losing_position)
                         
                         logger.info(f"🔄 Correlation recovery: {losing_position.direction} {pair} "
                                   f"at {entry_price}, size: {recovery_size}, level: {recovery_position.recovery_level}")
@@ -502,6 +977,50 @@ class RecoveryEngine:
                         
         except Exception as e:
             logger.error(f"Error executing correlation recovery: {e}")
+    
+    async def _record_recovery_trade_for_ml(self, recovery_position: Position, losing_position: Position):
+        """บันทึก Recovery Trade สำหรับ ML"""
+        try:
+            record = MLTrainingRecord(
+                timestamp=recovery_position.timestamp,
+                record_id=f"recovery_{recovery_position.position_id}",
+                client_id=self.settings.client_id,
+                symbol=recovery_position.symbol,
+                timeframe="RECOVERY_TRADE",
+                
+                # Market data
+                open_price=recovery_position.entry_price,
+                high_price=recovery_position.entry_price,
+                low_price=recovery_position.entry_price,
+                close_price=recovery_position.entry_price,
+                volume=0,
+                spread=0,
+                
+                # Recovery context
+                ai_predicted_direction=recovery_position.direction,
+                ai_signal_strength=recovery_position.signal_strength,
+                ai_confidence=recovery_position.confidence,
+                strategy_used="correlation_recovery",
+                recovery_level=recovery_position.recovery_level,
+                is_recovery_trade=True,
+                position_size=recovery_position.size,
+                
+                # Parent trade context
+                entry_price=recovery_position.entry_price,
+                
+                # Market context
+                market_regime=self.current_regime.value,
+                account_equity=self.settings.account_balance,
+                portfolio_risk_pct=self._calculate_portfolio_risk(),
+                
+                data_source="recovery_trade"
+            )
+            
+            await self.ml_collector.record_ml_data(record)
+            logger.info(f"📊 ML Recovery Trade recorded: {recovery_position.symbol} L{recovery_position.recovery_level}")
+            
+        except Exception as e:
+            logger.error(f"Error recording recovery trade for ML: {e}")
     
     async def _execute_grid_recovery_mt5(self, losing_position: Position):
         """ดำเนินการแก้ไม้แบบ Grid ใน MT5"""
@@ -527,7 +1046,7 @@ class RecoveryEngine:
             if should_place_order:
                 recovery_size = self.risk_manager.calculate_position_size(losing_position.symbol, losing_position.recovery_level + 1)
                 
-                result = self.mt5_connector.place_market_order(
+                result = await self.mt5_connector.place_market_order(
                     symbol=losing_position.symbol,
                     order_type=losing_position.direction,
                     volume=recovery_size,
@@ -544,11 +1063,22 @@ class RecoveryEngine:
                         recovery_level=losing_position.recovery_level + 1,
                         is_recovery=True,
                         parent_position_id=losing_position.position_id,
-                        mt5_ticket=result['ticket']
+                        mt5_ticket=result['ticket'],
+                        signal_strength=0.6,
+                        confidence=0.5,
+                        strategy_context={
+                            'strategy': 'grid_recovery',
+                            'grid_distance_pips': grid_distance_pips,
+                            'parent_loss': losing_position.pnl
+                        }
                     )
                     
                     self.positions[recovery_position.position_id] = recovery_position
                     losing_position.recovery_level += 1
+                    
+                    # บันทึกสำหรับ ML
+                    if self.ml_integration:
+                        await self._record_recovery_trade_for_ml(recovery_position, losing_position)
                     
                     logger.info(f"📊 Grid recovery: {losing_position.direction} {losing_position.symbol} "
                               f"at {result['price']}, size: {recovery_size}, level: {recovery_position.recovery_level}")
@@ -602,8 +1132,13 @@ class RecoveryEngine:
             
             for pos in positions:
                 if pos.mt5_ticket:
-                    if self.mt5_connector.close_position(pos.mt5_ticket):
+                    if await self.mt5_connector.close_position(pos.mt5_ticket):
                         closed_count += 1
+                        
+                        # บันทึกการปิดเทรดสำหรับ ML ก่อนลบ
+                        if self.ml_integration:
+                            await self._record_trade_close_for_ml(pos)
+                        
                         # ลบออกจากระบบ
                         if pos.position_id in self.positions:
                             del self.positions[pos.position_id]
@@ -635,8 +1170,13 @@ class RecoveryEngine:
         try:
             logger.warning("🚨 EMERGENCY STOP ACTIVATED")
             
+            # บันทึกการปิดโพซิชั่นทั้งหมดสำหรับ ML ก่อน
+            if self.ml_integration:
+                for pos in self.positions.values():
+                    await self._record_trade_close_for_ml(pos)
+            
             # ปิดโพซิชั่นทั้งหมดใน MT5
-            closed_count = self.mt5_connector.close_all_positions()
+            closed_count = await self.mt5_connector.close_all_positions()
             
             # ล้างโพซิชั่นในระบบ
             total_pnl = self._calculate_unrealized_pnl()
@@ -650,19 +1190,44 @@ class RecoveryEngine:
         except Exception as e:
             logger.error(f"Error during emergency stop: {e}")
     
+    async def export_ml_data(self, days: int = 30) -> Dict:
+        """ส่งออกข้อมูล ML ของลูกค้า"""
+        try:
+            if not self.ml_collector:
+                return {"error": "ML collection not enabled"}
+            
+            start_date = datetime.now() - timedelta(days=days)
+            
+            result = await self.ml_collector.export_training_dataset(
+                start_date=start_date,
+                symbols=self.settings.enabled_pairs
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error exporting ML data: {e}")
+            return {"error": str(e)}
+    
+    async def get_ml_stats(self) -> Dict:
+        """ดึงสถิติข้อมูล ML ของลูกค้า"""
+        try:
+            if not self.ml_collector:
+                return {"error": "ML collection not enabled"}
+            
+            stats = await self.ml_collector.get_ml_stats()
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting ML stats: {e}")
+            return {"error": str(e)}
+    
     def get_status(self) -> Dict:
         """ได้สถานะปัจจุบันของระบบ"""
         total_pnl = self._calculate_unrealized_pnl()
         active_positions = len(self.positions)
         
-        # ได้ข้อมูลบัญชีจาก MT5
-        account_info = None
-        if self.mt5_connector:
-            account_info = self.mt5_connector.get_account_info()
-            if account_info:
-                self.settings.account_balance = account_info['balance']
-        
-        return {
+        status = {
             'is_running': self.is_running,
             'market_regime': self.current_regime.value,
             'active_positions': active_positions,
@@ -671,9 +1236,11 @@ class RecoveryEngine:
             'monthly_pnl': self.risk_manager.monthly_pnl,
             'risk_level': self._calculate_risk_level(),
             'enabled_pairs': self.settings.enabled_pairs,
-            'current_strategy': 'Live MT5 Trading' if self.is_running else 'Standby',
+            'current_strategy': 'Live MT5 Trading with ML Logging' if self.is_running else 'Standby',
             'mt5_connected': self.mt5_connector.is_connected if self.mt5_connector else False,
             'account_balance': self.settings.account_balance,
+            'ml_logging_enabled': self.settings.enable_ml_logging,
+            'client_id': self.settings.client_id,
             'positions': [
                 {
                     'position_id': pos.position_id,
@@ -686,11 +1253,15 @@ class RecoveryEngine:
                     'pnl_pips': pos.pnl_pips,
                     'recovery_level': pos.recovery_level,
                     'is_recovery': pos.is_recovery,
-                    'mt5_ticket': pos.mt5_ticket
+                    'mt5_ticket': pos.mt5_ticket,
+                    'signal_strength': pos.signal_strength,
+                    'confidence': pos.confidence
                 }
                 for pos in self.positions.values()
             ]
         }
+        
+        return status
     
     def _calculate_risk_level(self) -> str:
         """คำนวณระดับความเสี่ยง"""
@@ -706,7 +1277,7 @@ class RecoveryEngine:
 
 # ตัวอย่างการใช้งาน
 async def main():
-    """ฟังก์ชันหลักสำหรับทดสอบระบบ"""
+    """ฟังก์ชันหลักสำหรับทดสอบระบบ พร้อม ML Logging"""
     
     # สร้างการตั้งค่า
     settings = TradingSettings(
@@ -714,25 +1285,29 @@ async def main():
         daily_target_pct=2.0,
         enabled_pairs=['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD'],
         initial_lot_size=0.01,
-        max_recovery_levels=3
+        max_recovery_levels=3,
+        enable_ml_logging=True,
+        client_id="demo_client_001"
     )
     
     # สร้าง AI Engine
     engine = RecoveryEngine(settings)
     
-    print("🚀 Starting AI Recovery Trading Engine with MT5...")
+    print("🚀 Starting AI Recovery Trading Engine with ML Data Collection...")
     print(f"💰 Account Balance: ${settings.account_balance}")
     print(f"📊 Enabled Pairs: {settings.enabled_pairs}")
     print(f"🎯 Daily Target: {settings.daily_target_pct}%")
-    print("-" * 50)
+    print(f"🧠 ML Logging: {'✅ Enabled' if settings.enable_ml_logging else '❌ Disabled'}")
+    print(f"👤 Client ID: {settings.client_id}")
+    print("-" * 60)
     
     try:
         # เริ่มต้นระบบ
         if await engine.start_engine():
-            print("✅ AI Engine started successfully with MT5 connection")
+            print("✅ AI Engine started successfully with MT5 connection and ML logging")
             
-            # รันสำหรับ demo 60 วินาที
-            await asyncio.sleep(60)
+            # รันสำหรับ demo 120 วินาที
+            await asyncio.sleep(120)
             
             # แสดงผลสุดท้าย
             status = engine.get_status()
@@ -742,6 +1317,20 @@ async def main():
             print(f"   Daily P&L: ${status['daily_pnl']:.2f}")
             print(f"   Risk Level: {status['risk_level']}")
             print(f"   MT5 Connected: {status['mt5_connected']}")
+            print(f"   ML Logging: {status['ml_logging_enabled']}")
+            
+            # ดึงสถิติ ML
+            if engine.ml_collector:
+                ml_stats = await engine.get_ml_stats()
+                print(f"\n🧠 ML Data Statistics:")
+                print(f"   Total Records: {ml_stats.get('general', {}).get('total_records', 0)}")
+                print(f"   Data Completeness: {ml_stats.get('general', {}).get('avg_completeness', 0):.2%}")
+                
+                # Export ML data
+                export_result = await engine.export_ml_data(days=1)
+                if export_result.get('status') == 'success':
+                    print(f"   📁 ML Data Exported: {export_result['total_records']} records")
+                    print(f"   📄 Export File: {export_result['export_dir']}")
         else:
             print("❌ Failed to start AI Engine")
         

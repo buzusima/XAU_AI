@@ -55,30 +55,6 @@ class TradingSettingsModel(BaseModel):
     use_basket_recovery: bool = True
     use_arbitrage_recovery: bool = True
 
-class PositionModel(BaseModel):
-    symbol: str
-    direction: str
-    size: float
-    entry_price: float
-    current_price: float
-    pnl: float
-    pnl_pips: float
-    recovery_level: int
-    is_recovery: bool
-    position_id: str
-
-class AIStatusModel(BaseModel):
-    is_running: bool
-    market_regime: str
-    active_positions: int
-    total_pnl: float
-    daily_pnl: float
-    monthly_pnl: float
-    risk_level: str
-    enabled_pairs: List[str]
-    current_strategy: str = "Standby"
-    last_action: str = "System Ready"
-
 # WebSocket Manager
 class ConnectionManager:
     def __init__(self):
@@ -98,27 +74,21 @@ class ConnectionManager:
         """ส่งข้อมูลไปยัง clients ทั้งหมด"""
         if self.active_connections:
             message = json.dumps(data)
-            for connection in self.active_connections[:]:  # Copy list to avoid modification during iteration
+            for connection in self.active_connections[:]:
                 try:
                     await connection.send_text(message)
                 except:
-                    # Remove disconnected clients
                     self.active_connections.remove(connection)
 
 manager = ConnectionManager()
 
-# Static Files (ไม่ต้องใช้แล้วเพราะ HTML embed ในตัว)
-# app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Routes
-# Routes
 @app.get("/")
 async def root():
-    """หน้าแรก - ส่ง GUI Dashboard แบบ HTML"""
-    return HTMLResponse(content=get_dashboard_html(), media_type="text/html")
+    """หน้าแรก - ส่ง GUI Dashboard แบบ HTML ครบฟีเจอร์"""
+    return HTMLResponse(content=get_complete_dashboard_html(), media_type="text/html")
 
-def get_dashboard_html():
-    """สร้างหน้าเว็บ Dashboard HTML"""
+def get_complete_dashboard_html():
+    """สร้างหน้าเว็บ Dashboard HTML ครบฟีเจอร์เหมือนเดิม"""
     return """
 <!DOCTYPE html>
 <html lang="th">
@@ -297,7 +267,7 @@ def get_dashboard_html():
             </div>
         </div>
 
-        <!-- Tabs -->
+        <!-- Tabs - กลับมาแล้ว! -->
         <div class="mb-6">
             <div class="flex space-x-1 bg-slate-800 p-1 rounded-lg">
                 <button class="tab-button tab-active px-4 py-2 rounded-md font-medium" data-tab="settings">การตั้งค่า AI</button>
@@ -313,34 +283,15 @@ def get_dashboard_html():
             <div id="settings-tab" class="tab-content">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- MT5 Account Info -->
-                    <div id="mt5AccountInfo" class="card rounded-lg p-6 hidden">
+                    <div id="mt5AccountInfo" class="card rounded-lg p-6">
                         <h3 class="text-white text-lg font-semibold mb-4 flex items-center gap-2">
                             📊 MT5 Account Information (Live)
                         </h3>
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <p class="text-gray-400">Account</p>
-                                <p id="mt5Login" class="text-white font-semibold">-</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400">Balance</p>
-                                <p id="mt5Balance" class="text-white font-semibold">-</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400">Equity</p>
-                                <p id="mt5Equity" class="text-white font-semibold">-</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400">Free Margin</p>
-                                <p id="mt5FreeMargin" class="text-white font-semibold">-</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400">Profit</p>
-                                <p id="mt5Profit" class="text-white font-semibold">-</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400">Broker</p>
-                                <p id="mt5Company" class="text-white font-semibold">-</p>
+                        <div id="mt5AccountData" class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="text-center py-4 text-gray-400 col-span-2">
+                                <button id="testMT5Connection" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Test MT5 Connection
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -398,7 +349,7 @@ def get_dashboard_html():
                 </div>
             </div>
 
-            <!-- Currency Pairs Tab -->
+            <!-- Currency Pairs Tab - กลับมาแล้ว! -->
             <div id="pairs-tab" class="tab-content hidden">
                 <div class="card rounded-lg p-6">
                     <h3 class="text-white text-lg font-semibold mb-4">เลือกคู่สกุลเงินสำหรับ AI Trading</h3>
@@ -447,7 +398,7 @@ def get_dashboard_html():
                 </div>
             </div>
 
-            <!-- Strategy Tab -->
+            <!-- Strategy Tab - กลับมาแล้ว! -->
             <div id="strategy-tab" class="tab-content hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Recovery Strategies -->
@@ -500,7 +451,7 @@ def get_dashboard_html():
                 </div>
             </div>
 
-            <!-- Monitor Tab -->
+            <!-- Monitor Tab - กลับมาแล้ว! -->
             <div id="monitor-tab" class="tab-content hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Current Positions -->
@@ -519,7 +470,7 @@ def get_dashboard_html():
                         <h3 class="text-white text-lg font-semibold mb-4">AI Decision Log</h3>
                         <div id="logsContainer" class="space-y-2 max-h-64 overflow-y-auto">
                             <div class="text-center py-4 text-gray-400">
-                                No logs available
+                                System ready...
                             </div>
                         </div>
                     </div>
@@ -586,7 +537,7 @@ def get_dashboard_html():
             use_arbitrage_recovery: true
         };
 
-        // Currency Pairs Data
+        // Currency Pairs Data - กลับมาแล้ว!
         const mt5Pairs = {
             majors: {
                 'EURUSD': { symbol: 'EURUSD', name: 'Euro vs US Dollar' },
@@ -645,7 +596,7 @@ def get_dashboard_html():
                 <span class="${textColor} ml-2">${message}</span>
             `;
             
-            if (logContainer.children.length === 1 && logContainer.children[0].textContent.includes('No logs available')) {
+            if (logContainer.children.length === 1 && logContainer.children[0].textContent.includes('System ready')) {
                 logContainer.innerHTML = '';
             }
             
@@ -683,72 +634,7 @@ def get_dashboard_html():
             }
         }
 
-        // WebSocket Functions
-        function connectWebSocket() {
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
-            
-            ws = new WebSocket(wsUrl);
-            
-            ws.onopen = () => {
-                isConnected = true;
-                updateConnectionStatus('connected');
-                addLog('Connected to AI Backend', 'success');
-            };
-
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                handleWebSocketMessage(message);
-            };
-
-            ws.onclose = () => {
-                isConnected = false;
-                updateConnectionStatus('disconnected');
-                addLog('Disconnected from AI Backend', 'warning');
-                
-                // Auto-reconnect after 5 seconds
-                setTimeout(connectWebSocket, 5000);
-            };
-
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                updateConnectionStatus('error');
-                addLog('WebSocket connection error', 'error');
-            };
-        }
-
-        function handleWebSocketMessage(message) {
-            switch (message.type) {
-                case 'ai_status_update':
-                    updateAIStatus(message.data);
-                    break;
-                case 'initial_data':
-                    updateAIStatus(message.data);
-                    break;
-                case 'ai_started':
-                    aiRunning = true;
-                    updateAIControls();
-                    addLog('AI Engine Started', 'success');
-                    break;
-                case 'ai_stopped':
-                    aiRunning = false;
-                    updateAIControls();
-                    addLog('AI Engine Stopped', 'info');
-                    break;
-                case 'position_update':
-                    updatePositions(message.data.positions || []);
-                    break;
-                case 'market_data_update':
-                    updateMarketData(message.data.market_data || {});
-                    break;
-                case 'emergency_stop':
-                    addLog('Emergency Stop Executed!', 'warning');
-                    break;
-                default:
-                    console.log('Unknown message type:', message.type);
-            }
-        }
-
+        // Update Functions
         function updateConnectionStatus(status) {
             const statusIndicator = document.getElementById('connectionStatus');
             const statusText = document.getElementById('connectionText');
@@ -760,16 +646,13 @@ def get_dashboard_html():
                     statusIndicator.classList.add('status-online');
                     statusText.textContent = 'LIVE';
                     statusText.className = 'ml-2 text-xs px-2 py-1 rounded bg-green-600';
+                    isConnected = true;
                     break;
                 case 'disconnected':
                     statusIndicator.classList.add('status-offline');
                     statusText.textContent = 'OFFLINE';
                     statusText.className = 'ml-2 text-xs px-2 py-1 rounded bg-red-600';
-                    break;
-                case 'error':
-                    statusIndicator.classList.add('status-connecting');
-                    statusText.textContent = 'ERROR';
-                    statusText.className = 'ml-2 text-xs px-2 py-1 rounded bg-yellow-600';
+                    isConnected = false;
                     break;
                 default:
                     statusIndicator.classList.add('status-connecting');
@@ -887,7 +770,7 @@ def get_dashboard_html():
             `).join('');
         }
 
-        // Tab Management
+        // Tab Management - กลับมาแล้ว!
         function initializeTabs() {
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -909,7 +792,7 @@ def get_dashboard_html():
             });
         }
 
-        // Currency Pairs Management
+        // Currency Pairs Management - กลับมาแล้ว!
         function initializePairs() {
             const majorContainer = document.getElementById('majorPairs');
             const crossContainer = document.getElementById('crossPairs');
@@ -917,20 +800,20 @@ def get_dashboard_html():
             
             // Render major pairs
             majorContainer.innerHTML = Object.entries(mt5Pairs.majors).map(([symbol, data]) => 
-                createPairCard(symbol, data, 'bg-blue-600')).join('');
+                createPairCard(symbol, data)).join('');
             
             // Render cross pairs
             crossContainer.innerHTML = Object.entries(mt5Pairs.crosses).map(([symbol, data]) => 
-                createPairCard(symbol, data, 'bg-green-600')).join('');
+                createPairCard(symbol, data)).join('');
             
             // Render metal pairs
             metalContainer.innerHTML = Object.entries(mt5Pairs.metals).map(([symbol, data]) => 
-                createPairCard(symbol, data, 'bg-yellow-600')).join('');
+                createPairCard(symbol, data)).join('');
             
             updateSelectedPairs();
         }
 
-        function createPairCard(symbol, data, selectedColor) {
+        function createPairCard(symbol, data) {
             const isSelected = settings.enabled_pairs.includes(symbol);
             return `
                 <div class="pair-card p-3 rounded-lg border cursor-pointer ${isSelected ? 'pair-selected' : 'bg-slate-700 border-slate-600 text-gray-300'}" 
@@ -970,7 +853,7 @@ def get_dashboard_html():
             ).join('');
         }
 
-        // Settings Management
+        // Settings Management - กลับมาแล้ว!
         function loadSettings() {
             document.getElementById('dailyTarget').value = settings.daily_target_pct;
             document.getElementById('monthlyTarget').value = settings.monthly_target_pct;
@@ -995,6 +878,55 @@ def get_dashboard_html():
             settings.use_grid_recovery = document.getElementById('useGridRecovery').checked;
             settings.use_basket_recovery = document.getElementById('useBasketRecovery').checked;
             settings.use_arbitrage_recovery = document.getElementById('useArbitrageRecovery').checked;
+        }
+
+        function updateMT5AccountInfo(accountInfo) {
+            const container = document.getElementById('mt5AccountData');
+            if (accountInfo && !accountInfo.error) {
+                container.innerHTML = `
+                    <div>
+                        <p class="text-gray-400">Account</p>
+                        <p class="text-white font-semibold">${accountInfo.login}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Balance</p>
+                        <p class="text-white font-semibold">${formatCurrency(accountInfo.balance)}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Equity</p>
+                        <p class="text-white font-semibold">${formatCurrency(accountInfo.equity)}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Free Margin</p>
+                        <p class="text-white font-semibold">${formatCurrency(accountInfo.free_margin)}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Profit</p>
+                        <p class="text-white font-semibold">${formatCurrency(accountInfo.profit)} (${formatNumber(accountInfo.profit_percentage)}%)</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Broker</p>
+                        <p class="text-white font-semibold">${accountInfo.company}</p>
+                    </div>
+                `;
+                
+                // Update header balance
+                document.getElementById('accountBalance').textContent = formatCurrency(accountInfo.balance);
+                document.getElementById('accountEquity').textContent = formatCurrency(accountInfo.equity);
+                
+                settings.account_balance = accountInfo.balance;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-red-400 col-span-2">
+                        ❌ ${accountInfo?.message || 'Connection failed'}
+                        <div class="mt-2">
+                            <button id="testMT5Connection" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Retry Connection
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         // Event Listeners
@@ -1038,51 +970,60 @@ def get_dashboard_html():
                     addLog('Settings saved successfully', 'success');
                 }
             });
+
+            // Test MT5 Connection
+            document.addEventListener('click', async (e) => {
+                if (e.target.id === 'testMT5Connection') {
+                    addLog('Testing MT5 connection...', 'info');
+                    const result = await apiCall('/api/mt5/account-info');
+                    if (result) {
+                        updateMT5AccountInfo(result);
+                        if (!result.error) {
+                            addLog('MT5 connection successful', 'success');
+                        } else {
+                            addLog('MT5 connection failed', 'error');
+                        }
+                    }
+                }
+            });
         }
 
         // Load Initial Data
         async function loadInitialData() {
-            // Load AI Status
-            const status = await apiCall('/api/status');
-            if (status) {
-                updateAIStatus(status);
-            }
-
-            // Load Positions
-            const positionsData = await apiCall('/api/positions');
-            if (positionsData) {
-                updatePositions(positionsData.positions || []);
-            }
-
-            // Load Market Data
-            const marketDataResponse = await apiCall('/api/market-data');
-            if (marketDataResponse) {
-                updateMarketData(marketDataResponse.market_data || {});
-            }
-
-            // Load MT5 Account Info
-            const accountInfo = await apiCall('/api/mt5/account-info');
-            if (accountInfo) {
-                updateMT5AccountInfo(accountInfo);
-            }
-        }
-
-        function updateMT5AccountInfo(accountInfo) {
-            const container = document.getElementById('mt5AccountInfo');
-            if (accountInfo && accountInfo.login) {
-                container.classList.remove('hidden');
-                document.getElementById('mt5Login').textContent = accountInfo.login;
-                document.getElementById('mt5Balance').textContent = formatCurrency(accountInfo.balance);
-                document.getElementById('mt5Equity').textContent = formatCurrency(accountInfo.equity);
-                document.getElementById('mt5FreeMargin').textContent = formatCurrency(accountInfo.free_margin);
-                document.getElementById('mt5Profit').textContent = `${formatCurrency(accountInfo.profit)} (${formatNumber(accountInfo.profit_percentage)}%)`;
-                document.getElementById('mt5Company').textContent = accountInfo.company;
+            updateConnectionStatus('connecting');
+            
+            // Test basic connection
+            const health = await apiCall('/health');
+            if (health) {
+                updateConnectionStatus('connected');
+                addLog('Connected to AI Recovery Server', 'success');
                 
-                // Update header balance
-                document.getElementById('accountBalance').textContent = formatCurrency(accountInfo.balance);
-                document.getElementById('accountEquity').textContent = formatCurrency(accountInfo.equity);
-                
-                settings.account_balance = accountInfo.balance;
+                // Load AI Status
+                const status = await apiCall('/api/status');
+                if (status) {
+                    updateAIStatus(status);
+                }
+
+                // Load Positions
+                const positionsData = await apiCall('/api/positions');
+                if (positionsData) {
+                    updatePositions(positionsData.positions || []);
+                }
+
+                // Load Market Data
+                const marketDataResponse = await apiCall('/api/market-data');
+                if (marketDataResponse) {
+                    updateMarketData(marketDataResponse.market_data || {});
+                }
+
+                // Test MT5 connection
+                const accountInfo = await apiCall('/api/mt5/account-info');
+                if (accountInfo) {
+                    updateMT5AccountInfo(accountInfo);
+                }
+            } else {
+                updateConnectionStatus('disconnected');
+                addLog('Failed to connect to server', 'error');
             }
         }
 
@@ -1092,10 +1033,30 @@ def get_dashboard_html():
             initializePairs();
             loadSettings();
             initializeEventListeners();
-            connectWebSocket();
             loadInitialData();
             
             addLog('AI Recovery Trading System initialized', 'success');
+            
+            // Auto-refresh data every 5 seconds
+            setInterval(async () => {
+                if (isConnected) {
+                    const status = await apiCall('/api/status');
+                    if (status) {
+                        updateAIStatus(status);
+                        if (status.positions) {
+                            updatePositions(status.positions);
+                        }
+                    }
+
+                    // Update market data every 10 seconds
+                    if (Math.random() < 0.5) { // 50% chance every 5 seconds = roughly every 10 seconds
+                        const marketDataResponse = await apiCall('/api/market-data');
+                        if (marketDataResponse) {
+                            updateMarketData(marketDataResponse.market_data || {});
+                        }
+                    }
+                }
+            }, 5000);
         }
 
         // Start the application when DOM is loaded
@@ -1234,7 +1195,8 @@ async def get_ai_status():
                 "monthly_pnl": 0.0,
                 "risk_level": "LOW",
                 "enabled_pairs": [],
-                "positions": []
+                "positions": [],
+                "current_strategy": "Standby"
             }
         
         status = ai_engine.get_status()
@@ -1322,6 +1284,36 @@ async def emergency_stop():
         logger.error(f"Error during emergency stop: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/mt5/account-info")
+async def get_mt5_account_info():
+    """ได้ข้อมูลบัญชี MT5 - แก้ไข async issue"""
+    try:
+        if ai_engine and ai_engine.mt5_connector and ai_engine.mt5_connector.is_connected:
+            account_info = await ai_engine.mt5_connector.get_account_info()  # เพิ่ม await
+            if account_info:
+                return account_info
+            else:
+                return {"error": "Cannot retrieve MT5 account info"}
+        else:
+            # ลองเชื่อมต่อ MT5 ใหม่
+            global mt5_connector
+            if not mt5_connector:
+                mt5_connector = MT5Connector()
+                if not await mt5_connector.auto_connect():  # เพิ่ม await
+                    mt5_connector = None
+            
+            if mt5_connector and mt5_connector.is_connected:
+                account_info = await mt5_connector.get_account_info()  # เพิ่ม await
+                return account_info if account_info else {"error": "Cannot retrieve account info"}
+            else:
+                return {
+                    "error": "MT5 not connected",
+                    "message": "Please make sure MT5 is running and logged in"
+                }
+    except Exception as e:
+        logger.error(f"Error getting MT5 account info: {e}")
+        return {"error": "MT5 connection error", "message": str(e)}
+
 # WebSocket Endpoint
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -1369,54 +1361,12 @@ async def broadcast_ai_status():
                     "timestamp": datetime.now().isoformat()
                 })
             
-            # ส่งทุก 2 วินาที
-            await asyncio.sleep(2)
+            # ส่งทุก 5 วินาที
+            await asyncio.sleep(5)
             
         except Exception as e:
             logger.error(f"Error broadcasting AI status: {e}")
-            await asyncio.sleep(5)
-
-# MT5 Integration Endpoints
-@app.post("/api/mt5/connect")
-async def connect_mt5(mt5_config: dict):
-    """เชื่อมต่อ MT5 (สำหรับอนาคต)"""
-    try:
-        # TODO: Implement MT5 connection
-        logger.info("MT5 connection requested")
-        return {"status": "success", "message": "MT5 connection established"}
-    except Exception as e:
-        logger.error(f"Error connecting to MT5: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/mt5/account-info")
-async def get_mt5_account_info():
-    """ได้ข้อมูลบัญชี MT5"""
-    try:
-        if ai_engine and ai_engine.mt5_connector and ai_engine.mt5_connector.is_connected:
-            account_info = ai_engine.mt5_connector.get_account_info()
-            if account_info:
-                return account_info
-            else:
-                return {"error": "Cannot retrieve MT5 account info"}
-        else:
-            # ลองเชื่อมต่อ MT5 ใหม่
-            global mt5_connector
-            if not mt5_connector:
-                mt5_connector = MT5Connector()
-                if not await mt5_connector.auto_connect():
-                    mt5_connector = None
-            
-            if mt5_connector and mt5_connector.is_connected:
-                account_info = mt5_connector.get_account_info()
-                return account_info if account_info else {"error": "Cannot retrieve account info"}
-            else:
-                return {
-                    "error": "MT5 not connected",
-                    "message": "Please make sure MT5 is running and logged in"
-                }
-    except Exception as e:
-        logger.error(f"Error getting MT5 account info: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            await asyncio.sleep(10)
 
 # Error Handlers
 @app.exception_handler(404)
@@ -1452,9 +1402,11 @@ async def startup_event():
 # Shutdown Event
 @app.on_event("shutdown")
 async def shutdown_event():
-    global ai_engine
+    global ai_engine, mt5_connector
     if ai_engine and ai_engine.is_running:
         await ai_engine.stop_engine()
+    if mt5_connector:
+        await mt5_connector.disconnect()
     logger.info("AI Recovery Trading API Server shutting down...")
 
 # Development Server
