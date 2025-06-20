@@ -1,0 +1,79 @@
+{
+  "dataset_type": "Raw Candlestick Data for AI Training",
+  "symbol": "XAUUSD.c",
+  "creation_date": "2025-06-21 03:18:41",
+  "description": "Pure OHLCV data without feature engineering",
+  "data_range": {
+    "start": "2012-04-25",
+    "end": "2025-06-20"
+  },
+  "timeframes": {
+    "D1": {
+      "bars": 1999,
+      "columns": 16,
+      "start": "2018-06-07 00:00",
+      "end": "2025-06-20 00:00",
+      "coverage_days": 2570,
+      "file": "XAUUSD.c_D1_raw.csv"
+    },
+    "H4": {
+      "bars": 6302,
+      "columns": 16,
+      "start": "2012-04-25 00:00",
+      "end": "2025-06-20 20:00",
+      "coverage_days": 4804,
+      "file": "XAUUSD.c_H4_raw.csv"
+    },
+    "H1": {
+      "bars": 15013,
+      "columns": 16,
+      "start": "2012-04-25 00:00",
+      "end": "2025-06-20 23:00",
+      "coverage_days": 4804,
+      "file": "XAUUSD.c_H1_raw.csv"
+    },
+    "M30": {
+      "bars": 22947,
+      "columns": 16,
+      "start": "2012-04-25 00:00",
+      "end": "2025-06-20 23:00",
+      "coverage_days": 4804,
+      "file": "XAUUSD.c_M30_raw.csv"
+    },
+    "M5": {
+      "bars": 49999,
+      "columns": 16,
+      "start": "2024-10-07 01:20",
+      "end": "2025-06-20 23:15",
+      "coverage_days": 256,
+      "file": "XAUUSD.c_M5_raw.csv"
+    },
+    "M1": {
+      "bars": 59999,
+      "columns": 16,
+      "start": "2025-04-22 06:53",
+      "end": "2025-06-20 23:18",
+      "coverage_days": 59,
+      "file": "XAUUSD.c_M1_raw.csv"
+    }
+  },
+  "total_bars": 156259,
+  "columns": [
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume",
+    "Hour",
+    "Day_of_week",
+    "Day_of_month",
+    "Month",
+    "Year",
+    "Is_asian_hours",
+    "Is_european_hours",
+    "Is_us_hours",
+    "Is_monday",
+    "Is_friday",
+    "Is_weekend"
+  ]
+}

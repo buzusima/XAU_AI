@@ -280,36 +280,36 @@ class RawCandlestickCollector:
         # สร้าง README
         readme = f"""# Raw Candlestick Dataset - {self.symbol}
 
-## 🎯 จุดประสงค์
+## จุดประสงค์
 ข้อมูลแท่งเทียนดิบสำหรับการเทรน AI Trading
 **ไม่มี Feature Engineering** - ให้ AI เรียนรู้และหา Pattern เอง
 
-## 📊 ข้อมูลที่มี
+## ข้อมูลที่มี
 - **Symbol**: {self.symbol}
 - **Total Bars**: {summary['total_bars']:,}
 - **Date Range**: {summary['data_range']['start']} ถึง {summary['data_range']['end']}
 - **Timeframes**: {', '.join(data.keys())}
 
-## 📋 Columns
+## Columns
 ```
 {', '.join(summary['columns'])}
 ```
 
-## 🎯 Philosophy
+## Philosophy
 > "ให้ AI หา Pattern เอง แทนที่จะบอกมันล่วงหน้า"
 
-### ❌ ไม่มี:
+### ไม่มี:
 - Technical Indicators (RSI, MACD, etc.)
 - Chart Patterns (Head & Shoulders, etc.)
 - Support/Resistance levels
 - Trend analysis
 
-### ✅ มีเฉพาะ:
+### มีเฉพาะ:
 - Pure OHLCV data
 - Time context (Hour, Day, Session)
 - Multiple timeframes
 
-## 🧠 Next Steps
+## Next Steps
 1. **Train Candlestick Recognition Model**
    - เรียนรู้ความหมายของแต่ละแท่งเทียน
    - เข้าใจ Market Psychology จากแท่งเทียน
@@ -329,7 +329,7 @@ class RawCandlestickCollector:
 Generated: {summary['creation_date']}
 """
         
-        with open(f'{folder}/README.md', 'w') as f:
+        with open(f'{folder}/README.md', 'w', encoding='utf-8') as f:
             f.write(readme)
         
         self.logger.info(f"📋 สร้าง Documentation เรียบร้อย: {folder}/")
