@@ -1,0 +1,25 @@
+{
+  "timeframe": "D1",
+  "test_accuracy": 0.9710526466369629,
+  "test_loss": 0.15939314663410187,
+  "sequence_length": 5,
+  "training_time_minutes": 15.280447832743327,
+  "vocab_size": 11,
+  "num_classes": 12,
+  "feature_dim": 7,
+  "pattern_distribution": {
+    "BEARISH_ENGULFING": 178,
+    "NO_PATTERN": 854,
+    "BULLISH_ENGULFING": 262,
+    "MOMENTUM_BUILDING_BEAR": 10,
+    "THREE_BLACK_CROWS": 23,
+    "MORNING_STAR": 33,
+    "DOJI_INDECISION": 170,
+    "EVENING_STAR": 37,
+    "EXHAUSTION_BEAR": 16,
+    "EXHAUSTION_BULL": 8,
+    "THREE_WHITE_SOLDIERS": 11,
+    "MOMENTUM_BUILDING_BULL": 12
+  },
+  "trained_at": "2025-06-21T05:17:26.748819"
+}

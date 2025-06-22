@@ -1,0 +1,115 @@
+2025-06-21 04:58:38,871 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-06-21 05:02:01,693 - INFO - เช็ค Prerequisites ผ่านการตรวจสอบ
+2025-06-21 05:02:02,025 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-06-21 05:02:02,039 - INFO - โหลด Candlestick Classifier สำเร็จ
+2025-06-21 05:02:02,039 - INFO - รู้จัก 11 patterns
+2025-06-21 05:02:02,039 - INFO - โหลดข้อมูล Raw สำหรับ 3 ไทม์เฟรมหลัก...
+2025-06-21 05:02:02,071 - INFO - D1: 1,999 แท่ง | 2,570 วัน | 2018-06-07 - 2025-06-20
+2025-06-21 05:02:02,104 - INFO - H4: 6,302 แท่ง | 4,804 วัน | 2012-04-25 - 2025-06-20
+2025-06-21 05:02:02,357 - INFO - H1: 15,013 แท่ง | 4,804 วัน | 2012-04-25 - 2025-06-20
+2025-06-21 05:02:02,358 - INFO - พร้อมเทรน 3 ไทม์เฟรม: ['D1', 'H4', 'H1']
+2025-06-21 05:02:09,699 - INFO - เริ่มเทรน Phase 3: Pattern Sequence Learning
+2025-06-21 05:02:09,699 - INFO - ================================================================================
+2025-06-21 05:02:09,700 - INFO - ไทม์เฟรมที่จะเทรน: ['D1', 'H4', 'H1']
+2025-06-21 05:02:09,701 - INFO - Sequence Length: 5
+2025-06-21 05:02:09,701 - INFO - เริ่มเทรน: 2025-06-21 05:02:09
+2025-06-21 05:02:09,702 - INFO - ================================================================================
+2025-06-21 05:02:09,702 - INFO - 
+[1/3] เทรน D1
+2025-06-21 05:02:09,703 - INFO - เริ่มเทรน D1 Sequence Learning
+2025-06-21 05:02:09,705 - INFO - สร้างข้อมูล Sequence Training สำหรับ D1
+2025-06-21 05:02:09,706 - INFO - วิเคราะห์แท่งเทียนแต่ละแท่ง...
+2025-06-21 05:06:17,596 - INFO - สร้าง Sequences ยาว 5 แท่ง...
+2025-06-21 05:06:22,757 - INFO - สร้างข้อมูล Sequence เสร็จสิ้น:
+2025-06-21 05:06:22,772 - INFO -    Training: 1,614 sequences
+2025-06-21 05:06:22,853 - INFO -    Testing: 380 sequences
+2025-06-21 05:06:22,865 - INFO -    Unique patterns: 11
+2025-06-21 05:06:22,866 - INFO -    Sequence length: 5
+2025-06-21 05:06:22,866 - INFO - Pattern Distribution:
+2025-06-21 05:06:22,867 - INFO -    NO_PATTERN: 854 (52.9%)
+2025-06-21 05:06:22,867 - INFO -    BULLISH_ENGULFING: 262 (16.2%)
+2025-06-21 05:06:22,868 - INFO -    BEARISH_ENGULFING: 178 (11.0%)
+2025-06-21 05:06:22,869 - INFO -    DOJI_INDECISION: 170 (10.5%)
+2025-06-21 05:06:22,869 - INFO -    EVENING_STAR: 37 (2.3%)
+2025-06-21 05:06:22,870 - INFO -    MORNING_STAR: 33 (2.0%)
+2025-06-21 05:06:22,871 - INFO -    THREE_BLACK_CROWS: 23 (1.4%)
+2025-06-21 05:06:22,873 - INFO -    EXHAUSTION_BEAR: 16 (1.0%)
+2025-06-21 05:06:22,874 - INFO -    MOMENTUM_BUILDING_BULL: 12 (0.7%)
+2025-06-21 05:06:22,874 - INFO -    THREE_WHITE_SOLDIERS: 11 (0.7%)
+2025-06-21 05:06:23,290 - INFO - เริ่มการเทรน D1 Model...
+2025-06-21 05:17:26,532 - INFO - เทรน D1 เสร็จสิ้น!
+2025-06-21 05:17:26,533 - INFO - Test Accuracy: 0.9711
+2025-06-21 05:17:26,533 - INFO - เวลาที่ใช้: 15.3 นาที
+2025-06-21 05:17:26,534 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-06-21 05:17:26,749 - INFO - บันทึกโมเดล D1: phase3_sequence_models/D1/
+2025-06-21 05:17:26,751 - INFO - 
+[2/3] เทรน H4
+2025-06-21 05:17:26,751 - INFO - เริ่มเทรน H4 Sequence Learning
+2025-06-21 05:17:26,752 - INFO - สร้างข้อมูล Sequence Training สำหรับ H4
+2025-06-21 05:17:26,753 - INFO - วิเคราะห์แท่งเทียนแต่ละแท่ง...
+2025-06-21 05:30:13,761 - INFO - สร้าง Sequences ยาว 5 แท่ง...
+2025-06-21 05:30:30,160 - INFO - สร้างข้อมูล Sequence เสร็จสิ้น:
+2025-06-21 05:30:30,160 - INFO -    Training: 4,017 sequences
+2025-06-21 05:30:30,257 - INFO -    Testing: 2,280 sequences
+2025-06-21 05:30:30,259 - INFO -    Unique patterns: 11
+2025-06-21 05:30:30,259 - INFO -    Sequence length: 5
+2025-06-21 05:30:30,260 - INFO - Pattern Distribution:
+2025-06-21 05:30:30,260 - INFO -    NO_PATTERN: 2043 (50.9%)
+2025-06-21 05:30:30,261 - INFO -    BULLISH_ENGULFING: 619 (15.4%)
+2025-06-21 05:30:30,261 - INFO -    BEARISH_ENGULFING: 516 (12.8%)
+2025-06-21 05:30:30,262 - INFO -    DOJI_INDECISION: 446 (11.1%)
+2025-06-21 05:30:30,262 - INFO -    MORNING_STAR: 91 (2.3%)
+2025-06-21 05:30:30,263 - INFO -    EVENING_STAR: 67 (1.7%)
+2025-06-21 05:30:30,266 - INFO -    THREE_BLACK_CROWS: 56 (1.4%)
+2025-06-21 05:30:30,266 - INFO -    THREE_WHITE_SOLDIERS: 52 (1.3%)
+2025-06-21 05:30:30,267 - INFO -    EXHAUSTION_BULL: 35 (0.9%)
+2025-06-21 05:30:30,267 - INFO -    MOMENTUM_BUILDING_BEAR: 33 (0.8%)
+2025-06-21 05:30:30,510 - INFO - เริ่มการเทรน H4 Model...
+2025-06-21 05:47:24,352 - INFO - เทรน H4 เสร็จสิ้น!
+2025-06-21 05:47:24,352 - INFO - Test Accuracy: 0.9904
+2025-06-21 05:47:24,352 - INFO - เวลาที่ใช้: 30.0 นาที
+2025-06-21 05:47:24,352 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-06-21 05:47:24,623 - INFO - บันทึกโมเดล H4: phase3_sequence_models/H4/
+2025-06-21 05:47:24,624 - INFO - 
+[3/3] เทรน H1
+2025-06-21 05:47:24,625 - INFO - เริ่มเทรน H1 Sequence Learning
+2025-06-21 05:47:24,625 - INFO - สร้างข้อมูล Sequence Training สำหรับ H1
+2025-06-21 05:47:24,628 - INFO - วิเคราะห์แท่งเทียนแต่ละแท่ง...
+2025-06-21 06:18:00,314 - INFO - สร้าง Sequences ยาว 5 แท่ง...
+2025-06-21 06:18:39,592 - INFO - สร้างข้อมูล Sequence เสร็จสิ้น:
+2025-06-21 06:18:39,592 - INFO -    Training: 6,296 sequences
+2025-06-21 06:18:39,592 - INFO -    Testing: 8,712 sequences
+2025-06-21 06:18:39,592 - INFO -    Unique patterns: 11
+2025-06-21 06:18:39,592 - INFO -    Sequence length: 5
+2025-06-21 06:18:39,592 - INFO - Pattern Distribution:
+2025-06-21 06:18:39,592 - INFO -    NO_PATTERN: 3131 (49.7%)
+2025-06-21 06:18:39,592 - INFO -    BULLISH_ENGULFING: 988 (15.7%)
+2025-06-21 06:18:39,608 - INFO -    BEARISH_ENGULFING: 869 (13.8%)
+2025-06-21 06:18:39,608 - INFO -    DOJI_INDECISION: 683 (10.8%)
+2025-06-21 06:18:39,719 - INFO -    MORNING_STAR: 133 (2.1%)
+2025-06-21 06:18:39,719 - INFO -    EVENING_STAR: 114 (1.8%)
+2025-06-21 06:18:39,720 - INFO -    THREE_WHITE_SOLDIERS: 102 (1.6%)
+2025-06-21 06:18:39,720 - INFO -    THREE_BLACK_CROWS: 87 (1.4%)
+2025-06-21 06:18:39,721 - INFO -    EXHAUSTION_BEAR: 54 (0.9%)
+2025-06-21 06:18:39,721 - INFO -    MOMENTUM_BUILDING_BULL: 46 (0.7%)
+2025-06-21 06:18:39,989 - INFO - เริ่มการเทรน H1 Model...
+2025-06-21 07:03:31,957 - INFO - เทรน H1 เสร็จสิ้น!
+2025-06-21 07:03:31,957 - INFO - Test Accuracy: 0.9956
+2025-06-21 07:03:31,957 - INFO - เวลาที่ใช้: 76.1 นาที
+2025-06-21 07:03:31,957 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-06-21 07:03:32,171 - INFO - บันทึกโมเดล H1: phase3_sequence_models/H1/
+2025-06-21 07:03:32,296 - INFO - บันทึกสรุป Phase 3: phase3_sequence_models/phase3_summary_20250621_070332.json
+2025-06-21 07:03:32,297 - INFO - 
+ทดสอบโมเดล Phase 3
+2025-06-21 07:03:32,298 - INFO - 
+ทดสอบ: Morning Star Pattern
+2025-06-21 07:03:32,817 - INFO -    Individual Patterns: ['LONG_BEAR', 'SMALL_BULL', 'MARUBOZU_BULL']
+2025-06-21 07:03:32,817 - INFO -    D1 Prediction: [Mock] - ต้องใช้โมเดลจริงที่เทรนแล้ว
+2025-06-21 07:03:32,817 - INFO -    H4 Prediction: [Mock] - ต้องใช้โมเดลจริงที่เทรนแล้ว
+2025-06-21 07:03:32,817 - INFO -    H1 Prediction: [Mock] - ต้องใช้โมเดลจริงที่เทรนแล้ว
+2025-06-21 07:03:32,817 - INFO - 
+ทดสอบ: Evening Star Pattern
+2025-06-21 07:03:33,254 - INFO -    Individual Patterns: ['MARUBOZU_BULL', 'DOJI', 'MARUBOZU_BEAR']
+2025-06-21 07:03:33,254 - INFO -    D1 Prediction: [Mock] - ต้องใช้โมเดลจริงที่เทรนแล้ว
+2025-06-21 07:03:33,254 - INFO -    H4 Prediction: [Mock] - ต้องใช้โมเดลจริงที่เทรนแล้ว
+2025-06-21 07:03:33,254 - INFO -    H1 Prediction: [Mock] - ต้องใช้โมเดลจริงที่เทรนแล้ว
