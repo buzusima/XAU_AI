@@ -1,0 +1,7 @@
+2025-06-23 19:59:12,513 - INFO - Optimized trading system initialized successfully
+2025-06-23 19:59:12,528 - INFO - Successfully connected to MT5 for real-time monitoring
+2025-06-23 19:59:12,617 - INFO - Starting signal monitoring for XAUUSD.c
+2025-06-23 19:59:12,628 - INFO - Real-time monitoring started for XAUUSD.c
+2025-06-23 19:59:12,775 - INFO - Monitoring interval: 60 seconds
+2025-06-23 19:59:12,778 - INFO - Alert cooldown: 300 seconds
+2025-06-23 20:08:24,308 - INFO - Stopping real-time monitoring...

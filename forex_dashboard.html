@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Timeframe & Indicator Grid</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            overflow-x: auto;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        /* Header */
+        .dashboard-header {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            color: #00ff00;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 2rem;
+            font-size: 12px;
+        }
+
+        .info-item {
+            color: #ffff00;
+        }
+
+        .info-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        /* Header Row */
+        .grid-header {
+            background: #222;
+            border-bottom: 2px solid #444;
+        }
+
+        .grid-header th {
+            padding: 0.8rem 0.5rem;
+            text-align: center;
+            border-right: 1px solid #444;
+            color: #ffff00;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .grid-header th:first-child {
+            background: #333;
+            color: #00ff00;
+            text-align: left;
+            padding-left: 1rem;
+            width: 100px;
+        }
+
+        /* Data Rows */
+        .grid-row {
+            border-bottom: 1px solid #333;
+            transition: background-color 0.3s ease;
+        }
+
+        .grid-row:hover {
+            background: #222;
+        }
+
+        .grid-cell {
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            border-right: 1px solid #333;
+            position: relative;
+        }
+
+        .pair-cell {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 1rem;
+            font-size: 13px;
+        }
+
+        /* Timeframe Cells */
+        .tf-cell {
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        /* Indicator Cells */
+        .indicator-cell {
+            font-size: 10px;
+        }
+
+        .rsi-cell {
+            font-weight: bold;
+        }
+
+        .rsi-oversold { background: #003300; color: #00ff88; }
+        .rsi-overbought { background: #330000; color: #ff4444; }
+        .rsi-normal { background: #222; color: #fff; }
+
+        .macd-bullish { color: #00ff88; }
+        .macd-bearish { color: #ff4444; }
+        .macd-neutral { color: #ffff88; }
+
+        .atr-low { color: #888; }
+        .atr-medium { color: #ffff88; }
+        .atr-high { color: #ff8800; }
+
+        /* Signal Cells */
+        .signal-cell {
+            font-weight: bold;
+            padding: 0.4rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .signal-strong-buy {
+            background: #006600;
+            color: #00ff00;
+            animation: pulse-green 2s infinite;
+        }
+
+        .signal-buy {
+            background: #003300;
+            color: #00ff88;
+        }
+
+        .signal-sell {
+            background: #330000;
+            color: #ff4444;
+        }
+
+        .signal-strong-sell {
+            background: #660000;
+            color: #ff3333;
+            animation: pulse-red 2s infinite;
+        }
+
+        .signal-none {
+            background: #222;
+            color: #888;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { background: #006600; }
+            50% { background: #009900; }
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { background: #660000; }
+            50% { background: #990000; }
+        }
+
+        /* Price Change Indicators */
+        .price-up {
+            position: relative;
+        }
+
+        .price-up::before {
+            content: '▲';
+            color: #00ff00;
+            font-size: 8px;
+            position: absolute;
+            left: 2px;
+            top: 2px;
+        }
+
+        .price-down {
+            position: relative;
+        }
+
+        .price-down::before {
+            content: '▼';
+            color: #ff4444;
+            font-size: 8px;
+            position: absolute;
+            left: 2px;
+            top: 2px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 5px;
+            padding: 0.8rem 1rem;
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .status-left {
+            display: flex;
+            gap: 3rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-label {
+            color: #888;
+        }
+
+        .status-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        /* Strength Indicators */
+        .strength-high { 
+            background: linear-gradient(90deg, #003300, #006600);
+            color: #00ff00;
+        }
+
+        .strength-medium {
+            background: linear-gradient(90deg, #333300, #666600);
+            color: #ffff00;
+        }
+
+        .strength-low {
+            background: linear-gradient(90deg, #330000, #660000);
+            color: #ff4444;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .grid-table {
+                font-size: 10px;
+            }
+            
+            .grid-cell {
+                padding: 0.4rem 0.3rem;
+            }
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #00ff00;
+            font-size: 16px;
+        }
+
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="header-title">📊 Professional Trading Matrix - Timeframes & Indicators</div>
+            <div class="header-info">
+                <div class="info-item">
+                    💰 Account: <span class="info-value" id="accountInfo">406429</span>
+                </div>
+                <div class="info-item">
+                    🏦 Server: <span class="info-value">Monaxa-MT5</span>
+                </div>
+                <div class="info-item">
+                    💵 Balance: <span class="info-value">$4,822.12</span>
+                </div>
+                <div class="info-item">
+                    🕒 <span class="info-value" id="currentTime">--:--:--</span>
+                </div>
+                <div class="info-item">
+                    📡 <span class="info-value" id="connectionStatus">LIVE DEMO</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <div id="loadingIndicator" class="loading">
+                Loading Market Data & Calculating Indicators
+            </div>
+
+            <table class="grid-table" id="dataTable" style="display: none;">
+                <thead class="grid-header">
+                    <tr>
+                        <th>PAIR</th>
+                        <th>H4</th>
+                        <th>H1</th>
+                        <th>M15</th>
+                        <th>M5</th>
+                        <th>RSI(14)</th>
+                        <th>MACD</th>
+                        <th>ATR%</th>
+                        <th>TREND</th>
+                        <th>VOLUME</th>
+                        <th>SIGNAL</th>
+                        <th>STRENGTH</th>
+                    </tr>
+                </thead>
+                <tbody id="dataBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-item">
+                    <span class="status-label">Active Signals:</span>
+                    <span class="status-value" id="activeSignals">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Strong Signals:</span>
+                    <span class="status-value" id="strongSignals">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">High Strength:</span>
+                    <span class="status-value" id="highStrength">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Market Sentiment:</span>
+                    <span class="status-value" id="marketSentiment">NEUTRAL</span>
+                </div>
+            </div>
+            <div class="status-right">
+                <div class="status-item">
+                    <span class="status-label">Last Update:</span>
+                    <span class="status-value" id="lastUpdate">--:--:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Forex pairs configuration
+        const forexPairs = [
+            'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
+            'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
+            'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c', 'GBPCAD.c',
+            'AUDCHF.c', 'AUDJPY.c', 'AUDNZD.c', 'AUDCAD.c',
+            'NZDJPY.c', 'NZDCHF.c', 'NZDCAD.c',
+            'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
+        ];
+
+        let marketData = {};
+
+        // Base prices for realistic simulation
+        const basePrices = {
+            'EURUSD.c': 1.0850, 'GBPUSD.c': 1.2650, 'USDJPY.c': 149.50, 'USDCHF.c': 0.8950,
+            'AUDUSD.c': 0.6650, 'NZDUSD.c': 0.6150, 'USDCAD.c': 1.3650, 'EURGBP.c': 0.8580,
+            'EURJPY.c': 162.30, 'EURCHF.c': 0.9710, 'EURAUD.c': 1.6320, 'EURNZD.c': 1.7650,
+            'EURCAD.c': 1.4850, 'GBPJPY.c': 189.20, 'GBPCHF.c': 1.1320, 'GBPAUD.c': 1.9020,
+            'GBPNZD.c': 2.0580, 'GBPCAD.c': 1.7280, 'AUDCHF.c': 0.5950, 'AUDJPY.c': 99.40,
+            'AUDNZD.c': 1.0820, 'AUDCAD.c': 0.9090, 'NZDJPY.c': 91.85, 'NZDCHF.c': 0.5500,
+            'NZDCAD.c': 0.8400, 'CHFJPY.c': 167.10, 'CADJPY.c': 109.50, 'XAUUSD.c': 2045.50
+        };
+
+        function generateMarketData() {
+            const data = {};
+            
+            forexPairs.forEach(pair => {
+                const basePrice = basePrices[pair] || 1.0000;
+                
+                // Generate realistic multi-timeframe data
+                const h4Price = basePrice * (1 + (Math.random() - 0.5) * 0.02);
+                const h1Price = h4Price * (1 + (Math.random() - 0.5) * 0.015);
+                const m15Price = h1Price * (1 + (Math.random() - 0.5) * 0.01);
+                const m5Price = m15Price * (1 + (Math.random() - 0.5) * 0.005);
+                
+                // Calculate indicators
+                const rsi = 20 + Math.random() * 60; // 20-80 range
+                const macd = (Math.random() - 0.5) * 0.001;
+                const atrPercent = 0.05 + Math.random() * 0.15; // 0.05-0.20%
+                const trendStrength = Math.random();
+                const volumeRatio = 0.5 + Math.random() * 2; // 0.5-2.5
+                
+                // Generate signals based on indicators
+                const signal = generateSignal(rsi, macd, trendStrength, atrPercent);
+                
+                data[pair] = {
+                    h4: h4Price,
+                    h1: h1Price,
+                    m15: m15Price,
+                    m5: m5Price,
+                    rsi: rsi,
+                    macd: macd,
+                    atrPercent: atrPercent,
+                    trendStrength: trendStrength,
+                    volumeRatio: volumeRatio,
+                    signal: signal.type,
+                    strength: signal.strength,
+                    priceDirection: m5Price > m15Price ? 'up' : 'down',
+                    lastUpdate: new Date()
+                };
+            });
+            
+            return data;
+        }
+
+        function generateSignal(rsi, macd, trendStrength, atrPercent) {
+            let signalType = 'NONE';
+            let strength = Math.random() * 5;
+            
+            // Strong trend conditions
+            if (trendStrength > 0.8 && atrPercent < 0.15) {
+                if (rsi > 45 && rsi < 55 && macd > 0) {
+                    signalType = Math.random() > 0.7 ? 'STRONG_BUY' : 'BUY';
+                    strength = 7 + Math.random() * 3;
+                } else if (rsi > 45 && rsi < 55 && macd < 0) {
+                    signalType = Math.random() > 0.7 ? 'STRONG_SELL' : 'SELL';
+                    strength = 7 + Math.random() * 3;
+                }
+            }
+            // Medium trend conditions
+            else if (trendStrength > 0.6) {
+                if (rsi < 35 && macd > 0) {
+                    signalType = 'BUY';
+                    strength = 5 + Math.random() * 2;
+                } else if (rsi > 65 && macd < 0) {
+                    signalType = 'SELL';
+                    strength = 5 + Math.random() * 2;
+                }
+            }
+            
+            return { type: signalType, strength: strength };
+        }
+
+        function getPrecision(pair) {
+            return pair.includes('JPY') ? 3 : pair.includes('XAU') ? 2 : 5;
+        }
+
+        function formatPrice(price, pair) {
+            return price.toFixed(getPrecision(pair));
+        }
+
+        function getRSIClass(rsi) {
+            if (rsi < 30) return 'rsi-oversold';
+            if (rsi > 70) return 'rsi-overbought';
+            return 'rsi-normal';
+        }
+
+        function getMACDClass(macd) {
+            if (macd > 0.0001) return 'macd-bullish';
+            if (macd < -0.0001) return 'macd-bearish';
+            return 'macd-neutral';
+        }
+
+        function getATRClass(atr) {
+            if (atr < 0.08) return 'atr-low';
+            if (atr < 0.15) return 'atr-medium';
+            return 'atr-high';
+        }
+
+        function getTrendClass(strength) {
+            if (strength > 0.75) return 'strength-high';
+            if (strength > 0.5) return 'strength-medium';
+            return 'strength-low';
+        }
+
+        function getSignalClass(signal) {
+            switch(signal) {
+                case 'STRONG_BUY': return 'signal-strong-buy';
+                case 'BUY': return 'signal-buy';
+                case 'SELL': return 'signal-sell';
+                case 'STRONG_SELL': return 'signal-strong-sell';
+                default: return 'signal-none';
+            }
+        }
+
+        function createDataTable() {
+            const tbody = document.getElementById('dataBody');
+            tbody.innerHTML = '';
+
+            forexPairs.forEach(pair => {
+                const data = marketData[pair];
+                const displayPair = pair.replace('.c', '');
+                
+                const row = document.createElement('tr');
+                row.className = 'grid-row';
+                
+                // Direction indicators
+                const directionClass = data.priceDirection === 'up' ? 'price-up' : 'price-down';
+                
+                row.innerHTML = `
+                    <td class="grid-cell pair-cell">${displayPair}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.h4, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.h1, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.m15, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.m5, pair)}</td>
+                    <td class="grid-cell indicator-cell rsi-cell ${getRSIClass(data.rsi)}">${data.rsi.toFixed(1)}</td>
+                    <td class="grid-cell indicator-cell ${getMACDClass(data.macd)}">${data.macd >= 0 ? '+' : ''}${(data.macd * 1000).toFixed(1)}</td>
+                    <td class="grid-cell indicator-cell ${getATRClass(data.atrPercent)}">${(data.atrPercent * 100).toFixed(2)}%</td>
+                    <td class="grid-cell indicator-cell ${getTrendClass(data.trendStrength)}">${(data.trendStrength * 100).toFixed(0)}%</td>
+                    <td class="grid-cell indicator-cell">${data.volumeRatio.toFixed(2)}</td>
+                    <td class="grid-cell signal-cell ${getSignalClass(data.signal)}">${data.signal}</td>
+                    <td class="grid-cell indicator-cell ${getTrendClass(data.strength / 10)}">${data.strength.toFixed(1)}/10</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateStatusBar() {
+            let activeSignals = 0;
+            let strongSignals = 0;
+            let highStrength = 0;
+            
+            Object.values(marketData).forEach(data => {
+                if (data.signal !== 'NONE') activeSignals++;
+                if (data.signal === 'STRONG_BUY' || data.signal === 'STRONG_SELL') strongSignals++;
+                if (data.strength > 7) highStrength++;
+            });
+            
+            const sentiment = strongSignals > 5 ? 'VOLATILE' : 
+                           activeSignals > 15 ? 'ACTIVE' : 
+                           activeSignals < 5 ? 'QUIET' : 'NEUTRAL';
+            
+            document.getElementById('activeSignals').textContent = activeSignals;
+            document.getElementById('strongSignals').textContent = strongSignals;
+            document.getElementById('highStrength').textContent = highStrength;
+            document.getElementById('marketSentiment').textContent = sentiment;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        function updateTime() {
+            document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+        }
+
+        function updateData() {
+            marketData = generateMarketData();
+            createDataTable();
+            updateStatusBar();
+            
+            // Show table and hide loading
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('dataTable').style.display = 'table';
+        }
+
+        // Initialize
+        function init() {
+            console.log('📊 Initializing Timeframe & Indicator Grid Dashboard');
+            
+            updateTime();
+            updateData();
+            
+            // Update every 8 seconds
+            setInterval(updateData, 8000);
+            setInterval(updateTime, 1000);
+            
+            console.log('✅ Dashboard initialized with', forexPairs.length, 'pairs');
+        }
+
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

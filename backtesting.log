@@ -1,0 +1,4 @@
+2025-06-23 19:47:50,813 - INFO - Successfully connected to MT5 and selected XAUUSD.c
+2025-06-23 19:47:50,884 - INFO - Starting backtest from 2024-12-25 19:47:50.813431 to 2025-06-23 19:47:50.813431
+2025-06-23 19:47:50,894 - INFO - Retrieved 2879 bars for H1 from 2024-12-25 19:47:50.813431 to 2025-06-23 19:47:50.813431
+2025-06-23 19:47:53,531 - INFO - Backtest completed: 51 trades, 37.25% win rate
