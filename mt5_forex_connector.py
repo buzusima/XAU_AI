@@ -269,80 +269,82 @@ class SmartAutoTradingDashboard:
             self.logger.error(f"Error checking pair status {symbol}: {str(e)}")
             return {'can_trade': False, 'reason': f'Error: {str(e)}'}
     
+    # แทนที่ฟังก์ชัน calculate_position_size ด้วยการคำนวณทองคำที่ถูกต้อง
+
     def calculate_position_size(self, entry_price: float, stop_loss: float, symbol: str, risk_percent: float = None) -> Dict:
-        """Calculate position size with enhanced risk management"""
+        """Calculate position size with CORRECT GOLD calculation"""
         try:
             if risk_percent is None:
                 risk_percent = self.max_risk_per_trade
             
-            # Risk amount in account currency
-            risk_amount = self.account_balance * risk_percent
-            
-            # Initialize defaults
+            # ตั้งค่าเริ่มต้น
             lot_size = self.default_lot_size
             money_per_pip = 10.0
+            pip_size = 0.0001
             
-            # Pip size calculation
-            if 'JPY' in symbol:
-                pip_size = 0.01
-            elif 'XAU' in symbol or 'GOLD' in symbol:
-                pip_size = 0.1
-            else:
-                pip_size = 0.0001
+            # Risk amount
+            risk_amount = self.account_balance * risk_percent
             
-            # Points difference
-            points_risk = abs(entry_price - stop_loss)
-            
-            # Get symbol info from MT5
-            if self.mt5_connected:
-                try:
-                    symbol_info = mt5.symbol_info(symbol)
-                    if symbol_info is not None:
-                        tick_value = symbol_info.trade_tick_value
-                        tick_size = symbol_info.trade_tick_size
-                        
-                        if tick_size > 0 and tick_value > 0:
-                            # Calculate money per pip
-                            if 'JPY' in symbol:
-                                money_per_pip = (tick_value / tick_size) * 0.01
-                            elif 'XAU' in symbol:
-                                money_per_pip = (tick_value / tick_size) * 0.1
-                            else:
-                                money_per_pip = (tick_value / tick_size) * 0.0001
-                            
-                            # Calculate lot size
-                            if points_risk > 0 and money_per_pip > 0:
-                                pips_at_risk = points_risk / pip_size
-                                lot_size = risk_amount / (pips_at_risk * money_per_pip)
-                        
-                except Exception as e:
-                    self.logger.error(f"Error in MT5 symbol calculation: {str(e)}")
-            
-            # Fallback calculation
-            if lot_size == self.default_lot_size and points_risk > 0:
-                if 'JPY' in symbol:
-                    money_per_pip = 10.0 / entry_price
-                elif 'XAU' in symbol:
-                    money_per_pip = 10.0
-                else:
-                    money_per_pip = 10.0
+            # 🥇 GOLD (XAUUSD) - การคำนวณพิเศษ
+            if 'XAU' in symbol or 'GOLD' in symbol:
+                pip_size = 0.1          # Gold: 1 pip = $0.10
+                money_per_pip = 1.0     # Gold: $1 per pip per 1 lot (100 oz)
                 
+                # Gold lot size calculation
+                points_risk = abs(entry_price - stop_loss)
                 pips_at_risk = points_risk / pip_size
+                
+                if pips_at_risk > 0:
+                    # Gold: Risk = Pips × $1 × Lot Size
+                    lot_size = risk_amount / pips_at_risk
+                
+            # 💴 JPY Pairs
+            elif 'JPY' in symbol:
+                pip_size = 0.01         # JPY: 1 pip = 0.01
+                money_per_pip = 10.0 / entry_price if entry_price > 0 else 0.1
+                
+                points_risk = abs(entry_price - stop_loss)
+                pips_at_risk = points_risk / pip_size
+                
                 if pips_at_risk > 0:
                     lot_size = risk_amount / (pips_at_risk * money_per_pip)
             
-            # Apply limits
+            # 💱 Forex Pairs ปกติ
+            else:
+                pip_size = 0.0001       # Forex: 1 pip = 0.0001
+                money_per_pip = 10.0    # $10 per pip per 1 lot
+                
+                points_risk = abs(entry_price - stop_loss)
+                pips_at_risk = points_risk / pip_size
+                
+                if pips_at_risk > 0:
+                    lot_size = risk_amount / (pips_at_risk * money_per_pip)
+            
+            # ✅ จำกัดขนาด lot
             lot_size = max(self.min_lot_size, min(self.max_lot_size, lot_size))
             
-            # Round appropriately
-            if lot_size >= 1.0:
-                lot_size = round(lot_size, 1)
+            # ปัดเศษตาม symbol
+            if 'XAU' in symbol:
+                lot_size = round(lot_size, 2)      # Gold: 0.01, 0.05, 0.10
+            elif lot_size >= 1.0:
+                lot_size = round(lot_size, 1)      # 1.0, 1.5, 2.0
             else:
-                lot_size = round(lot_size, 2)
+                lot_size = round(lot_size, 2)      # 0.01, 0.05, 0.10
             
-            # Calculate actual risk
-            pips_at_risk = points_risk / pip_size if pip_size > 0 else 1
-            actual_risk = pips_at_risk * money_per_pip * lot_size
+            # คำนวณความเสี่ยงจริง
+            points_risk = abs(entry_price - stop_loss)
+            pips_at_risk = points_risk / pip_size
+            
+            # 🥇 Gold: Risk = Pips × $1 × Lot
+            if 'XAU' in symbol:
+                actual_risk = pips_at_risk * 1.0 * lot_size  # $1 per pip per lot
+            # 💴 JPY: Risk = Pips × (10/Price) × Lot  
+            elif 'JPY' in symbol:
+                actual_risk = pips_at_risk * money_per_pip * lot_size
+            # 💱 Forex: Risk = Pips × $10 × Lot
+            else:
+                actual_risk = pips_at_risk * 10.0 * lot_size
+            
             risk_percentage = (actual_risk / self.account_balance) * 100 if self.account_balance > 0 else 0
             
             return {
@@ -353,18 +355,38 @@ class SmartAutoTradingDashboard:
                 'points_risk': round(points_risk, 5),
                 'pips_at_risk': round(pips_at_risk, 1),
                 'pip_size': pip_size,
-                'money_per_pip': round(money_per_pip, 2)
+                'money_per_pip': money_per_pip,
+                'symbol_type': 'GOLD' if 'XAU' in symbol else 'JPY' if 'JPY' in symbol else 'FOREX',
+                'calculation_status': 'SUCCESS'
             }
             
         except Exception as e:
-            self.logger.error(f"Error calculating position size: {str(e)}")
+            self.logger.error(f"Position size calculation error for {symbol}: {str(e)}")
+            
+            # ✅ Return safe defaults based on symbol
+            if 'XAU' in symbol:
+                default_pip_size = 0.1
+                default_money_per_pip = 1.0
+            elif 'JPY' in symbol:
+                default_pip_size = 0.01
+                default_money_per_pip = 0.1
+            else:
+                default_pip_size = 0.0001
+                default_money_per_pip = 10.0
+                
             return {
                 'lot_size': self.default_lot_size,
                 'risk_amount': 0,
                 'risk_percentage': 0,
-                'error': str(e)
-            }
-    
+                'pip_value': default_money_per_pip * self.default_lot_size,
+                'points_risk': 0,
+                'pips_at_risk': 0,
+                'pip_size': default_pip_size,
+                'money_per_pip': default_money_per_pip,
+                'symbol_type': 'GOLD' if 'XAU' in symbol else 'JPY' if 'JPY' in symbol else 'FOREX',
+                'calculation_status': 'ERROR',
+                'error_message': str(e)
+            }    
     def validate_trading_signal(self, symbol: str, signal_data: Dict) -> Dict:
         """Validate trading signal with comprehensive checks"""
         try:
