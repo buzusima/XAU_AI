@@ -1,0 +1,63 @@
+2025-06-23 21:47:18,785 - INFO - MT5 Connected - Account: 406429
+2025-06-23 21:47:18,835 - INFO - Balance: $4,822.12
+2025-06-23 21:47:18,837 - INFO - Available Pairs: 28
+2025-06-23 21:47:18,852 - INFO - Auto-update system started
+2025-06-23 21:47:18,947 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:18,966 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:19,077 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:19,088 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:19,477 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:19,485 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:19,659 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:19,661 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,014 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,026 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,152 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,161 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,464 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,616 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,774 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:20,804 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:21,001 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:21,331 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:21,341 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:21,551 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:21,712 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:21,876 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,046 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,087 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,280 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,307 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,485 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,660 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:22,847 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,026 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,209 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,602 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,610 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,784 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,818 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:23,985 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,022 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,186 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,392 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,589 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,591 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,766 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,775 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,957 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:24,987 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:25,209 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:25,414 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:25,616 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:25,641 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:25,829 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:25,839 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:26,269 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:26,298 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:26,740 - ERROR - Error calculating position size: local variable 'money_per_pip' referenced before assignment
+2025-06-23 21:47:26,856 - INFO - Updated 28/28 pairs
+2025-06-23 21:47:27,495 - INFO - Updated 28/28 pairs
+2025-06-23 21:47:27,863 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-06-23 21:47:27,865 - INFO - [33mPress CTRL+C to quit[0m
