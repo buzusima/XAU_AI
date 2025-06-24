@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Trading Matrix - Risk Management & Entry/Exit</title>
+    <title>Smart Auto Trading Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -16,7 +16,7 @@
             background: #000;
             color: #fff;
             overflow-x: auto;
-            min-width: 1600px;
+            min-width: 1800px;
         }
 
         .dashboard-container {
@@ -57,32 +57,263 @@
             font-weight: bold;
         }
 
-        /* Risk Summary Bar */
-        .risk-summary-bar {
-            background: linear-gradient(135deg, #330000 0%, #660000 100%);
-            border: 2px solid #ff4444;
+        /* Auto Trading Control Panel */
+        .auto-trading-panel {
+            background: linear-gradient(135deg, #001122 0%, #003366 100%);
+            border: 2px solid #0066cc;
             border-radius: 5px;
-            padding: 0.8rem 1.5rem;
+            padding: 1rem;
             margin-bottom: 1rem;
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
             align-items: center;
-            font-size: 12px;
         }
 
-        .risk-summary-item {
+        .trading-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active {
+            background: #00ff00;
+        }
+
+        .status-inactive {
+            background: #ff4444;
+        }
+
+        .trading-controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-start {
+            background: #006600;
+            color: #00ff00;
+        }
+
+        .btn-start:hover {
+            background: #009900;
+        }
+
+        .btn-stop {
+            background: #660000;
+            color: #ff4444;
+        }
+
+        .btn-stop:hover {
+            background: #990000;
+        }
+
+        .btn-emergency {
+            background: #990000;
+            color: #ffffff;
+            animation: emergency-blink 1s infinite;
+        }
+
+        @keyframes emergency-blink {
+            0%, 50% { background: #990000; }
+            51%, 100% { background: #cc0000; }
+        }
+
+        /* Signal Settings Panel */
+        .signal-settings-panel {
+            background: linear-gradient(135deg, #332200 0%, #665500 100%);
+            border: 2px solid #ffcc00;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .signal-settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .signal-settings-content {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 3px;
+            border: 1px solid #666;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            min-width: 200px;
+            font-size: 11px;
+        }
+
+        .setting-group label {
+            color: #ffcc88;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .setting-group input[type="range"] {
+            width: 120px;
+        }
+
+        .setting-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .setting-group select {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 0.3rem;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #666;
+        }
+
+        .btn-preset {
+            background: #444;
+            color: #ffcc00;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .btn-preset:hover {
+            background: #666;
+        }
+
+        .btn-apply {
+            background: #006600;
+            color: #00ff00;
+            padding: 0.4rem 1.5rem;
+            font-weight: bold;
+        }
+
+        .btn-apply:hover {
+            background: #009900;
+        }
+        .risk-profile-panel {
+            background: linear-gradient(135deg, #220011 0%, #660033 100%);
+            border: 2px solid #cc0066;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .risk-controls {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .risk-selector {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .risk-dropdown {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 0.3rem;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .custom-risk-input {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 0.3rem;
+            border-radius: 3px;
+            width: 60px;
+            font-size: 11px;
+        }
+
+        .risk-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 11px;
+        }
+
+        .risk-stat-item {
             text-align: center;
         }
 
-        .risk-summary-label {
+        .risk-stat-label {
             color: #ffaaaa;
             font-size: 10px;
         }
 
-        .risk-summary-value {
+        .risk-stat-value {
             color: #ff6666;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 12px;
+        }
+
+        /* Trading Statistics Panel */
+        .trading-stats-panel {
+            background: linear-gradient(135deg, #112200 0%, #336600 100%);
+            border: 2px solid #66cc00;
+            border-radius: 5px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-around;
+            font-size: 11px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #aaffaa;
+            font-size: 10px;
+        }
+
+        .stat-value {
+            color: #66ff66;
+            font-weight: bold;
+            font-size: 13px;
         }
 
         /* Main Grid */
@@ -97,10 +328,9 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 10px;
-            min-width: 1500px;
+            min-width: 1700px;
         }
 
-        /* Header Row */
         .grid-header {
             background: #222;
             border-bottom: 2px solid #444;
@@ -129,6 +359,7 @@
         .indicator-columns { background: rgba(255, 193, 7, 0.1); }
         .risk-columns { background: rgba(255, 69, 87, 0.1); }
         .entry-columns { background: rgba(76, 175, 80, 0.1); }
+        .trading-columns { background: rgba(138, 43, 226, 0.1); }
 
         /* Data Rows */
         .grid-row {
@@ -158,32 +389,34 @@
             font-size: 12px;
         }
 
-        /* Timeframe Cells */
-        .tf-cell {
+        /* Trading Status Cells */
+        .trading-status-cell {
             font-weight: bold;
+            padding: 0.3rem;
+            border-radius: 3px;
             font-size: 9px;
         }
 
-        /* Indicator Cells */
-        .indicator-cell {
-            font-size: 9px;
+        .status-ready {
+            background: #003300;
+            color: #00ff00;
         }
 
-        .rsi-cell {
-            font-weight: bold;
+        .status-trading {
+            background: #000066;
+            color: #0088ff;
+            animation: pulse 2s infinite;
         }
 
-        .rsi-oversold { background: #003300; color: #00ff88; }
-        .rsi-overbought { background: #330000; color: #ff4444; }
-        .rsi-normal { background: #222; color: #fff; }
+        .status-cooldown {
+            background: #444400;
+            color: #ffff00;
+        }
 
-        .macd-bullish { color: #00ff88; }
-        .macd-bearish { color: #ff4444; }
-        .macd-neutral { color: #ffff88; }
-
-        .atr-low { color: #888; }
-        .atr-medium { color: #ffff88; }
-        .atr-high { color: #ff8800; }
+        .status-disabled {
+            background: #440000;
+            color: #ff4444;
+        }
 
         /* Signal Cells */
         .signal-cell {
@@ -231,7 +464,44 @@
             50% { background: #990000; }
         }
 
-        /* Entry Quality Cells */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Auto Trade Indicator */
+        .auto-trade-indicator {
+            font-size: 8px;
+            font-weight: bold;
+            padding: 0.2rem 0.3rem;
+            border-radius: 2px;
+            margin-top: 0.2rem;
+        }
+
+        .auto-eligible {
+            background: #006600;
+            color: #00ff00;
+        }
+
+        .auto-blocked {
+            background: #660000;
+            color: #ff4444;
+        }
+
+        /* Other existing styles */
+        .rsi-cell { font-weight: bold; }
+        .rsi-oversold { background: #003300; color: #00ff88; }
+        .rsi-overbought { background: #330000; color: #ff4444; }
+        .rsi-normal { background: #222; color: #fff; }
+
+        .macd-bullish { color: #00ff88; }
+        .macd-bearish { color: #ff4444; }
+        .macd-neutral { color: #ffff88; }
+
+        .atr-low { color: #888; }
+        .atr-medium { color: #ffff88; }
+        .atr-high { color: #ff8800; }
+
         .entry-quality-cell {
             font-weight: bold;
             padding: 0.3rem;
@@ -239,56 +509,22 @@
             font-size: 8px;
         }
 
-        .quality-excellent {
-            background: #006600;
-            color: #00ff00;
-        }
+        .quality-excellent { background: #006600; color: #00ff00; }
+        .quality-good { background: #004400; color: #00cc00; }
+        .quality-fair { background: #444400; color: #ffff00; }
+        .quality-poor { background: #440000; color: #ff4444; }
 
-        .quality-good {
-            background: #004400;
-            color: #00cc00;
-        }
-
-        .quality-fair {
-            background: #444400;
-            color: #ffff00;
-        }
-
-        .quality-poor {
-            background: #440000;
-            color: #ff4444;
-        }
-
-        /* Risk Cells */
-        .risk-cell {
-            font-weight: bold;
-            color: #ff6666;
-        }
-
+        .risk-cell { font-weight: bold; color: #ff6666; }
         .risk-low { color: #00ff88; }
         .risk-medium { color: #ffff00; }
         .risk-high { color: #ff4444; }
 
-        /* Lot Size Cells */
-        .lot-cell {
-            font-weight: bold;
-            color: #88ccff;
-        }
+        .lot-cell { font-weight: bold; color: #88ccff; }
 
-        /* R/R Cells */
-        .rr-cell {
-            font-weight: bold;
-            color: #ffaa00;
-        }
-
+        .rr-cell { font-weight: bold; color: #ffaa00; }
         .rr-excellent { color: #00ff00; }
         .rr-good { color: #88ff00; }
         .rr-poor { color: #ff8800; }
-
-        /* Price Change Indicators */
-        .price-up {
-            position: relative;
-        }
 
         .price-up::before {
             content: '▲';
@@ -297,10 +533,6 @@
             position: absolute;
             left: 2px;
             top: 2px;
-        }
-
-        .price-down {
-            position: relative;
         }
 
         .price-down::before {
@@ -345,22 +577,6 @@
             font-weight: bold;
         }
 
-        /* Strength Indicators */
-        .strength-high { 
-            background: linear-gradient(90deg, #003300, #006600);
-            color: #00ff00;
-        }
-
-        .strength-medium {
-            background: linear-gradient(90deg, #333300, #666600);
-            color: #ffff00;
-        }
-
-        .strength-low {
-            background: linear-gradient(90deg, #330000, #660000);
-            color: #ff4444;
-        }
-
         /* Loading */
         .loading {
             text-align: center;
@@ -380,7 +596,7 @@
             60%, 100% { content: '...'; }
         }
 
-        /* Connection Status Indicator */
+        /* Connection Status */
         .connection-status {
             display: inline-flex;
             align-items: center;
@@ -407,7 +623,6 @@
             51%, 100% { opacity: 0.5; }
         }
 
-        /* Refresh Button */
         .refresh-btn {
             background: #333;
             color: #00ff00;
@@ -424,23 +639,68 @@
             color: #00ff88;
         }
 
-        /* Column Headers Grouping */
-        .column-group {
-            border-top: 3px solid;
-            position: relative;
+        /* Strength Indicators */
+        .strength-high { 
+            background: linear-gradient(90deg, #003300, #006600);
+            color: #00ff00;
         }
 
-        .column-group.prices { border-color: #007bff; }
-        .column-group.indicators { border-color: #ffc107; }
-        .column-group.risk { border-color: #dc3545; }
-        .column-group.entry { border-color: #28a745; }
+        .strength-medium {
+            background: linear-gradient(90deg, #333300, #666600);
+            color: #ffff00;
+        }
+
+        .strength-low {
+            background: linear-gradient(90deg, #330000, #660000);
+            color: #ff4444;
+        }
+
+        /* Positions Panel */
+        .positions-panel {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .positions-header {
+            color: #ffff00;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .position-item {
+            background: #222;
+            padding: 0.5rem;
+            margin: 0.3rem 0;
+            border-radius: 3px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .position-profit {
+            font-weight: bold;
+        }
+
+        .profit-positive {
+            color: #00ff00;
+        }
+
+        .profit-negative {
+            color: #ff4444;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
         <!-- Header -->
         <div class="dashboard-header">
-            <div class="header-title">Enhanced Trading Matrix - Risk Management & Entry/Exit Analysis</div>
+            <div class="header-title">Smart Auto Trading Dashboard - Risk Controlled</div>
             <div class="header-info">
                 <div class="info-item">
                     Account: <span class="info-value" id="accountInfo">Connecting...</span>
@@ -467,34 +727,163 @@
             </div>
         </div>
 
-        <!-- Risk Summary Bar -->
-        <div class="risk-summary-bar">
-            <div class="risk-summary-item">
-                <div class="risk-summary-label">MAX RISK PER TRADE</div>
-                <div class="risk-summary-value" id="maxRiskPerTrade">2.0%</div>
+        <!-- Auto Trading Control Panel -->
+        <div class="auto-trading-panel">
+            <div class="trading-status">
+                <div class="status-indicator status-inactive" id="autoTradingIndicator"></div>
+                <div>
+                    <div style="color: #00ccff; font-weight: bold;">AUTO TRADING</div>
+                    <div style="color: #aaa; font-size: 11px;" id="autoTradingStatus">DISABLED</div>
+                </div>
+                <div style="margin-left: 2rem;">
+                    <div style="color: #ffaa00; font-size: 11px;">Active Trades: <span id="activeTrades">0</span></div>
+                    <div style="color: #ffaa00; font-size: 11px;">Daily P&L: <span id="dailyPnL">$0.00</span></div>
+                </div>
             </div>
-            <div class="risk-summary-item">
-                <div class="risk-summary-label">MAX TOTAL EXPOSURE</div>
-                <div class="risk-summary-value" id="maxTotalExposure">6.0%</div>
+            <div class="trading-controls">
+                <button class="control-btn btn-start" onclick="startAutoTrading()">START AUTO TRADING</button>
+                <button class="control-btn btn-stop" onclick="stopAutoTrading()">STOP AUTO TRADING</button>
+                <button class="control-btn btn-emergency" onclick="emergencyStop()">EMERGENCY STOP</button>
             </div>
-            <div class="risk-summary-item">
-                <div class="risk-summary-label">MAX DAILY LOSS</div>
-                <div class="risk-summary-value" id="maxDailyLoss">5.0%</div>
+        </div>
+
+        <!-- Signal Settings Panel -->
+        <div class="signal-settings-panel">
+            <div class="signal-settings-header">
+                <div style="color: #ffcc00; font-weight: bold;">SIGNAL SETTINGS</div>
+                <button class="control-btn" onclick="toggleSignalSettings()" id="toggleSignalBtn">SHOW SETTINGS</button>
             </div>
-            <div class="risk-summary-item">
-                <div class="risk-summary-label">ACCOUNT BALANCE</div>
-                <div class="risk-summary-value" id="accountBalance">$10,000</div>
+            <div class="signal-settings-content" id="signalSettingsContent" style="display: none;">
+                <div class="settings-row">
+                    <div class="setting-group">
+                        <label>Min Signal Strength:</label>
+                        <input type="range" id="minSignalStrength" min="1" max="10" step="0.5" value="6" onchange="updateSignalSettings()">
+                        <span id="signalStrengthValue">6.0</span>/10
+                    </div>
+                    <div class="setting-group">
+                        <label>Min Entry Quality:</label>
+                        <select id="minEntryQuality" onchange="updateSignalSettings()">
+                            <option value="POOR">POOR</option>
+                            <option value="FAIR">FAIR</option>
+                            <option value="GOOD" selected>GOOD</option>
+                            <option value="EXCELLENT">EXCELLENT</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Min R/R Ratio:</label>
+                        <input type="range" id="minRRRatio" min="1" max="5" step="0.1" value="1.5" onchange="updateSignalSettings()">
+                        <span id="rrRatioValue">1.5</span>:1
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="requireTrend" checked onchange="updateSignalSettings()">
+                            Require Trend Alignment
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="requireVolume" checked onchange="updateSignalSettings()">
+                            Require Volume Confirmation
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="requireRSI" checked onchange="updateSignalSettings()">
+                            RSI Filter (avoid extremes)
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="requireMultiTF" checked onchange="updateSignalSettings()">
+                            Multi-Timeframe Check
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button class="control-btn btn-preset" onclick="setPreset('EASY')">EASY MODE</button>
+                    <button class="control-btn btn-preset" onclick="setPreset('NORMAL')">NORMAL</button>
+                    <button class="control-btn btn-preset" onclick="setPreset('STRICT')">STRICT</button>
+                    <button class="control-btn btn-apply" onclick="applySignalSettings()">APPLY SETTINGS</button>
+                </div>
             </div>
-            <div class="risk-summary-item">
-                <div class="risk-summary-label">FREE MARGIN</div>
-                <div class="risk-summary-value" id="freeMargin">$9,500</div>
+        </div>
+        <div class="risk-profile-panel">
+            <div class="risk-controls">
+                <div class="risk-selector">
+                    <label style="color: #ffaaaa;">Risk Profile:</label>
+                    <select class="risk-dropdown" id="riskProfile" onchange="updateRiskProfile()">
+                        <option value="CONSERVATIVE">CONSERVATIVE (0.5%)</option>
+                        <option value="MODERATE">MODERATE (1.0%)</option>
+                        <option value="BALANCED" selected>BALANCED (1.5%)</option>
+                        <option value="AGGRESSIVE">AGGRESSIVE (2.0%)</option>
+                        <option value="HIGH_RISK">HIGH RISK (3.0%)</option>
+                        <option value="CUSTOM">CUSTOM</option>
+                    </select>
+                </div>
+                <div class="risk-selector" id="customRiskDiv" style="display: none;">
+                    <label style="color: #ffaaaa;">Custom %:</label>
+                    <input type="number" class="custom-risk-input" id="customRisk" min="0.1" max="10" step="0.1" value="1.5">
+                    <button class="control-btn" style="padding: 0.2rem 0.5rem;" onclick="setCustomRisk()">SET</button>
+                </div>
+            </div>
+            <div class="risk-stats">
+                <div class="risk-stat-item">
+                    <div class="risk-stat-label">RISK PER TRADE</div>
+                    <div class="risk-stat-value" id="riskPerTrade">1.5%</div>
+                </div>
+                <div class="risk-stat-item">
+                    <div class="risk-stat-label">CURRENT EXPOSURE</div>
+                    <div class="risk-stat-value" id="currentExposure">0.0%</div>
+                </div>
+                <div class="risk-stat-item">
+                    <div class="risk-stat-label">MAX EXPOSURE</div>
+                    <div class="risk-stat-value" id="maxExposure">6.0%</div>
+                </div>
+                <div class="risk-stat-item">
+                    <div class="risk-stat-label">DAILY LIMIT</div>
+                    <div class="risk-stat-value" id="dailyLimit">4.0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trading Statistics Panel -->
+        <div class="trading-stats-panel">
+            <div class="stat-item">
+                <div class="stat-label">TOTAL TRADES</div>
+                <div class="stat-value" id="totalTrades">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">WIN RATE</div>
+                <div class="stat-value" id="winRate">0%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">PROFIT TRADES</div>
+                <div class="stat-value" id="profitTrades">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">LOSS TRADES</div>
+                <div class="stat-value" id="lossTrades">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">READY PAIRS</div>
+                <div class="stat-value" id="readyPairs">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">TRADING PAIRS</div>
+                <div class="stat-value" id="tradingPairs">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">STRONG SIGNALS</div>
+                <div class="stat-value" id="strongSignals">0</div>
             </div>
         </div>
 
         <!-- Main Grid -->
         <div class="main-grid">
             <div id="loadingIndicator" class="loading">
-                Loading Enhanced Market Data & Risk Analysis
+                Loading Smart Auto Trading Data
             </div>
 
             <table class="grid-table" id="dataTable" style="display: none;">
@@ -502,31 +891,33 @@
                     <tr>
                         <th>PAIR</th>
                         <!-- Price Columns -->
-                        <th class="column-group prices">H4</th>
-                        <th class="column-group prices">H1</th>
-                        <th class="column-group prices">M15</th>
-                        <th class="column-group prices">M5</th>
+                        <th class="column-group price-columns">H4</th>
+                        <th class="column-group price-columns">H1</th>
+                        <th class="column-group price-columns">M15</th>
+                        <th class="column-group price-columns">M5</th>
                         <!-- Indicator Columns -->
-                        <th class="column-group indicators">RSI(14)</th>
-                        <th class="column-group indicators">MACD</th>
-                        <th class="column-group indicators">ATR%</th>
-                        <th class="column-group indicators">TREND</th>
-                        <th class="column-group indicators">VOLUME</th>
-                        <th class="column-group indicators">SIGNAL</th>
-                        <th class="column-group indicators">STRENGTH</th>
+                        <th class="column-group indicator-columns">RSI(14)</th>
+                        <th class="column-group indicator-columns">MACD</th>
+                        <th class="column-group indicator-columns">ATR%</th>
+                        <th class="column-group indicator-columns">TREND</th>
+                        <th class="column-group indicator-columns">VOLUME</th>
+                        <th class="column-group indicator-columns">SIGNAL</th>
+                        <th class="column-group indicator-columns">STRENGTH</th>
+                        <!-- Trading Status Columns -->
+                        <th class="column-group trading-columns">PAIR STATUS</th>
+                        <th class="column-group trading-columns">ACTIVE TRADES</th>
+                        <th class="column-group trading-columns">AUTO TRADE</th>
                         <!-- Risk Management Columns -->
-                        <th class="column-group risk">LOT SIZE</th>
-                        <th class="column-group risk">RISK $</th>
-                        <th class="column-group risk">RISK %</th>
+                        <th class="column-group risk-columns">LOT SIZE</th>
+                        <th class="column-group risk-columns">RISK $</th>
+                        <th class="column-group risk-columns">RISK %</th>
                         <!-- Entry/Exit Columns -->
-                        <th class="column-group entry">ENTRY Q</th>
-                        <th class="column-group entry">SCORE</th>
-                        <th class="column-group entry">R/R TP1</th>
-                        <th class="column-group entry">R/R TP2</th>
-                        <th class="column-group entry">R/R TP3</th>
-                        <th class="column-group entry">STOP LOSS</th>
-                        <th class="column-group entry">TAKE PROFIT 1</th>
-                        <th class="column-group entry">TAKE PROFIT 2</th>
+                        <th class="column-group entry-columns">ENTRY Q</th>
+                        <th class="column-group entry-columns">SCORE</th>
+                        <th class="column-group entry-columns">R/R TP1</th>
+                        <th class="column-group entry-columns">R/R TP2</th>
+                        <th class="column-group entry-columns">STOP LOSS</th>
+                        <th class="column-group entry-columns">TAKE PROFIT 1</th>
                     </tr>
                 </thead>
                 <tbody id="dataBody">
@@ -535,32 +926,36 @@
             </table>
         </div>
 
+        <!-- Current Positions Panel -->
+        <div class="positions-panel" id="positionsPanel">
+            <div class="positions-header">CURRENT POSITIONS</div>
+            <div id="positionsList">
+                <div style="color: #888; font-style: italic;">No open positions</div>
+            </div>
+        </div>
+
         <!-- Status Bar -->
         <div class="status-bar">
             <div class="status-left">
                 <div class="status-item">
-                    <span class="status-label">Active Signals:</span>
-                    <span class="status-value" id="activeSignals">0</span>
+                    <span class="status-label">Auto Trading:</span>
+                    <span class="status-value" id="autoTradingStatusBar">DISABLED</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Strong Signals:</span>
-                    <span class="status-value" id="strongSignals">0</span>
+                    <span class="status-label">Eligible Signals:</span>
+                    <span class="status-value" id="eligibleSignals">0</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">High Quality Entries:</span>
-                    <span class="status-value" id="highQualityEntries">0</span>
+                    <span class="status-label">Portfolio Exposure:</span>
+                    <span class="status-value" id="portfolioExposure">0.0%</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Total Risk Exposure:</span>
-                    <span class="status-value" id="totalRiskExposure">0.0%</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Avg R/R Ratio:</span>
-                    <span class="status-value" id="avgRRRatio">0.0</span>
+                    <span class="status-label">Risk Profile:</span>
+                    <span class="status-value" id="currentRiskProfile">BALANCED</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">Data Source:</span>
-                    <span class="status-value" id="dataSource">SIMULATION</span>
+                    <span class="status-value" id="dataSource">LIVE MT5</span>
                 </div>
             </div>
             <div class="status-right">
@@ -573,6 +968,12 @@
     </div>
 
     <script>
+        // Global variables
+        let marketData = {};
+        let autoTradingData = {};
+        let currentPositions = [];
+        let isAutoTradingEnabled = false;
+
         // Forex pairs configuration
         const forexPairs = [
             'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
@@ -583,29 +984,266 @@
             'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
         ];
 
-        let marketData = {};
-        let isUsingRealData = false;
+        // Signal Settings Management
+        let signalSettingsVisible = false;
 
-        // Base prices for simulation
-        const basePrices = {
-            'EURUSD.c': 1.0850, 'GBPUSD.c': 1.2650, 'USDJPY.c': 149.50, 'USDCHF.c': 0.8950,
-            'AUDUSD.c': 0.6650, 'NZDUSD.c': 0.6150, 'USDCAD.c': 1.3650, 'EURGBP.c': 0.8580,
-            'EURJPY.c': 162.30, 'EURCHF.c': 0.9710, 'EURAUD.c': 1.6320, 'EURNZD.c': 1.7650,
-            'EURCAD.c': 1.4850, 'GBPJPY.c': 189.20, 'GBPCHF.c': 1.1320, 'GBPAUD.c': 1.9020,
-            'GBPNZD.c': 2.0580, 'GBPCAD.c': 1.7280, 'AUDCHF.c': 0.5950, 'AUDJPY.c': 99.40,
-            'AUDNZD.c': 1.0820, 'AUDCAD.c': 0.9090, 'NZDJPY.c': 91.85, 'NZDCHF.c': 0.5500,
-            'NZDCAD.c': 0.8400, 'CHFJPY.c': 167.10, 'CADJPY.c': 109.50, 'XAUUSD.c': 2045.50
-        };
+        function toggleSignalSettings() {
+            const content = document.getElementById('signalSettingsContent');
+            const btn = document.getElementById('toggleSignalBtn');
+            
+            signalSettingsVisible = !signalSettingsVisible;
+            
+            if (signalSettingsVisible) {
+                content.style.display = 'block';
+                btn.textContent = 'HIDE SETTINGS';
+                loadCurrentSettings();
+            } else {
+                content.style.display = 'none';
+                btn.textContent = 'SHOW SETTINGS';
+            }
+        }
 
-        // ===== REAL DATA FUNCTIONS =====
-        async function fetchRealMarketData() {
+        async function loadCurrentSettings() {
             try {
-                console.log('Fetching enhanced market data...');
+                const response = await fetch('/api/auto-trading/current-settings');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const settings = result.settings;
+                    
+                    // Update UI elements
+                    document.getElementById('minSignalStrength').value = settings.min_signal_strength;
+                    document.getElementById('signalStrengthValue').textContent = settings.min_signal_strength.toFixed(1);
+                    
+                    document.getElementById('minEntryQuality').value = settings.min_entry_quality;
+                    
+                    document.getElementById('minRRRatio').value = settings.min_rr_ratio;
+                    document.getElementById('rrRatioValue').textContent = settings.min_rr_ratio.toFixed(1);
+                    
+                    document.getElementById('requireTrend').checked = settings.confirmations.trend_alignment;
+                    document.getElementById('requireVolume').checked = settings.confirmations.volume_confirmation;
+                    document.getElementById('requireRSI').checked = settings.confirmations.rsi_filter;
+                    document.getElementById('requireMultiTF').checked = settings.confirmations.multiple_timeframe;
+                }
+            } catch (error) {
+                console.error('Error loading current settings:', error);
+            }
+        }
+
+        function updateSignalSettings() {
+            // Update display values
+            const signalStrength = document.getElementById('minSignalStrength').value;
+            document.getElementById('signalStrengthValue').textContent = parseFloat(signalStrength).toFixed(1);
+            
+            const rrRatio = document.getElementById('minRRRatio').value;
+            document.getElementById('rrRatioValue').textContent = parseFloat(rrRatio).toFixed(1);
+        }
+
+        function setPreset(presetName) {
+            switch(presetName) {
+                case 'EASY':
+                    // Very relaxed settings for more trades
+                    document.getElementById('minSignalStrength').value = 3.0;
+                    document.getElementById('minEntryQuality').value = 'POOR';
+                    document.getElementById('minRRRatio').value = 1.0;
+                    document.getElementById('requireTrend').checked = false;
+                    document.getElementById('requireVolume').checked = false;
+                    document.getElementById('requireRSI').checked = false;
+                    document.getElementById('requireMultiTF').checked = false;
+                    break;
+                    
+                case 'NORMAL':
+                    // Balanced settings
+                    document.getElementById('minSignalStrength').value = 5.0;
+                    document.getElementById('minEntryQuality').value = 'FAIR';
+                    document.getElementById('minRRRatio').value = 1.5;
+                    document.getElementById('requireTrend').checked = true;
+                    document.getElementById('requireVolume').checked = false;
+                    document.getElementById('requireRSI').checked = true;
+                    document.getElementById('requireMultiTF').checked = false;
+                    break;
+                    
+                case 'STRICT':
+                    // Conservative settings for quality trades
+                    document.getElementById('minSignalStrength').value = 7.0;
+                    document.getElementById('minEntryQuality').value = 'GOOD';
+                    document.getElementById('minRRRatio').value = 2.0;
+                    document.getElementById('requireTrend').checked = true;
+                    document.getElementById('requireVolume').checked = true;
+                    document.getElementById('requireRSI').checked = true;
+                    document.getElementById('requireMultiTF').checked = true;
+                    break;
+            }
+            
+            updateSignalSettings();
+        }
+
+        async function applySignalSettings() {
+            try {
+                const settings = {
+                    min_signal_strength: parseFloat(document.getElementById('minSignalStrength').value),
+                    min_entry_quality: document.getElementById('minEntryQuality').value,
+                    min_rr_ratio: parseFloat(document.getElementById('minRRRatio').value),
+                    require_trend_alignment: document.getElementById('requireTrend').checked,
+                    require_volume_confirmation: document.getElementById('requireVolume').checked,
+                    require_rsi_filter: document.getElementById('requireRSI').checked,
+                    require_multiple_timeframe: document.getElementById('requireMultiTF').checked
+                };
+                
+                const response = await fetch('/api/auto-trading/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Signal settings updated successfully');
+                    alert('Signal settings updated! The system will use new criteria for auto trading.');
+                    
+                    // Refresh data to see updated eligibility
+                    await updateData();
+                } else {
+                    console.error('Failed to update signal settings:', result.error);
+                    alert('Failed to update settings: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating signal settings:', error);
+                alert('Error updating settings: ' + error.message);
+            }
+        }
+        async function startAutoTrading() {
+            try {
+                const response = await fetch('/api/auto-trading/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Auto trading started successfully');
+                    updateAutoTradingUI(true);
+                } else {
+                    console.error('Failed to start auto trading:', result.error);
+                    alert('Failed to start auto trading: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error starting auto trading:', error);
+                alert('Error starting auto trading: ' + error.message);
+            }
+        }
+
+        async function stopAutoTrading() {
+            try {
+                const response = await fetch('/api/auto-trading/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Auto trading stopped successfully');
+                    updateAutoTradingUI(false);
+                } else {
+                    console.error('Failed to stop auto trading:', result.error);
+                }
+            } catch (error) {
+                console.error('Error stopping auto trading:', error);
+            }
+        }
+
+        async function emergencyStop() {
+            if (!confirm('EMERGENCY STOP: This will stop auto trading and close ALL open positions. Are you sure?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auto-trading/emergency-stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Emergency stop activated');
+                    updateAutoTradingUI(false);
+                    alert('EMERGENCY STOP ACTIVATED - All positions closed');
+                } else {
+                    console.error('Failed to activate emergency stop:', result.error);
+                }
+            } catch (error) {
+                console.error('Error activating emergency stop:', error);
+            }
+        }
+
+        // Risk Profile Management
+        function updateRiskProfile() {
+            const riskProfile = document.getElementById('riskProfile').value;
+            const customRiskDiv = document.getElementById('customRiskDiv');
+            
+            if (riskProfile === 'CUSTOM') {
+                customRiskDiv.style.display = 'flex';
+            } else {
+                customRiskDiv.style.display = 'none';
+                setRiskProfile(riskProfile);
+            }
+        }
+
+        async function setCustomRisk() {
+            const customRisk = parseFloat(document.getElementById('customRisk').value);
+            if (customRisk < 0.1 || customRisk > 10) {
+                alert('Custom risk must be between 0.1% and 10%');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auto-trading/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ custom_risk: customRisk })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Custom risk updated:', customRisk);
+                    document.getElementById('riskPerTrade').textContent = `${customRisk}%`;
+                } else {
+                    console.error('Failed to update custom risk:', result.error);
+                }
+            } catch (error) {
+                console.error('Error updating custom risk:', error);
+            }
+        }
+
+        async function setRiskProfile(profileName) {
+            try {
+                const response = await fetch('/api/auto-trading/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ risk_profile: profileName })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Risk profile updated:', profileName);
+                } else {
+                    console.error('Failed to update risk profile:', result.error);
+                }
+            } catch (error) {
+                console.error('Error updating risk profile:', error);
+            }
+        }
+
+        // Data Fetching
+        async function fetchMarketData() {
+            try {
                 const response = await fetch('/api/market-data');
                 const result = await response.json();
                 
-                if (result.success && result.data && Object.keys(result.data).length > 0) {
-                    console.log('Enhanced market data received');
+                if (result.success) {
+                    marketData = result.data;
+                    autoTradingData = result.auto_trading;
                     
                     // Update account info
                     if (result.account) {
@@ -615,31 +1253,81 @@
                             `$${result.account.balance.toLocaleString()}` : 'N/A';
                         document.getElementById('equityInfo').textContent = result.account.equity ? 
                             `$${result.account.equity.toLocaleString()}` : 'N/A';
-                        document.getElementById('freeMargin').textContent = result.account.free_margin ? 
-                            `$${result.account.free_margin.toLocaleString()}` : 'N/A';
                     }
                     
-                    // Update risk settings
-                    if (result.risk_settings) {
-                        document.getElementById('maxRiskPerTrade').textContent = `${result.risk_settings.max_risk_per_trade}%`;
-                        document.getElementById('maxTotalExposure').textContent = `${result.risk_settings.max_total_exposure}%`;
-                        document.getElementById('maxDailyLoss').textContent = `${result.risk_settings.max_daily_loss}%`;
-                        document.getElementById('accountBalance').textContent = `$${result.risk_settings.account_balance.toLocaleString()}`;
+                    // Update auto trading status
+                    if (autoTradingData) {
+                        isAutoTradingEnabled = autoTradingData.enabled;
+                        updateAutoTradingUI(autoTradingData.enabled);
+                        updateAutoTradingStats(autoTradingData);
                     }
                     
                     updateConnectionStatus(result.mt5_connected);
-                    document.getElementById('dataSource').textContent = 'LIVE MT5';
-                    
-                    isUsingRealData = true;
-                    return result.data;
+                    return true;
                 } else {
-                    console.warn('API returned no data:', result.error || 'Unknown error');
-                    return null;
+                    console.error('Failed to fetch market data:', result.error);
+                    return false;
                 }
             } catch (error) {
-                console.error('Failed to fetch enhanced data:', error);
-                return null;
+                console.error('Error fetching market data:', error);
+                return false;
             }
+        }
+
+        async function fetchPositions() {
+            try {
+                const response = await fetch('/api/positions');
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentPositions = result.positions;
+                    updatePositionsDisplay();
+                }
+            } catch (error) {
+                console.error('Error fetching positions:', error);
+            }
+        }
+
+        // UI Update Functions
+        function updateAutoTradingUI(enabled) {
+            const indicator = document.getElementById('autoTradingIndicator');
+            const status = document.getElementById('autoTradingStatus');
+            const statusBar = document.getElementById('autoTradingStatusBar');
+            
+            if (enabled) {
+                indicator.className = 'status-indicator status-active';
+                status.textContent = 'ENABLED';
+                statusBar.textContent = 'ENABLED';
+                statusBar.style.color = '#00ff00';
+            } else {
+                indicator.className = 'status-indicator status-inactive';
+                status.textContent = 'DISABLED';
+                statusBar.textContent = 'DISABLED';
+                statusBar.style.color = '#ff4444';
+            }
+        }
+
+        function updateAutoTradingStats(autoData) {
+            if (!autoData) return;
+            
+            document.getElementById('activeTrades').textContent = autoData.total_trades || 0;
+            document.getElementById('currentExposure').textContent = `${(autoData.current_exposure || 0).toFixed(1)}%`;
+            document.getElementById('maxExposure').textContent = `${(autoData.max_exposure || 0).toFixed(1)}%`;
+            
+            if (autoData.daily_stats) {
+                const stats = autoData.daily_stats;
+                document.getElementById('dailyPnL').textContent = `$${(stats.total_pnl || 0).toFixed(2)}`;
+                document.getElementById('totalTrades').textContent = stats.trades_executed || 0;
+                document.getElementById('profitTrades').textContent = stats.wins || 0;
+                document.getElementById('lossTrades').textContent = stats.losses || 0;
+                
+                const winRate = stats.trades_executed > 0 ? 
+                    ((stats.wins || 0) / stats.trades_executed * 100).toFixed(1) : 0;
+                document.getElementById('winRate').textContent = `${winRate}%`;
+            }
+            
+            document.getElementById('currentRiskProfile').textContent = autoData.risk_profile || 'BALANCED';
+            document.getElementById('riskPerTrade').textContent = `${(autoData.custom_risk || 1.5).toFixed(1)}%`;
         }
 
         function updateConnectionStatus(connected) {
@@ -650,189 +1338,51 @@
                 statusElement.textContent = 'LIVE MT5';
                 statusElement.style.color = '#00ff00';
                 dotElement.className = 'status-dot status-connected';
+                document.getElementById('dataSource').textContent = 'LIVE MT5';
+                document.getElementById('dataSource').style.color = '#00ff00';
             } else {
                 statusElement.textContent = 'DISCONNECTED';
                 statusElement.style.color = '#ff4444';
                 dotElement.className = 'status-dot status-disconnected';
+                document.getElementById('dataSource').textContent = 'DISCONNECTED';
+                document.getElementById('dataSource').style.color = '#ff4444';
             }
         }
 
-        // ===== SIMULATION FUNCTIONS =====
-        function generateEnhancedMarketData() {
-            const data = {};
+        function updatePositionsDisplay() {
+            const positionsList = document.getElementById('positionsList');
             
-            forexPairs.forEach(pair => {
-                const basePrice = basePrices[pair] || 1.0000;
-                
-                // Generate realistic multi-timeframe data
-                const h4Price = basePrice * (1 + (Math.random() - 0.5) * 0.02);
-                const h1Price = h4Price * (1 + (Math.random() - 0.5) * 0.015);
-                const m15Price = h1Price * (1 + (Math.random() - 0.5) * 0.01);
-                const m5Price = m15Price * (1 + (Math.random() - 0.5) * 0.005);
-                
-                // Calculate indicators
-                const rsi = 20 + Math.random() * 60;
-                const macd = (Math.random() - 0.5) * 0.001;
-                const atrPercent = 0.05 + Math.random() * 0.15;
-                const trendStrength = Math.random();
-                const volumeRatio = 0.5 + Math.random() * 2;
-                
-                // Generate enhanced signal data
-                const signal = generateEnhancedSignal(rsi, macd, trendStrength, atrPercent, volumeRatio);
-                
-                // Generate entry/exit analysis
-                const entryAnalysis = generateEntryExitAnalysis(signal, basePrice);
-                
-                // Generate risk management data
-                const riskData = generateRiskData(basePrice, entryAnalysis.stop_loss);
-                
-                data[pair] = {
-                    h4: h4Price,
-                    h1: h1Price,
-                    m15: m15Price,
-                    m5: m5Price,
-                    rsi: rsi,
-                    macd: macd,
-                    atrPercent: atrPercent,
-                    trendStrength: trendStrength,
-                    volumeRatio: volumeRatio,
-                    signal: signal.type,
-                    strength: signal.strength,
-                    priceDirection: m5Price > m15Price ? 'up' : 'down',
-                    
-                    // Enhanced data
-                    ...entryAnalysis,
-                    ...riskData,
-                    
-                    lastUpdate: new Date()
-                };
+            if (currentPositions.length === 0) {
+                positionsList.innerHTML = '<div style="color: #888; font-style: italic;">No open positions</div>';
+                return;
+            }
+            
+            let html = '';
+            currentPositions.forEach(pos => {
+                const profitClass = pos.profit >= 0 ? 'profit-positive' : 'profit-negative';
+                html += `
+                    <div class="position-item">
+                        <div>
+                            <strong>${pos.symbol}</strong> ${pos.type} ${pos.volume} lot
+                            @ ${pos.price_open}
+                        </div>
+                        <div class="position-profit ${profitClass}">
+                            $${pos.profit.toFixed(2)}
+                        </div>
+                    </div>
+                `;
             });
             
-            return data;
+            positionsList.innerHTML = html;
         }
 
-        function generateEnhancedSignal(rsi, macd, trendStrength, atrPercent, volumeRatio) {
-            let signalType = 'NONE';
-            let strength = Math.random() * 5;
-            
-            // Enhanced signal conditions
-            if (trendStrength > 0.8 && atrPercent < 0.15 && volumeRatio > 1.3) {
-                if (rsi > 40 && rsi < 60 && macd > 0) {
-                    signalType = Math.random() > 0.6 ? 'STRONG_BUY' : 'BUY';
-                    strength = 7 + Math.random() * 3;
-                } else if (rsi > 40 && rsi < 60 && macd < 0) {
-                    signalType = Math.random() > 0.6 ? 'STRONG_SELL' : 'SELL';
-                    strength = 7 + Math.random() * 3;
-                }
-            } else if (trendStrength > 0.6 && volumeRatio > 1.1) {
-                if (rsi < 35 && macd > 0) {
-                    signalType = 'BUY';
-                    strength = 5 + Math.random() * 2;
-                } else if (rsi > 65 && macd < 0) {
-                    signalType = 'SELL';
-                    strength = 5 + Math.random() * 2;
-                }
-            }
-            
-            return { type: signalType, strength: strength };
-        }
-
-        function generateEntryExitAnalysis(signal, basePrice) {
-            const entryQualities = ['EXCELLENT', 'GOOD', 'FAIR', 'POOR'];
-            const entryQuality = signal.type !== 'NONE' ? 
-                entryQualities[Math.floor(signal.strength / 2.5)] || 'POOR' : 'POOR';
-            
-            const entryScore = signal.type !== 'NONE' ? Math.min(10, Math.floor(signal.strength)) : 0;
-            
-            // Generate trading levels
-            const atr = basePrice * 0.01;
-            const stopLoss = signal.type === 'BUY' ? 
-                basePrice - (atr * 1.5) : 
-                signal.type === 'SELL' ? basePrice + (atr * 1.5) : basePrice;
-            
-            const tp1 = signal.type === 'BUY' ? 
-                basePrice + (atr * 2.5) : 
-                signal.type === 'SELL' ? basePrice - (atr * 2.5) : basePrice;
-            
-            const tp2 = signal.type === 'BUY' ? 
-                basePrice + (atr * 4.0) : 
-                signal.type === 'SELL' ? basePrice - (atr * 4.0) : basePrice;
-            
-            const tp3 = signal.type === 'BUY' ? 
-                basePrice + (atr * 6.0) : 
-                signal.type === 'SELL' ? basePrice - (atr * 6.0) : basePrice;
-            
-            // Calculate R/R ratios
-            const risk = Math.abs(basePrice - stopLoss);
-            const rrTp1 = risk > 0 ? Math.abs(tp1 - basePrice) / risk : 0;
-            const rrTp2 = risk > 0 ? Math.abs(tp2 - basePrice) / risk : 0;
-            const rrTp3 = risk > 0 ? Math.abs(tp3 - basePrice) / risk : 0;
-            
-            return {
-                entry_quality: entryQuality,
-                entry_score: entryScore,
-                stop_loss: stopLoss,
-                take_profit_1: tp1,
-                take_profit_2: tp2,
-                take_profit_3: tp3,
-                rr_tp1: rrTp1,
-                rr_tp2: rrTp2,
-                rr_tp3: rrTp3
-            };
-        }
-
-        function generateRiskData(entryPrice, stopLoss) {
-            const accountBalance = 10000; // Default for simulation
-            const riskPercent = 1 + Math.random() * 2; // 1-3%
-            const riskAmount = accountBalance * (riskPercent / 100);
-            
-            const pipValue = 10; // Simplified
-            const pipsRisk = Math.abs(entryPrice - stopLoss) * 10000;
-            const lotSize = pipsRisk > 0 ? riskAmount / (pipsRisk * pipValue) : 0.01;
-            
-            return {
-                lot_size: Math.max(0.01, Math.min(1.0, lotSize)),
-                risk_amount: riskAmount,
-                risk_percentage: riskPercent
-            };
-        }
-
-        // ===== MAIN UPDATE FUNCTION =====
-        async function updateData() {
-            // Try to get real data first
-            const realData = await fetchRealMarketData();
-            
-            if (realData && Object.keys(realData).length > 0) {
-                // Use real enhanced data
-                marketData = realData;
-                console.log('Using enhanced LIVE MT5 data');
-                document.getElementById('dataSource').textContent = 'LIVE MT5';
-                document.getElementById('dataSource').style.color = '#00ff00';
-                isUsingRealData = true;
-            } else {
-                // Fallback to enhanced simulation
-                marketData = generateEnhancedMarketData();
-                console.log('Using enhanced simulation data');
-                document.getElementById('dataSource').textContent = 'SIMULATION';
-                document.getElementById('dataSource').style.color = '#ffff00';
-                updateConnectionStatus(false);
-                isUsingRealData = false;
-            }
-            
-            createEnhancedDataTable();
-            updateEnhancedStatusBar();
-            
-            // Show table and hide loading
-            document.getElementById('loadingIndicator').style.display = 'none';
-            document.getElementById('dataTable').style.display = 'table';
-        }
-
-        // ===== UTILITY FUNCTIONS =====
+        // Utility Functions
         function getPrecision(pair) {
             return pair.includes('JPY') ? 3 : pair.includes('XAU') ? 2 : 5;
         }
 
         function formatPrice(price, pair) {
+            if (!price || isNaN(price)) return '0.00000';
             return price.toFixed(getPrecision(pair));
         }
 
@@ -886,9 +1436,24 @@
             return 'rr-poor';
         }
 
-        function createEnhancedDataTable() {
+        function getPairStatusClass(status) {
+            switch(status.toUpperCase()) {
+                case 'READY': return 'status-ready';
+                case 'TRADING': return 'status-trading';
+                case 'COOLDOWN': return 'status-cooldown';
+                default: return 'status-disabled';
+            }
+        }
+
+        // Table Creation
+        function createDataTable() {
             const tbody = document.getElementById('dataBody');
             tbody.innerHTML = '';
+
+            let readyPairs = 0;
+            let tradingPairs = 0;
+            let strongSignals = 0;
+            let eligibleSignals = 0;
 
             forexPairs.forEach(pair => {
                 const data = marketData[pair];
@@ -898,85 +1463,124 @@
                 const row = document.createElement('tr');
                 row.className = 'grid-row';
                 
-                // Direction indicators
-                const directionClass = data.priceDirection === 'up' ? 'price-up' : 'price-down';
+                // Get data with fallbacks
+                const h4 = data.h4 || data.current_price || 0;
+                const h1 = data.h1 || data.current_price || 0;
+                const m15 = data.m15 || data.current_price || 0;
+                const m5 = data.m5 || data.current_price || 0;
+                
+                const rsi = data.rsi || 50;
+                const macd = data.macd || 0;
+                const atrPercent = data.atrPercent || data.atr_percent || 0.1;
+                const trendStrength = data.trendStrength || data.trend_strength || 0;
+                const volumeRatio = data.volumeRatio || data.volume_ratio || 1;
+                const signal = data.signal || 'NONE';
+                const strength = data.strength || 0;
+                
+                // Trading status
+                const pairStatus = data.pair_status || { can_trade: false, reason: 'Unknown' };
+                const statusText = pairStatus.can_trade ? 'READY' : 
+                    (data.active_trades > 0 ? 'TRADING' : 'COOLDOWN');
+                const activeTrades = data.active_trades || 0;
+                
+                // Auto trading eligibility
+                const isEligible = pairStatus.can_trade && 
+                    signal !== 'NONE' && 
+                    strength >= 6.0 && 
+                    ['GOOD', 'EXCELLENT'].includes(data.entry_quality || 'POOR');
+                
+                // Update counters
+                if (statusText === 'READY') readyPairs++;
+                if (statusText === 'TRADING') tradingPairs++;
+                if (signal === 'STRONG_BUY' || signal === 'STRONG_SELL') strongSignals++;
+                if (isEligible) eligibleSignals++;
+                
+                const lotSize = data.lot_size || 0.01;
+                const riskAmount = data.risk_amount || 0;
+                const riskPercent = data.risk_percentage || data.risk_percent || 0;
+                
+                const entryQuality = data.entry_quality || 'POOR';
+                const entryScore = data.entry_score || 0;
+                const rrTp1 = data.rr_tp1 || 0;
+                const rrTp2 = data.rr_tp2 || 0;
+                const stopLoss = data.stop_loss || 0;
+                const tp1 = data.take_profit_1 || 0;
+                
+                const directionClass = data.price_direction === 'up' || data.priceDirection === 'up' ? 'price-up' : 'price-down';
                 
                 row.innerHTML = `
                     <td class="grid-cell pair-cell">${displayPair}</td>
                     
                     <!-- Price Columns -->
-                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.h4, pair)}</td>
-                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.h1, pair)}</td>
-                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.m15, pair)}</td>
-                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(data.m5, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(h4, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(h1, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(m15, pair)}</td>
+                    <td class="grid-cell tf-cell ${directionClass}">${formatPrice(m5, pair)}</td>
                     
                     <!-- Indicator Columns -->
-                    <td class="grid-cell indicator-cell rsi-cell ${getRSIClass(data.rsi)}">${data.rsi.toFixed(1)}</td>
-                    <td class="grid-cell indicator-cell ${getMACDClass(data.macd)}">${data.macd >= 0 ? '+' : ''}${(data.macd * 1000).toFixed(1)}</td>
-                    <td class="grid-cell indicator-cell ${getATRClass(data.atrPercent)}">${(data.atrPercent * 100).toFixed(2)}%</td>
-                    <td class="grid-cell indicator-cell ${getTrendClass(data.trendStrength)}">${(data.trendStrength * 100).toFixed(0)}%</td>
-                    <td class="grid-cell indicator-cell">${data.volumeRatio.toFixed(2)}</td>
-                    <td class="grid-cell signal-cell ${getSignalClass(data.signal)}">${data.signal}</td>
-                    <td class="grid-cell indicator-cell ${getTrendClass(data.strength / 10)}">${data.strength.toFixed(1)}/10</td>
+                    <td class="grid-cell indicator-cell rsi-cell ${getRSIClass(rsi)}">${rsi.toFixed(1)}</td>
+                    <td class="grid-cell indicator-cell ${getMACDClass(macd)}">${macd >= 0 ? '+' : ''}${(macd * 1000).toFixed(1)}</td>
+                    <td class="grid-cell indicator-cell ${getATRClass(atrPercent)}">${(atrPercent * 100).toFixed(2)}%</td>
+                    <td class="grid-cell indicator-cell ${getTrendClass(trendStrength)}">${(trendStrength * 100).toFixed(0)}%</td>
+                    <td class="grid-cell indicator-cell">${volumeRatio.toFixed(2)}</td>
+                    <td class="grid-cell signal-cell ${getSignalClass(signal)}">${signal}</td>
+                    <td class="grid-cell indicator-cell ${getTrendClass(strength / 10)}">${strength.toFixed(1)}/10</td>
+                    
+                    <!-- Trading Status Columns -->
+                    <td class="grid-cell trading-status-cell ${getPairStatusClass(statusText)}">${statusText}</td>
+                    <td class="grid-cell indicator-cell">${activeTrades}</td>
+                    <td class="grid-cell auto-trade-indicator ${isEligible ? 'auto-eligible' : 'auto-blocked'}">
+                        ${isEligible ? 'ELIGIBLE' : 'BLOCKED'}
+                    </td>
                     
                     <!-- Risk Management Columns -->
-                    <td class="grid-cell lot-cell">${(data.lot_size || 0).toFixed(2)}</td>
-                    <td class="grid-cell risk-cell ${getRiskClass(data.risk_percentage || 0)}">$${(data.risk_amount || 0).toFixed(0)}</td>
-                    <td class="grid-cell risk-cell ${getRiskClass(data.risk_percentage || 0)}">${(data.risk_percentage || 0).toFixed(1)}%</td>
+                    <td class="grid-cell lot-cell">${lotSize.toFixed(2)}</td>
+                    <td class="grid-cell risk-cell ${getRiskClass(riskPercent)}">$${riskAmount.toFixed(0)}</td>
+                    <td class="grid-cell risk-cell ${getRiskClass(riskPercent)}">${riskPercent.toFixed(1)}%</td>
                     
                     <!-- Entry/Exit Columns -->
-                    <td class="grid-cell entry-quality-cell ${getEntryQualityClass(data.entry_quality || 'POOR')}">${(data.entry_quality || 'POOR').substr(0,3)}</td>
-                    <td class="grid-cell indicator-cell">${data.entry_score || 0}/10</td>
-                    <td class="grid-cell rr-cell ${getRRClass(data.rr_tp1 || 0)}">1:${(data.rr_tp1 || 0).toFixed(1)}</td>
-                    <td class="grid-cell rr-cell ${getRRClass(data.rr_tp2 || 0)}">1:${(data.rr_tp2 || 0).toFixed(1)}</td>
-                    <td class="grid-cell rr-cell ${getRRClass(data.rr_tp3 || 0)}">1:${(data.rr_tp3 || 0).toFixed(1)}</td>
-                    <td class="grid-cell indicator-cell">${formatPrice(data.stop_loss || 0, pair)}</td>
-                    <td class="grid-cell indicator-cell">${formatPrice(data.take_profit_1 || 0, pair)}</td>
-                    <td class="grid-cell indicator-cell">${formatPrice(data.take_profit_2 || 0, pair)}</td>
+                    <td class="grid-cell entry-quality-cell ${getEntryQualityClass(entryQuality)}">${entryQuality.substr(0,3)}</td>
+                    <td class="grid-cell indicator-cell">${entryScore}/10</td>
+                    <td class="grid-cell rr-cell ${getRRClass(rrTp1)}">1:${rrTp1.toFixed(1)}</td>
+                    <td class="grid-cell rr-cell ${getRRClass(rrTp2)}">1:${rrTp2.toFixed(1)}</td>
+                    <td class="grid-cell indicator-cell">${formatPrice(stopLoss, pair)}</td>
+                    <td class="grid-cell indicator-cell">${formatPrice(tp1, pair)}</td>
                 `;
                 
                 tbody.appendChild(row);
             });
+
+            // Update counters
+            document.getElementById('readyPairs').textContent = readyPairs;
+            document.getElementById('tradingPairs').textContent = tradingPairs;
+            document.getElementById('strongSignals').textContent = strongSignals;
+            document.getElementById('eligibleSignals').textContent = eligibleSignals;
         }
 
-        function updateEnhancedStatusBar() {
-            let activeSignals = 0;
-            let strongSignals = 0;
-            let highQualityEntries = 0;
-            let totalRiskExposure = 0;
-            let avgRR = 0;
-            let rrCount = 0;
+        // Main Update Function
+        async function updateData() {
+            const success = await fetchMarketData();
+            if (success) {
+                createDataTable();
+                await fetchPositions();
+                
+                // Show table and hide loading
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('dataTable').style.display = 'table';
+            }
             
-            Object.values(marketData).forEach(data => {
-                if (data.signal !== 'NONE') activeSignals++;
-                if (data.signal === 'STRONG_BUY' || data.signal === 'STRONG_SELL') strongSignals++;
-                if (data.entry_quality && ['EXCELLENT', 'GOOD'].includes(data.entry_quality)) highQualityEntries++;
-                if (data.risk_percentage) totalRiskExposure += data.risk_percentage;
-                if (data.rr_tp1 && data.rr_tp1 > 0) {
-                    avgRR += data.rr_tp1;
-                    rrCount++;
-                }
-            });
-            
-            document.getElementById('activeSignals').textContent = activeSignals;
-            document.getElementById('strongSignals').textContent = strongSignals;
-            document.getElementById('highQualityEntries').textContent = highQualityEntries;
-            document.getElementById('totalRiskExposure').textContent = `${totalRiskExposure.toFixed(1)}%`;
-            document.getElementById('avgRRRatio').textContent = rrCount > 0 ? (avgRR / rrCount).toFixed(1) : '0.0';
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
 
-        // ===== MANUAL REFRESH FUNCTION =====
+        // Manual Refresh
         async function manualRefresh() {
             console.log('Manual refresh initiated...');
             document.getElementById('lastUpdate').textContent = 'Refreshing...';
             
             try {
-                if (isUsingRealData) {
-                    const response = await fetch('/api/refresh');
-                    if (response.ok) {
-                        console.log('Backend refresh completed');
-                    }
+                const response = await fetch('/api/refresh');
+                if (response.ok) {
+                    console.log('Backend refresh completed');
                 }
                 
                 await updateData();
@@ -990,22 +1594,22 @@
             document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
         }
 
-        // ===== INITIALIZATION =====
+        // Initialization
         function init() {
-            console.log('Initializing Enhanced Grid Dashboard');
-            console.log('Features: Risk Management + Entry/Exit Analysis in Grid Format');
+            console.log('Initializing Smart Auto Trading Dashboard');
+            console.log('Features: Auto Trading + Risk Management + One Trade Per Pair');
             
             updateTime();
             updateData();
             
-            // Update every 15 seconds
-            setInterval(updateData, 15000);
+            // Update every 10 seconds for auto trading
+            setInterval(updateData, 10000);
             setInterval(updateTime, 1000);
             
-            console.log('Enhanced grid dashboard initialized');
+            console.log('Smart Auto Trading Dashboard initialized');
         }
 
-        // ===== EVENT LISTENERS =====
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', init);
 
         // Keyboard shortcuts
@@ -1013,14 +1617,23 @@
             if (e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
                 manualRefresh();
-                console.log('Manual refresh triggered by keyboard');
+            } else if (e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                if (isAutoTradingEnabled) {
+                    stopAutoTrading();
+                } else {
+                    startAutoTrading();
+                }
+            } else if (e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+                emergencyStop();
             }
         });
 
         // Visibility change handler
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && isUsingRealData) {
-                console.log('Tab visible - refreshing enhanced data');
+            if (!document.hidden) {
+                console.log('Tab visible - refreshing data');
                 updateData();
             }
         });
