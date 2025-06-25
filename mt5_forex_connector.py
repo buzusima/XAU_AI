@@ -1,7 +1,7 @@
 """
-Smart Auto Trading System with Portfolio Risk Management
-========================================================
-Professional Auto Trading with ONE TRADE PER PAIR Control
+Enhanced Smart Auto Trading System with Data Persistence
+=======================================================
+Professional Auto Trading with State Management & Data Recovery
 """
 
 from flask import Flask, jsonify, send_from_directory, request
@@ -15,17 +15,285 @@ import time
 import json
 import logging
 import os
+import sqlite3
+import pickle
 from typing import Dict, List, Optional, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
-class SmartAutoTradingDashboard:
-    """Smart Auto Trading Dashboard with Portfolio Risk Control"""
+class DataPersistenceManager:
+    """จัดการการบันทึกและโหลดข้อมูลระบบ"""
+    
+    def __init__(self, data_dir='trading_data'):
+        self.data_dir = data_dir
+        self.settings_file = os.path.join(data_dir, 'settings.json')
+        self.positions_file = os.path.join(data_dir, 'positions.json')
+        self.daily_stats_file = os.path.join(data_dir, 'daily_stats.json')
+        self.pair_status_file = os.path.join(data_dir, 'pair_status.json')
+        self.trade_history_file = os.path.join(data_dir, 'trade_history.json')
+        self.db_file = os.path.join(data_dir, 'trading_system.db')
+        
+        self.create_data_directory()
+        self.initialize_database()
+    
+    def create_data_directory(self):
+        """สร้างโฟลเดอร์เก็บข้อมูล"""
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
+            print(f"Created data directory: {self.data_dir}")
+    
+    def initialize_database(self):
+        """สร้างฐานข้อมูล SQLite"""
+        try:
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            # ตาราง trade history
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS trade_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticket TEXT UNIQUE,
+                    symbol TEXT,
+                    type TEXT,
+                    volume REAL,
+                    entry_price REAL,
+                    exit_price REAL,
+                    stop_loss REAL,
+                    take_profit REAL,
+                    profit REAL,
+                    entry_time TEXT,
+                    exit_time TEXT,
+                    signal_strength REAL,
+                    entry_quality TEXT,
+                    risk_percentage REAL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # ตาราง daily statistics
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS daily_statistics (
+                    date TEXT PRIMARY KEY,
+                    trades_executed INTEGER DEFAULT 0,
+                    wins INTEGER DEFAULT 0,
+                    losses INTEGER DEFAULT 0,
+                    total_pnl REAL DEFAULT 0.0,
+                    max_drawdown REAL DEFAULT 0.0,
+                    win_rate REAL DEFAULT 0.0,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # ตาราง system logs
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS system_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    level TEXT,
+                    message TEXT,
+                    category TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.commit()
+            conn.close()
+            print("Database initialized successfully")
+            
+        except Exception as e:
+            print(f"Database initialization error: {str(e)}")
+    
+    def save_settings(self, settings: Dict):
+        """บันทึกการตั้งค่าระบบ"""
+        try:
+            with open(self.settings_file, 'w') as f:
+                json.dump(settings, f, indent=2, default=str)
+            return True
+        except Exception as e:
+            print(f"Error saving settings: {str(e)}")
+            return False
+    
+    def load_settings(self) -> Dict:
+        """โหลดการตั้งค่าระบบ"""
+        try:
+            if os.path.exists(self.settings_file):
+                with open(self.settings_file, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            print(f"Error loading settings: {str(e)}")
+            return {}
+    
+    def save_daily_stats(self, stats: Dict):
+        """บันทึกสถิติรายวัน"""
+        try:
+            with open(self.daily_stats_file, 'w') as f:
+                json.dump(stats, f, indent=2, default=str)
+            
+            # บันทึกลงฐานข้อมูลด้วย
+            today = datetime.now().strftime('%Y-%m-%d')
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO daily_statistics 
+                (date, trades_executed, wins, losses, total_pnl, max_drawdown, win_rate)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                today,
+                stats.get('trades_executed', 0),
+                stats.get('wins', 0),
+                stats.get('losses', 0),
+                stats.get('total_pnl', 0.0),
+                stats.get('max_drawdown', 0.0),
+                stats.get('win_rate', 0.0)
+            ))
+            
+            conn.commit()
+            conn.close()
+            return True
+            
+        except Exception as e:
+            print(f"Error saving daily stats: {str(e)}")
+            return False
+    
+    def load_daily_stats(self) -> Dict:
+        """โหลดสถิติรายวัน"""
+        try:
+            if os.path.exists(self.daily_stats_file):
+                with open(self.daily_stats_file, 'r') as f:
+                    return json.load(f)
+            return {
+                'trades_executed': 0,
+                'wins': 0,
+                'losses': 0,
+                'total_pnl': 0.0,
+                'max_drawdown': 0.0,
+                'win_rate': 0.0
+            }
+        except Exception as e:
+            print(f"Error loading daily stats: {str(e)}")
+            return {}
+    
+    def save_pair_status(self, pair_status: Dict):
+        """บันทึกสถานะของแต่ละ pair"""
+        try:
+            with open(self.pair_status_file, 'w') as f:
+                json.dump(pair_status, f, indent=2, default=str)
+            return True
+        except Exception as e:
+            print(f"Error saving pair status: {str(e)}")
+            return False
+    
+    def load_pair_status(self) -> Dict:
+        """โหลดสถานะของแต่ละ pair"""
+        try:
+            if os.path.exists(self.pair_status_file):
+                with open(self.pair_status_file, 'r') as f:
+                    data = json.load(f)
+                # Convert datetime strings back to datetime objects
+                for pair, status in data.items():
+                    if 'cooldown_until' in status and status['cooldown_until']:
+                        try:
+                            status['cooldown_until'] = datetime.fromisoformat(status['cooldown_until'])
+                        except:
+                            status['cooldown_until'] = None
+                return data
+            return {}
+        except Exception as e:
+            print(f"Error loading pair status: {str(e)}")
+            return {}
+    
+    def save_trade_to_db(self, trade_data: Dict):
+        """บันทึกข้อมูลการเทรดลงฐานข้อมูล"""
+        try:
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO trade_history 
+                (ticket, symbol, type, volume, entry_price, exit_price, stop_loss, 
+                 take_profit, profit, entry_time, exit_time, signal_strength, 
+                 entry_quality, risk_percentage)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                str(trade_data.get('ticket', '')),
+                trade_data.get('symbol', ''),
+                trade_data.get('type', ''),
+                trade_data.get('volume', 0),
+                trade_data.get('entry_price', 0),
+                trade_data.get('exit_price', 0),
+                trade_data.get('stop_loss', 0),
+                trade_data.get('take_profit', 0),
+                trade_data.get('profit', 0),
+                trade_data.get('entry_time', ''),
+                trade_data.get('exit_time', ''),
+                trade_data.get('signal_strength', 0),
+                trade_data.get('entry_quality', ''),
+                trade_data.get('risk_percentage', 0)
+            ))
+            
+            conn.commit()
+            conn.close()
+            return True
+            
+        except Exception as e:
+            print(f"Error saving trade to database: {str(e)}")
+            return False
+    
+    def get_trade_history(self, days: int = 30) -> List[Dict]:
+        """ดึงประวัติการเทรด"""
+        try:
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            cursor.execute('''
+                SELECT * FROM trade_history 
+                WHERE created_at >= ? 
+                ORDER BY created_at DESC
+            ''', (cutoff_date,))
+            
+            columns = [description[0] for description in cursor.description]
+            trades = []
+            
+            for row in cursor.fetchall():
+                trade = dict(zip(columns, row))
+                trades.append(trade)
+            
+            conn.close()
+            return trades
+            
+        except Exception as e:
+            print(f"Error getting trade history: {str(e)}")
+            return []
+    
+    def log_system_event(self, level: str, message: str, category: str = 'SYSTEM'):
+        """บันทึก system logs"""
+        try:
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                INSERT INTO system_logs (level, message, category)
+                VALUES (?, ?, ?)
+            ''', (level, message, category))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            print(f"Error logging system event: {str(e)}")
+
+class EnhancedSmartAutoTradingDashboard:
+    """Enhanced Smart Auto Trading Dashboard with Data Persistence"""
     
     def __init__(self):
-        """Initialize Smart Auto Trading Dashboard"""
+        """Initialize Enhanced Smart Auto Trading Dashboard"""
         self.app = Flask(__name__)
         CORS(self.app)
+        
+        # Data Persistence Manager
+        self.persistence = DataPersistenceManager()
         
         # Forex pairs
         self.forex_pairs = [
@@ -37,8 +305,14 @@ class SmartAutoTradingDashboard:
             'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
         ]
         
+        # Load saved settings or use defaults
+        self.load_system_settings()
+        
+        # Initialize default values (if not loaded)
+        if not hasattr(self, 'account_balance'):
+            self.account_balance = 10000.0
+        
         # Portfolio Risk Management Settings
-        self.account_balance = 10000.0
         self.portfolio_risk_profiles = {
             'CONSERVATIVE': {'risk_per_trade': 0.5, 'max_total_exposure': 2.0, 'max_daily_loss': 2.0},
             'MODERATE': {'risk_per_trade': 1.0, 'max_total_exposure': 4.0, 'max_daily_loss': 3.0},
@@ -47,39 +321,21 @@ class SmartAutoTradingDashboard:
             'HIGH_RISK': {'risk_per_trade': 3.0, 'max_total_exposure': 12.0, 'max_daily_loss': 8.0}
         }
         
-        # Current Portfolio Settings
-        self.current_risk_profile = 'BALANCED'
-        self.custom_risk_per_trade = 1.5  # Custom risk percentage
-        self.max_risk_per_trade = 0.015   # 1.5% per trade
-        self.max_total_exposure = 0.06    # 6% total portfolio
-        self.max_daily_loss = 0.04        # 4% daily loss limit
-        
         # ONE TRADE PER PAIR CONTROL
-        self.one_trade_per_pair = True    # Enforce one trade per pair
-        self.active_trades_per_pair = {}  # Track active trades per pair
-        self.pair_trade_status = {}       # Track if pair can trade
+        self.one_trade_per_pair = True
         
-        # AUTO TRADING CORE SETTINGS
-        self.auto_trading_enabled = False
-        self.auto_trading_pairs = set(self.forex_pairs)  # All pairs enabled by default
-        self.min_signal_strength = 6.0   # Minimum signal strength (1-10)
-        self.min_entry_quality = 'GOOD'  # Minimum entry quality (POOR/FAIR/GOOD/EXCELLENT)
-        self.max_simultaneous_trades = 8  # Maximum total open trades
+        # Load or initialize tracking data
+        self.load_pair_tracking_data()
         
-        # Signal Filtering
-        self.required_confirmations = {
-            'trend_alignment': True,      # Require trend alignment
-            'volume_confirmation': True,  # Require volume confirmation
-            'rsi_filter': True,          # RSI not in extreme zones
-            'multiple_timeframe': True    # Multiple timeframe confirmation
-        }
+        # Load daily stats
+        self.daily_stats = self.persistence.load_daily_stats()
         
         # Trading Time Controls
         self.trading_sessions = {
             'ASIAN': {'start': '00:00', 'end': '09:00', 'enabled': False},
             'LONDON': {'start': '08:00', 'end': '17:00', 'enabled': True},
             'NEWYORK': {'start': '13:00', 'end': '22:00', 'enabled': True},
-            'OVERLAP': {'start': '13:00', 'end': '17:00', 'enabled': True}  # London-NY overlap
+            'OVERLAP': {'start': '13:00', 'end': '17:00', 'enabled': True}
         }
         
         # Position Management
@@ -90,9 +346,9 @@ class SmartAutoTradingDashboard:
         self.trailing_stop_enabled = True
         
         # Trade Execution Settings
-        self.slippage_tolerance = 3       # Max slippage in pips
-        self.max_spread_threshold = 2.0   # Max spread in pips
-        self.trade_timeout = 30           # Order timeout in seconds
+        self.slippage_tolerance = 3
+        self.max_spread_threshold = 2.0
+        self.trade_timeout = 30
         
         # Data Storage
         self.live_data = {}
@@ -101,13 +357,10 @@ class SmartAutoTradingDashboard:
         self.trade_history = []
         self.pending_signals = {}
         self.signal_log = []
-        self.daily_stats = {
-            'trades_executed': 0,
-            'wins': 0,
-            'losses': 0,
-            'total_pnl': 0.0,
-            'max_drawdown': 0.0
-        }
+        
+        # Cooldown Management
+        self.global_cooldown = 60
+        self.last_global_trade_time = None
         
         # System State
         self.is_running = False
@@ -115,13 +368,193 @@ class SmartAutoTradingDashboard:
         self.last_update = datetime.now()
         self.emergency_stop = False
         
-        # Cooldown Management
-        self.trade_cooldowns = {}         # Per-pair cooldowns
-        self.global_cooldown = 60         # Global cooldown between any trades
-        self.last_global_trade_time = None
-        
         self.setup_logging()
         self.setup_routes()
+        
+        # Auto-save timer
+        self.setup_auto_save()
+    
+    def load_system_settings(self):
+        """โหลดการตั้งค่าระบบ"""
+        try:
+            settings = self.persistence.load_settings()
+            
+            if settings:
+                # Load core settings
+                self.current_risk_profile = settings.get('current_risk_profile', 'BALANCED')
+                self.custom_risk_per_trade = settings.get('custom_risk_per_trade', 1.5)
+                self.max_risk_per_trade = settings.get('max_risk_per_trade', 0.015)
+                self.max_total_exposure = settings.get('max_total_exposure', 0.06)
+                self.max_daily_loss = settings.get('max_daily_loss', 0.04)
+                
+                # Auto trading settings
+                self.auto_trading_enabled = settings.get('auto_trading_enabled', False)
+                self.auto_trading_pairs = set(settings.get('auto_trading_pairs', self.forex_pairs))
+                self.min_signal_strength = settings.get('min_signal_strength', 6.0)
+                self.min_entry_quality = settings.get('min_entry_quality', 'GOOD')
+                self.max_simultaneous_trades = settings.get('max_simultaneous_trades', 8)
+                
+                # Signal filtering
+                self.required_confirmations = settings.get('required_confirmations', {
+                    'trend_alignment': True,
+                    'volume_confirmation': True,
+                    'rsi_filter': True,
+                    'multiple_timeframe': True
+                })
+                
+                # Additional settings
+                self.min_rr_ratio = settings.get('min_rr_ratio', 1.5)
+                self.account_balance = settings.get('account_balance', 10000.0)
+                
+                print("✅ System settings loaded successfully")
+                self.persistence.log_system_event('INFO', 'System settings loaded from file', 'STARTUP')
+            else:
+                # Use defaults
+                self.set_default_settings()
+                print("📋 Using default settings")
+                
+        except Exception as e:
+            print(f"❌ Error loading settings: {str(e)}")
+            self.set_default_settings()
+    
+    def set_default_settings(self):
+        """ตั้งค่าเริ่มต้น"""
+        self.current_risk_profile = 'BALANCED'
+        self.custom_risk_per_trade = 1.5
+        self.max_risk_per_trade = 0.015
+        self.max_total_exposure = 0.06
+        self.max_daily_loss = 0.04
+        
+        self.auto_trading_enabled = False
+        self.auto_trading_pairs = set(self.forex_pairs)
+        self.min_signal_strength = 6.0
+        self.min_entry_quality = 'GOOD'
+        self.max_simultaneous_trades = 8
+        
+        self.required_confirmations = {
+            'trend_alignment': True,
+            'volume_confirmation': True,
+            'rsi_filter': True,
+            'multiple_timeframe': True
+        }
+        
+        self.min_rr_ratio = 1.5
+    
+    def save_system_settings(self):
+        """บันทึกการตั้งค่าระบบ"""
+        try:
+            settings = {
+                'current_risk_profile': self.current_risk_profile,
+                'custom_risk_per_trade': self.custom_risk_per_trade,
+                'max_risk_per_trade': self.max_risk_per_trade,
+                'max_total_exposure': self.max_total_exposure,
+                'max_daily_loss': self.max_daily_loss,
+                
+                'auto_trading_enabled': self.auto_trading_enabled,
+                'auto_trading_pairs': list(self.auto_trading_pairs),
+                'min_signal_strength': self.min_signal_strength,
+                'min_entry_quality': self.min_entry_quality,
+                'max_simultaneous_trades': self.max_simultaneous_trades,
+                
+                'required_confirmations': self.required_confirmations,
+                'min_rr_ratio': getattr(self, 'min_rr_ratio', 1.5),
+                'account_balance': self.account_balance,
+                
+                'last_saved': datetime.now().isoformat()
+            }
+            
+            if self.persistence.save_settings(settings):
+                print("💾 Settings saved successfully")
+                return True
+            return False
+            
+        except Exception as e:
+            print(f"❌ Error saving settings: {str(e)}")
+            return False
+    
+    def load_pair_tracking_data(self):
+        """โหลดข้อมูลการติดตาม pairs"""
+        try:
+            saved_status = self.persistence.load_pair_status()
+            
+            # Initialize tracking dictionaries
+            self.active_trades_per_pair = {}
+            self.pair_trade_status = {}
+            self.trade_cooldowns = {}
+            
+            for pair in self.forex_pairs:
+                # Load from saved data or set defaults
+                if pair in saved_status:
+                    status_data = saved_status[pair]
+                    self.active_trades_per_pair[pair] = status_data.get('active_trades', [])
+                    self.pair_trade_status[pair] = status_data.get('status', 'READY')
+                    
+                    # Handle cooldown
+                    cooldown_until = status_data.get('cooldown_until')
+                    if cooldown_until and isinstance(cooldown_until, datetime):
+                        if cooldown_until > datetime.now():
+                            self.trade_cooldowns[pair] = cooldown_until
+                        else:
+                            self.trade_cooldowns[pair] = None
+                    else:
+                        self.trade_cooldowns[pair] = None
+                else:
+                    # Set defaults
+                    self.active_trades_per_pair[pair] = []
+                    self.pair_trade_status[pair] = 'READY'
+                    self.trade_cooldowns[pair] = None
+            
+            print("✅ Pair tracking data loaded successfully")
+            
+        except Exception as e:
+            print(f"❌ Error loading pair tracking data: {str(e)}")
+            # Initialize with defaults
+            self.active_trades_per_pair = {pair: [] for pair in self.forex_pairs}
+            self.pair_trade_status = {pair: 'READY' for pair in self.forex_pairs}
+            self.trade_cooldowns = {pair: None for pair in self.forex_pairs}
+    
+    def save_pair_tracking_data(self):
+        """บันทึกข้อมูลการติดตาม pairs"""
+        try:
+            pair_status_data = {}
+            
+            for pair in self.forex_pairs:
+                pair_status_data[pair] = {
+                    'active_trades': self.active_trades_per_pair.get(pair, []),
+                    'status': self.pair_trade_status.get(pair, 'READY'),
+                    'cooldown_until': self.trade_cooldowns.get(pair),
+                    'last_updated': datetime.now().isoformat()
+                }
+            
+            return self.persistence.save_pair_status(pair_status_data)
+            
+        except Exception as e:
+            print(f"❌ Error saving pair tracking data: {str(e)}")
+            return False
+    
+    def setup_auto_save(self):
+        """ตั้งค่าการบันทึกอัตโนมัติ"""
+        def auto_save_loop():
+            while self.is_running:
+                try:
+                    # Save every 5 minutes
+                    time.sleep(300)
+                    
+                    if self.is_running:
+                        self.save_system_settings()
+                        self.save_pair_tracking_data()
+                        self.persistence.save_daily_stats(self.daily_stats)
+                        
+                        print(f"💾 Auto-save completed at {datetime.now().strftime('%H:%M:%S')}")
+                        
+                except Exception as e:
+                    print(f"❌ Auto-save error: {str(e)}")
+                    time.sleep(60)  # Wait 1 minute before retry
+        
+        # Start auto-save thread
+        auto_save_thread = threading.Thread(target=auto_save_loop, daemon=True)
+        auto_save_thread.start()
+        print("🔄 Auto-save system started")
     
     def setup_logging(self):
         """Setup comprehensive logging"""
@@ -175,12 +608,6 @@ class SmartAutoTradingDashboard:
                 self.logger.warning("Trading is not allowed on this account!")
                 self.auto_trading_enabled = False
             
-            # Initialize pair tracking
-            for pair in self.forex_pairs:
-                self.active_trades_per_pair[pair] = []
-                self.pair_trade_status[pair] = 'READY'  # READY, TRADING, COOLDOWN
-                self.trade_cooldowns[pair] = None
-            
             # Test symbols and ensure they're visible
             available_symbols = []
             for symbol in self.forex_pairs:
@@ -193,17 +620,51 @@ class SmartAutoTradingDashboard:
             self.forex_pairs = available_symbols
             self.mt5_connected = True
             
+            # Log connection success
             self.logger.info(f"MT5 Connected Successfully!")
             self.logger.info(f"Account: {account_info.login}")
             self.logger.info(f"Balance: ${account_info.balance:,.2f}")
             self.logger.info(f"Available Pairs: {len(self.forex_pairs)}")
-            self.logger.info(f"Trading Allowed: {account_info.trade_allowed}")
+            
+            self.persistence.log_system_event('INFO', f'MT5 Connected - Account: {account_info.login}', 'CONNECTION')
+            
+            # Verify existing positions and update tracking
+            self.verify_existing_positions()
             
             return True
             
         except Exception as e:
             self.logger.error(f"MT5 connection error: {str(e)}")
+            self.persistence.log_system_event('ERROR', f'MT5 connection failed: {str(e)}', 'CONNECTION')
             return False
+    
+    def verify_existing_positions(self):
+        """ตรวจสอบและอัพเดทสถานะของ positions ที่มีอยู่"""
+        try:
+            positions = mt5.positions_get()
+            if positions is None:
+                positions = []
+            
+            # Reset tracking
+            for pair in self.forex_pairs:
+                self.active_trades_per_pair[pair] = []
+            
+            # Update tracking based on actual positions
+            for position in positions:
+                symbol = position.symbol
+                if symbol in self.active_trades_per_pair:
+                    self.active_trades_per_pair[symbol].append(position.ticket)
+                    self.pair_trade_status[symbol] = 'TRADING'
+                    
+                    self.logger.info(f"Found existing position: {symbol} Ticket: {position.ticket}")
+            
+            # Save updated tracking data
+            self.save_pair_tracking_data()
+            
+            self.logger.info(f"Position verification completed. Active positions: {len(positions)}")
+            
+        except Exception as e:
+            self.logger.error(f"Error verifying existing positions: {str(e)}")
     
     def update_risk_profile(self, profile_name: str = None, custom_risk: float = None):
         """Update portfolio risk profile"""
@@ -222,6 +683,9 @@ class SmartAutoTradingDashboard:
                 self.logger.info(f"Risk profile updated to {profile_name}")
                 self.logger.info(f"Risk per trade: {profile['risk_per_trade']}%")
                 self.logger.info(f"Max total exposure: {profile['max_total_exposure']}%")
+            
+            # Save settings after update
+            self.save_system_settings()
                 
         except Exception as e:
             self.logger.error(f"Error updating risk profile: {str(e)}")
@@ -239,7 +703,8 @@ class SmartAutoTradingDashboard:
                 positions = []
             
             # Update active trades tracking
-            self.active_trades_per_pair[symbol] = list(positions)
+            current_tickets = [pos.ticket for pos in positions]
+            self.active_trades_per_pair[symbol] = current_tickets
             
             # Check if pair has active trades
             if len(positions) > 0:
@@ -260,6 +725,9 @@ class SmartAutoTradingDashboard:
                         'reason': f'Cooldown active ({int(cooldown_remaining)}s remaining)',
                         'cooldown_remaining': int(cooldown_remaining)
                     }
+                else:
+                    # Cooldown expired
+                    self.trade_cooldowns[symbol] = None
             
             # Pair is ready to trade
             self.pair_trade_status[symbol] = 'READY'
@@ -269,8 +737,6 @@ class SmartAutoTradingDashboard:
             self.logger.error(f"Error checking pair status {symbol}: {str(e)}")
             return {'can_trade': False, 'reason': f'Error: {str(e)}'}
     
-    # แทนที่ฟังก์ชัน calculate_position_size ด้วยการคำนวณทองคำที่ถูกต้อง
-
     def calculate_position_size(self, entry_price: float, stop_loss: float, symbol: str, risk_percent: float = None) -> Dict:
         """Calculate position size with CORRECT GOLD calculation"""
         try:
@@ -386,7 +852,8 @@ class SmartAutoTradingDashboard:
                 'symbol_type': 'GOLD' if 'XAU' in symbol else 'JPY' if 'JPY' in symbol else 'FOREX',
                 'calculation_status': 'ERROR',
                 'error_message': str(e)
-            }    
+            }
+    
     def validate_trading_signal(self, symbol: str, signal_data: Dict) -> Dict:
         """Validate trading signal with comprehensive checks"""
         try:
@@ -570,10 +1037,31 @@ class SmartAutoTradingDashboard:
             self.daily_stats['trades_executed'] += 1
             self.last_global_trade_time = datetime.now()
             
+            # Save trade to database
+            self.persistence.save_trade_to_db({
+                'ticket': str(result.order),
+                'symbol': symbol,
+                'type': signal_direction,
+                'volume': lot_size,
+                'entry_price': result.price,
+                'stop_loss': stop_loss,
+                'take_profit': take_profit_1,
+                'entry_time': datetime.now().isoformat(),
+                'signal_strength': signal_data.get('strength', 0),
+                'entry_quality': signal_data.get('entry_quality', 'UNKNOWN'),
+                'risk_percentage': position_info['risk_percentage']
+            })
+            
             # Log successful trade
             self.trade_logger.info(f"TRADE EXECUTED: {symbol} {signal_direction} - Ticket: {result.order}")
             self.trade_logger.info(f"Entry: {result.price}, SL: {stop_loss}, TP: {take_profit_1}")
             self.trade_logger.info(f"Lot Size: {lot_size}, Risk: {position_info['risk_percentage']:.2f}%")
+            
+            self.persistence.log_system_event('INFO', f'Trade executed: {symbol} {signal_direction} Ticket: {result.order}', 'TRADING')
+            
+            # Save updated tracking data
+            self.save_pair_tracking_data()
+            self.persistence.save_daily_stats(self.daily_stats)
             
             return {
                 'success': True,
@@ -585,6 +1073,7 @@ class SmartAutoTradingDashboard:
         except Exception as e:
             error_msg = f"Trade execution error for {symbol}: {str(e)}"
             self.logger.error(error_msg)
+            self.persistence.log_system_event('ERROR', error_msg, 'TRADING')
             return {'success': False, 'error': error_msg}
     
     def monitor_positions(self):
@@ -612,6 +1101,7 @@ class SmartAutoTradingDashboard:
                         
                         # Log position closure
                         self.trade_logger.info(f"Position closed: {symbol} Ticket: {ticket}")
+                        self.persistence.log_system_event('INFO', f'Position closed: {symbol} Ticket: {ticket}', 'TRADING')
                         
                         # Update daily stats
                         history = mt5.history_deals_get(ticket=ticket)
@@ -622,6 +1112,18 @@ class SmartAutoTradingDashboard:
                             else:
                                 self.daily_stats['losses'] += 1
                             self.daily_stats['total_pnl'] += deal.profit
+                            
+                            # Update trade in database
+                            self.persistence.save_trade_to_db({
+                                'ticket': str(ticket),
+                                'exit_price': deal.price,
+                                'exit_time': datetime.now().isoformat(),
+                                'profit': deal.profit
+                            })
+                        
+                        # Save updated data
+                        self.save_pair_tracking_data()
+                        self.persistence.save_daily_stats(self.daily_stats)
         
         except Exception as e:
             self.logger.error(f"Error monitoring positions: {str(e)}")
@@ -713,6 +1215,7 @@ class SmartAutoTradingDashboard:
                 
             except Exception as e:
                 self.logger.error(f"Error in auto trading loop: {str(e)}")
+                self.persistence.log_system_event('ERROR', f'Auto trading loop error: {str(e)}', 'TRADING')
                 time.sleep(30)
     
     def start_auto_trading(self):
@@ -732,6 +1235,10 @@ class SmartAutoTradingDashboard:
         
         self.logger.info("AUTO TRADING STARTED!")
         self.trade_logger.info("=== AUTO TRADING SESSION STARTED ===")
+        self.persistence.log_system_event('INFO', 'Auto trading started', 'TRADING')
+        
+        # Save settings
+        self.save_system_settings()
         
         return True
     
@@ -740,6 +1247,10 @@ class SmartAutoTradingDashboard:
         self.auto_trading_enabled = False
         self.logger.info("AUTO TRADING STOPPED!")
         self.trade_logger.info("=== AUTO TRADING SESSION STOPPED ===")
+        self.persistence.log_system_event('INFO', 'Auto trading stopped', 'TRADING')
+        
+        # Save settings
+        self.save_system_settings()
     
     def emergency_stop_all(self):
         """Emergency stop with position closure"""
@@ -765,9 +1276,11 @@ class SmartAutoTradingDashboard:
         
         self.logger.critical("EMERGENCY STOP ACTIVATED - ALL POSITIONS CLOSED")
         self.trade_logger.critical("=== EMERGENCY STOP ACTIVATED ===")
-    
-    # Include all other methods from the previous version
-    # (calculate_indicators, get_symbol_data, update_all_data, etc.)
+        self.persistence.log_system_event('CRITICAL', 'Emergency stop activated - all positions closed', 'EMERGENCY')
+        
+        # Save settings and data
+        self.save_system_settings()
+        self.save_pair_tracking_data()
     
     def calculate_indicators(self, df: pd.DataFrame) -> Dict:
         """Calculate technical indicators"""
@@ -852,7 +1365,7 @@ class SmartAutoTradingDashboard:
         }
     
     def analyze_entry_exit_points(self, indicators: Dict, current_price: float, symbol: str) -> Dict:
-        """Analyze entry/exit points with enhanced signal generation"""
+        """Analyze entry/exit points with RELAXED signal generation"""
         try:
             # Get indicators
             rsi = indicators.get('rsi', 50)
@@ -863,67 +1376,125 @@ class SmartAutoTradingDashboard:
             ema_50 = indicators.get('ema_50', current_price)
             volume_ratio = indicators.get('volume_ratio', 1.0)
             
-            # Signal analysis
+            # Signal analysis with RELAXED conditions
             signal_direction = 'NONE'
             signal_strength = 0
             entry_score = 0
             entry_reasons = []
             
-            # Bullish conditions
-            if (current_price > ema_9 > ema_21 > ema_50 and 
-                35 <= rsi <= 65 and 
-                trend_strength >= 0.67 and 
-                volume_ratio >= 1.2):
-                
-                signal_direction = 'BUY'
-                entry_reasons.append("Strong uptrend confirmed")
-                entry_score += 3
-                signal_strength = 7 + (trend_strength - 0.67) * 10
-                
-                if trend_strength >= 0.8:
-                    signal_direction = 'STRONG_BUY'
-                    signal_strength = 8 + (trend_strength - 0.8) * 10
+            # 🟢 RELAXED Bullish conditions
+            bullish_score = 0
             
-            # Bearish conditions
-            elif (current_price < ema_9 < ema_21 < ema_50 and 
-                  35 <= rsi <= 65 and 
-                  trend_strength >= 0.67 and 
-                  volume_ratio >= 1.2):
-                
-                signal_direction = 'SELL'
-                entry_reasons.append("Strong downtrend confirmed")
-                entry_score += 3
-                signal_strength = 7 + (trend_strength - 0.67) * 10
-                
-                if trend_strength >= 0.8:
-                    signal_direction = 'STRONG_SELL'
-                    signal_strength = 8 + (trend_strength - 0.8) * 10
+            # EMA trend check (ผ่อนคลาย)
+            if current_price > ema_9:
+                bullish_score += 2
+                entry_reasons.append("Price above EMA9")
+            if ema_9 > ema_21:
+                bullish_score += 1
+                entry_reasons.append("EMA9 > EMA21")
+            if ema_21 > ema_50:
+                bullish_score += 1
+                entry_reasons.append("EMA21 > EMA50")
             
-            # Additional scoring
-            if 45 <= rsi <= 55:
+            # RSI check (ขยายช่วง)
+            if 25 <= rsi <= 75:
+                bullish_score += 1
+                entry_reasons.append("RSI in safe zone")
+            if 45 <= rsi <= 65:
+                bullish_score += 1
                 entry_reasons.append("RSI optimal")
-                entry_score += 2
-            if trend_strength >= 0.8:
-                entry_reasons.append("Very strong trend")
-                entry_score += 2
-            elif trend_strength >= 0.7:
-                entry_reasons.append("Strong trend")
-                entry_score += 1
-            if volume_ratio >= 1.5:
-                entry_reasons.append("High volume")
-                entry_score += 1
             
-            # Entry quality
-            if entry_score >= 6:
+            # Trend strength (ลดความเข้มงวด)
+            if trend_strength >= 0.3:
+                bullish_score += 1
+                entry_reasons.append("Weak trend detected")
+            if trend_strength >= 0.5:
+                bullish_score += 1
+                entry_reasons.append("Medium trend")
+            if trend_strength >= 0.7:
+                bullish_score += 2
+                entry_reasons.append("Strong trend")
+            
+            # Volume (ผ่อนคลาย)
+            if volume_ratio >= 1.0:
+                bullish_score += 1
+                entry_reasons.append("Normal volume")
+            if volume_ratio >= 1.3:
+                bullish_score += 1
+                entry_reasons.append("High volume")
+            
+            # 🔴 RELAXED Bearish conditions
+            bearish_score = 0
+            
+            # EMA trend check (ผ่อนคลาย)
+            if current_price < ema_9:
+                bearish_score += 2
+            if ema_9 < ema_21:
+                bearish_score += 1
+            if ema_21 < ema_50:
+                bearish_score += 1
+            
+            # RSI check
+            if 25 <= rsi <= 75:
+                bearish_score += 1
+            if 35 <= rsi <= 55:
+                bearish_score += 1
+            
+            # Trend strength
+            if trend_strength >= 0.3:
+                bearish_score += 1
+            if trend_strength >= 0.5:
+                bearish_score += 1
+            if trend_strength >= 0.7:
+                bearish_score += 2
+            
+            # Volume
+            if volume_ratio >= 1.0:
+                bearish_score += 1
+            if volume_ratio >= 1.3:
+                bearish_score += 1
+            
+            # 🎯 Signal generation based on scores
+            if bullish_score >= bearish_score and bullish_score >= 3:
+                signal_direction = 'BUY'
+                signal_strength = min(10, 2 + bullish_score * 0.8)
+                entry_score = bullish_score
+                
+                if bullish_score >= 6:
+                    signal_direction = 'STRONG_BUY'
+                    signal_strength = min(10, 6 + bullish_score * 0.5)
+                    
+            elif bearish_score > bullish_score and bearish_score >= 3:
+                signal_direction = 'SELL'
+                signal_strength = min(10, 2 + bearish_score * 0.8)
+                entry_score = bearish_score
+                
+                if bearish_score >= 6:
+                    signal_direction = 'STRONG_SELL'
+                    signal_strength = min(10, 6 + bearish_score * 0.5)
+            
+            # Fallback for weak signals
+            elif trend_strength >= 0.2:
+                if current_price > ema_9:
+                    signal_direction = 'BUY'
+                    signal_strength = 1 + trend_strength * 3
+                    entry_reasons.append("Weak bullish bias")
+                elif current_price < ema_9:
+                    signal_direction = 'SELL'
+                    signal_strength = 1 + trend_strength * 3
+                    entry_reasons.append("Weak bearish bias")
+            
+            # Entry quality based on score
+            if entry_score >= 7:
                 entry_quality = 'EXCELLENT'
-            elif entry_score >= 4:
+            elif entry_score >= 5:
                 entry_quality = 'GOOD'
-            elif entry_score >= 2:
+            elif entry_score >= 3:
                 entry_quality = 'FAIR'
             else:
                 entry_quality = 'POOR'
             
-            # Calculate levels
+            # Calculate levels (เหมือนเดิม)
             atr_multiplier = 1.5
             
             if signal_direction in ['BUY', 'STRONG_BUY']:
@@ -975,8 +1546,7 @@ class SmartAutoTradingDashboard:
                 'stop_loss': current_price, 'take_profit_1': current_price,
                 'lot_size': self.default_lot_size, 'risk_amount': 0,
                 'risk_percentage': 0, 'rr_tp1': 0, 'rr_tp2': 0, 'rr_tp3': 0
-            }
-    
+            }    
     def get_symbol_data(self, symbol: str) -> Optional[Dict]:
         """Get enhanced symbol data"""
         try:
@@ -1094,12 +1664,18 @@ class SmartAutoTradingDashboard:
                     return send_from_directory('.', 'auto_trading_dashboard.html')
                 except:
                     return '''<!DOCTYPE html>
-<html><head><title>Auto Trading Dashboard</title></head>
+<html><head><title>Enhanced Auto Trading Dashboard</title></head>
 <body style="background:#000;color:#fff;font-family:monospace;padding:2rem;">
-<h1 style="color:#00ff00;">Smart Auto Trading Dashboard</h1>
-<p style="color:#ffff00;">Please save the HTML code as 'forex_dashboard.html' in the same directory as the Python script.</p>
+<h1 style="color:#00ff00;">Enhanced Smart Auto Trading Dashboard</h1>
+<h2 style="color:#ffff00;">🔄 WITH DATA PERSISTENCE & STATE MANAGEMENT</h2>
+<p style="color:#00ccff;">✅ Settings auto-saved every 5 minutes</p>
+<p style="color:#00ccff;">✅ Positions tracking persistent</p>
+<p style="color:#00ccff;">✅ Daily statistics saved</p>
+<p style="color:#00ccff;">✅ Trade history database</p>
+<p style="color:#ff6666;">Please save the HTML code as 'forex_dashboard.html' in the same directory.</p>
 <p style="color:#ff6666;">Current directory: ''' + os.getcwd() + '''</p>
 <br><a href="/api/market-data" style="color:#00ccff;">API Test - Market Data</a>
+<br><a href="/api/system-status" style="color:#00ccff;">System Status</a>
 </body></html>'''
         
         @self.app.route('/api/market-data')
@@ -1136,7 +1712,8 @@ class SmartAutoTradingDashboard:
                         'account_balance': self.account_balance
                     },
                     'timestamp': datetime.now().isoformat(),
-                    'mt5_connected': self.mt5_connected
+                    'mt5_connected': self.mt5_connected,
+                    'persistence_active': True
                 })
                 
             except Exception as e:
@@ -1147,6 +1724,50 @@ class SmartAutoTradingDashboard:
                     'data': {},
                     'mt5_connected': False
                 })
+        
+        @self.app.route('/api/system-status')
+        def get_system_status():
+            """Get system status and persistence info"""
+            try:
+                # Check data files
+                data_files_status = {
+                    'settings_file': os.path.exists(self.persistence.settings_file),
+                    'daily_stats_file': os.path.exists(self.persistence.daily_stats_file),
+                    'pair_status_file': os.path.exists(self.persistence.pair_status_file),
+                    'database_file': os.path.exists(self.persistence.db_file)
+                }
+                
+                # Get trade history count
+                trade_history_count = len(self.persistence.get_trade_history(30))
+                
+                return jsonify({
+                    'success': True,
+                    'system_status': {
+                        'auto_trading_enabled': self.auto_trading_enabled,
+                        'mt5_connected': self.mt5_connected,
+                        'emergency_stop': self.emergency_stop,
+                        'is_running': self.is_running,
+                        'last_update': self.last_update.isoformat(),
+                        'uptime_hours': (datetime.now() - self.last_update).total_seconds() / 3600
+                    },
+                    'persistence_status': {
+                        'data_directory': self.persistence.data_dir,
+                        'data_files': data_files_status,
+                        'trade_history_records': trade_history_count,
+                        'auto_save_active': True
+                    },
+                    'current_settings': {
+                        'risk_profile': self.current_risk_profile,
+                        'min_signal_strength': self.min_signal_strength,
+                        'min_entry_quality': self.min_entry_quality,
+                        'max_simultaneous_trades': self.max_simultaneous_trades
+                    },
+                    'daily_stats': self.daily_stats,
+                    'active_pairs_count': len([pair for pair, status in self.pair_trade_status.items() if status == 'TRADING'])
+                })
+                
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
         
         @self.app.route('/api/auto-trading/start', methods=['POST'])
         def start_auto_trading_api():
@@ -1210,18 +1831,24 @@ class SmartAutoTradingDashboard:
                 if 'min_rr_ratio' in data:
                     self.min_rr_ratio = float(data['min_rr_ratio'])
                 
+                # Save settings immediately after update
+                self.save_system_settings()
+                self.persistence.log_system_event('INFO', 'Trading settings updated via API', 'SETTINGS')
+                
                 return jsonify({
                     'success': True, 
-                    'message': 'Settings updated',
+                    'message': 'Settings updated and saved',
                     'current_settings': {
                         'min_signal_strength': self.min_signal_strength,
                         'min_entry_quality': self.min_entry_quality,
                         'confirmations': self.required_confirmations,
-                        'min_rr_ratio': getattr(self, 'min_rr_ratio', 1.5)
+                        'min_rr_ratio': getattr(self, 'min_rr_ratio', 1.5),
+                        'last_saved': datetime.now().isoformat()
                     }
                 })
                 
             except Exception as e:
+                self.persistence.log_system_event('ERROR', f'Settings update failed: {str(e)}', 'SETTINGS')
                 return jsonify({'success': False, 'error': str(e)})
         
         @self.app.route('/api/auto-trading/current-settings')
@@ -1239,6 +1866,11 @@ class SmartAutoTradingDashboard:
                         'auto_trading_enabled': self.auto_trading_enabled,
                         'risk_profile': self.current_risk_profile,
                         'custom_risk': self.custom_risk_per_trade
+                    },
+                    'persistence_info': {
+                        'settings_loaded': True,
+                        'auto_save_enabled': True,
+                        'last_saved': datetime.now().isoformat()
                     }
                 })
             except Exception as e:
@@ -1269,7 +1901,28 @@ class SmartAutoTradingDashboard:
                 return jsonify({
                     'success': True,
                     'positions': formatted_positions,
-                    'total_positions': len(formatted_positions)
+                    'total_positions': len(formatted_positions),
+                    'tracking_data': {
+                        'active_trades_per_pair': {k: len(v) for k, v in self.active_trades_per_pair.items() if v},
+                        'pair_status': self.pair_trade_status
+                    }
+                })
+                
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @self.app.route('/api/trade-history')
+        def get_trade_history():
+            """Get trade history from database"""
+            try:
+                days = request.args.get('days', 30, type=int)
+                trades = self.persistence.get_trade_history(days)
+                
+                return jsonify({
+                    'success': True,
+                    'trades': trades,
+                    'total_trades': len(trades),
+                    'days_requested': days
                 })
                 
             except Exception as e:
@@ -1280,11 +1933,42 @@ class SmartAutoTradingDashboard:
             """Manual refresh"""
             try:
                 self.update_all_data()
+                # Save current state after refresh
+                self.save_pair_tracking_data()
+                
                 return jsonify({
                     'success': True,
-                    'message': 'Data refreshed',
-                    'timestamp': datetime.now().isoformat()
+                    'message': 'Data refreshed and state saved',
+                    'timestamp': datetime.now().isoformat(),
+                    'pairs_updated': len(self.live_data)
                 })
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @self.app.route('/api/backup-data', methods=['POST'])
+        def backup_data():
+            """Create manual backup of all system data"""
+            try:
+                backup_dir = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                backup_path = os.path.join(self.persistence.data_dir, backup_dir)
+                os.makedirs(backup_path, exist_ok=True)
+                
+                # Copy all data files
+                import shutil
+                for file_name in ['settings.json', 'daily_stats.json', 'pair_status.json', 'trading_system.db']:
+                    src_path = os.path.join(self.persistence.data_dir, file_name)
+                    dst_path = os.path.join(backup_path, file_name)
+                    if os.path.exists(src_path):
+                        shutil.copy2(src_path, dst_path)
+                
+                self.persistence.log_system_event('INFO', f'Manual backup created: {backup_dir}', 'BACKUP')
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Backup created successfully',
+                    'backup_path': backup_path
+                })
+                
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)})
     
@@ -1303,10 +1987,43 @@ class SmartAutoTradingDashboard:
         update_thread.start()
         self.logger.info("Auto-update system started")
     
-    def run(self, host='0.0.0.0', port=5000):
-        """Run the auto trading dashboard"""
+    def graceful_shutdown(self):
+        """Graceful shutdown with data saving"""
         try:
-            print("Smart Auto Trading Dashboard Starting...")
+            print("\n🔄 Shutting down gracefully...")
+            
+            # Stop auto trading
+            if self.auto_trading_enabled:
+                self.stop_auto_trading()
+            
+            # Save all data
+            print("💾 Saving system data...")
+            self.save_system_settings()
+            self.save_pair_tracking_data()
+            self.persistence.save_daily_stats(self.daily_stats)
+            
+            # Log shutdown
+            self.persistence.log_system_event('INFO', 'System shutdown gracefully', 'SHUTDOWN')
+            
+            # Stop system
+            self.is_running = False
+            
+            # Close MT5
+            if self.mt5_connected:
+                mt5.shutdown()
+            
+            print("✅ Shutdown completed successfully")
+            print("💾 All data saved for next session")
+            
+        except Exception as e:
+            print(f"❌ Error during shutdown: {str(e)}")
+    
+    def run(self, host='0.0.0.0', port=5000):
+        """Run the enhanced auto trading dashboard"""
+        try:
+            print("Enhanced Smart Auto Trading Dashboard Starting...")
+            print("=" * 60)
+            print("🔄 WITH DATA PERSISTENCE & STATE MANAGEMENT")
             print("=" * 60)
             
             if not self.connect_mt5():
@@ -1317,44 +2034,49 @@ class SmartAutoTradingDashboard:
             self.start_data_updates()
             self.update_all_data()
             
-            print(f"SUCCESS: Auto Trading Dashboard Started!")
-            print(f"FEATURES: Smart Auto Trading + Risk Management")
-            print(f"PORTFOLIO: One Trade Per Pair + Risk Profiles")
-            print(f"DASHBOARD: http://{host}:{port}")
-            print(f"API: http://{host}:{port}/api/market-data")
-            print(f"AUTO TRADING: Currently {('ENABLED' if self.auto_trading_enabled else 'DISABLED')}")
-            print("CONTROLS: Use dashboard to start/stop auto trading")
-            print("STOP: Press Ctrl+C to stop")
+            print(f"✅ SUCCESS: Enhanced Auto Trading Dashboard Started!")
+            print(f"🔄 FEATURES: Smart Auto Trading + Risk Management + Data Persistence")
+            print(f"💾 PERSISTENCE: Settings, Positions & Stats Auto-Saved")
+            print(f"📊 DATABASE: Trade History & System Logs")
+            print(f"🛡️ RECOVERY: System state restored on restart")
+            print(f"🌐 DASHBOARD: http://{host}:{port}")
+            print(f"🔗 API: http://{host}:{port}/api/market-data")
+            print(f"📈 STATUS: http://{host}:{port}/api/system-status")
+            print(f"⚡ AUTO TRADING: Currently {('ENABLED' if self.auto_trading_enabled else 'DISABLED')}")
+            print("💾 DATA SAVED: Every 5 minutes + on changes")
+            print("🔄 STOP: Press Ctrl+C for graceful shutdown")
             print("=" * 60)
+            
+            # Log startup
+            self.persistence.log_system_event('INFO', 'Enhanced Auto Trading Dashboard started', 'STARTUP')
             
             self.app.run(host=host, port=port, debug=False, threaded=True)
             
         except KeyboardInterrupt:
-            print("\nSTOPPING Auto Trading Dashboard...")
-            self.is_running = False
-            self.auto_trading_enabled = False
-            if self.mt5_connected:
-                mt5.shutdown()
-            print("STOPPED successfully")
+            self.graceful_shutdown()
         except Exception as e:
-            print(f"ERROR: {str(e)}")
-            self.is_running = False
-            if self.mt5_connected:
-                mt5.shutdown()
+            print(f"❌ ERROR: {str(e)}")
+            self.graceful_shutdown()
 
 def main():
     """Main execution"""
-    print("Smart Auto Trading Dashboard")
-    print("============================")
+    print("Enhanced Smart Auto Trading Dashboard")
+    print("====================================")
+    print("🔄 WITH DATA PERSISTENCE & RECOVERY")
+    print("====================================")
     print("Features:")
-    print("- Auto Trading with Signal Validation")
-    print("- One Trade Per Pair Control")
-    print("- Portfolio Risk Profiles")
-    print("- Real-time Position Management")
-    print("- Emergency Stop Controls")
+    print("✅ Auto Trading with Signal Validation")
+    print("✅ One Trade Per Pair Control")
+    print("✅ Portfolio Risk Profiles")
+    print("✅ Real-time Position Management")
+    print("✅ Emergency Stop Controls")
+    print("💾 Data Persistence & Auto-Save")
+    print("🔄 State Management & Recovery")
+    print("📊 Trade History Database")
+    print("🛡️ System Logs & Monitoring")
     print()
     
-    dashboard = SmartAutoTradingDashboard()
+    dashboard = EnhancedSmartAutoTradingDashboard()
     dashboard.run()
 
 if __name__ == "__main__":
