@@ -21,6 +21,14 @@ from typing import Dict, List, Optional, Tuple
 import warnings
 from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
+try:
+    from advanced_features import AdvancedTradingIntegrator, MarketRegime
+    ADVANCED_FEATURES_AVAILABLE = True
+    print("✅ Advanced Trading Features Loaded Successfully!")
+except ImportError as e:
+    print(f"⚠️ Advanced features not available: {str(e)}")
+    print("📋 Using standard trading system...")
+    ADVANCED_FEATURES_AVAILABLE = False
 
 class DataPersistenceManager:
     """จัดการการบันทึกและโหลดข้อมูลระบบ"""
@@ -370,6 +378,21 @@ class EnhancedSmartAutoTradingDashboard:
         self.emergency_stop = False
         
         self.setup_logging()
+        if ADVANCED_FEATURES_AVAILABLE:
+            try:
+                self.advanced_integrator = AdvancedTradingIntegrator()
+                self.use_advanced_features = True
+                print("🚀 Advanced Trading Features Activated!")
+                print("   - Market Regime Detection: ON")
+                print("   - Enhanced Signal Scoring: ON")
+                print("   - Dynamic Position Sizing: ON")
+            except Exception as e:
+                print(f"❌ Error initializing advanced features: {str(e)}")
+                self.use_advanced_features = False
+        else:
+            self.use_advanced_features = False
+            print("📋 Using standard trading features")
+
         self.setup_routes()
         
         # Auto-save timer
@@ -983,6 +1006,43 @@ class EnhancedSmartAutoTradingDashboard:
                 else:
                     validation_result['confidence_level'] = 'LOW'
                 
+                if self.use_advanced_features and 'enhanced_strength' in signal_data:
+                    enhanced_strength = signal_data.get('enhanced_strength', 0)
+                    enhanced_quality = signal_data.get('enhanced_quality', 'POOR')
+                    market_regime = signal_data.get('market_regime', 'UNKNOWN')
+                
+                # Enhanced strength check
+                if enhanced_strength >= 7.0:
+                    validation_result['confirmations'].append(f'Excellent enhanced strength: {enhanced_strength}')
+                    validation_result['score'] += 2
+                elif enhanced_strength >= 5.0:
+                    validation_result['confirmations'].append(f'Good enhanced strength: {enhanced_strength}')
+                    validation_result['score'] += 1
+                elif enhanced_strength < 3.0:
+                    validation_result['issues'].append(f'Poor enhanced strength: {enhanced_strength}')
+                
+                # Market regime check
+                if market_regime in ['TRENDING_BULLISH', 'TRENDING_BEARISH']:
+                    validation_result['confirmations'].append(f'Favorable market regime: {market_regime}')
+                    validation_result['score'] += 1
+                elif market_regime == 'HIGH_VOLATILITY':
+                    validation_result['issues'].append('High volatility regime - risky')
+                elif market_regime == 'LOW_VOLATILITY':
+                    validation_result['issues'].append('Low volatility regime - limited movement')
+                
+                # Enhanced quality check
+                if enhanced_quality == 'EXCELLENT':
+                    validation_result['confirmations'].append('Excellent signal quality')
+                    validation_result['score'] += 1
+                elif enhanced_quality == 'POOR':
+                    validation_result['issues'].append('Poor signal quality')
+                
+                print(f"🔍 Advanced Validation for {symbol}:")
+                print(f"   Enhanced Strength: {enhanced_strength}")
+                print(f"   Market Regime: {market_regime}")
+                print(f"   Enhanced Quality: {enhanced_quality}")
+                print(f"   Final Score: {validation_result['score']}")
+
                 return validation_result
                 
             except Exception as e:
@@ -1743,84 +1803,142 @@ class EnhancedSmartAutoTradingDashboard:
             }    
             
     def get_symbol_data(self, symbol: str) -> Optional[Dict]:
-        """Get enhanced symbol data"""
-        try:
-            if not self.mt5_connected:
+            """Get enhanced symbol data with advanced features"""
+            try:
+                if not self.mt5_connected:
+                    return None
+                
+                tick = mt5.symbol_info_tick(symbol)
+                if tick is None:
+                    return None
+                
+                current_price = tick.bid
+                
+                # Get multi-timeframe data
+                rates_h4 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 100)
+                rates_h1 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 100)
+                rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 100)
+                rates_m5 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 100)
+                
+                if any(rates is None for rates in [rates_h4, rates_h1, rates_m15, rates_m5]):
+                    return None
+                
+                # Convert to DataFrames
+                df_h4 = pd.DataFrame(rates_h4)
+                df_h1 = pd.DataFrame(rates_h1)
+                df_m15 = pd.DataFrame(rates_m15)
+                df_m5 = pd.DataFrame(rates_m5)
+                
+                # Calculate indicators and basic analysis
+                indicators = self.calculate_indicators(df_h1)
+                basic_entry_exit_analysis = self.analyze_entry_exit_points(indicators, current_price, symbol)
+                
+                # 🚀 ENHANCED ANALYSIS (ใหม่!)
+                if self.use_advanced_features:
+                    try:
+                        # Prepare timeframe data for advanced analysis
+                        timeframe_data = {
+                            'H4': df_h4,
+                            'H1': df_h1,
+                            'M15': df_m15,
+                            'M5': df_m5
+                        }
+                        
+                        # Add account balance to signal data
+                        basic_entry_exit_analysis['account_balance'] = self.account_balance
+                        
+                        # Get enhanced analysis
+                        enhanced_analysis = self.advanced_integrator.enhance_signal_analysis(
+                            symbol, basic_entry_exit_analysis, timeframe_data
+                        )
+                        
+                        # Use enhanced results
+                        entry_exit_analysis = enhanced_analysis
+                        
+                        print(f"🔥 Enhanced Analysis for {symbol}:")
+                        print(f"   Signal: {enhanced_analysis.get('signal', 'NONE')} -> Enhanced Strength: {enhanced_analysis.get('enhanced_strength', 0)}")
+                        print(f"   Market Regime: {enhanced_analysis.get('market_regime', 'UNKNOWN')}")
+                        print(f"   Enhanced Quality: {enhanced_analysis.get('enhanced_quality', 'POOR')}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ Enhanced analysis failed for {symbol}: {str(e)}")
+                        print("📋 Falling back to standard analysis")
+                        entry_exit_analysis = basic_entry_exit_analysis
+                else:
+                    entry_exit_analysis = basic_entry_exit_analysis
+                
+                # Multi-timeframe prices
+                h4_price = rates_h4[-1]['close'] if len(rates_h4) > 0 else current_price
+                h1_price = rates_h1[-1]['close'] if len(rates_h1) > 0 else current_price
+                m15_price = rates_m15[-1]['close'] if len(rates_m15) > 0 else current_price
+                m5_price = rates_m5[-1]['close'] if len(rates_m5) > 0 else current_price
+                
+                # Price change
+                previous_price = df_h1['close'].iloc[-2] if len(df_h1) > 1 else current_price
+                price_change = current_price - previous_price
+                change_percent = (price_change / previous_price) * 100 if previous_price > 0 else 0
+                
+                # Spread
+                spread = tick.ask - tick.bid
+                spread_pips = spread * (10000 if 'JPY' not in symbol else 100)
+                
+                # Trading status for this pair
+                pair_status = self.check_pair_trading_status(symbol)
+                
+                # Build result
+                result = {
+                    'symbol': symbol,
+                    'h4': round(h4_price, 5),
+                    'h1': round(h1_price, 5),
+                    'm15': round(m15_price, 5),
+                    'm5': round(m5_price, 5),
+                    'current_price': round(current_price, 5),
+                    'price_change': round(price_change, 5),
+                    'change_percent': round(change_percent, 3),
+                    'price_direction': 'up' if m5_price > m15_price else 'down',
+                    'bid': tick.bid,
+                    'ask': tick.ask,
+                    'spread_pips': round(spread_pips, 1),
+                    
+                    # Technical indicators
+                    'rsi': round(indicators.get('rsi', 50), 1),
+                    'macd': round(indicators.get('macd', 0), 6),
+                    'atrPercent': round(indicators.get('atr_percent', 0), 3),
+                    'trendStrength': round(indicators.get('trend_strength', 0), 3),
+                    'volumeRatio': round(indicators.get('volume_ratio', 1), 2),
+                    
+                    # Trading signals and analysis (enhanced or basic)
+                    **entry_exit_analysis,
+                    
+                    # Auto trading info
+                    'pair_status': pair_status,
+                    'can_trade': pair_status['can_trade'],
+                    'active_trades': len(self.active_trades_per_pair.get(symbol, [])),
+                    
+                    'last_update': datetime.now().isoformat()
+                }
+                
+                # Add advanced info if available
+                if self.use_advanced_features and 'market_regime' in entry_exit_analysis:
+                    result.update({
+                        'advanced_features': True,
+                        'market_regime': entry_exit_analysis.get('market_regime', 'UNKNOWN'),
+                        'regime_confidence': entry_exit_analysis.get('regime_confidence', 0),
+                        'enhanced_strength': entry_exit_analysis.get('enhanced_strength', 0),
+                        'enhanced_quality': entry_exit_analysis.get('enhanced_quality', 'POOR'),
+                        'enhanced_lot_size': entry_exit_analysis.get('enhanced_lot_size', 0.01),
+                        'volatility_percentile': entry_exit_analysis.get('volatility_percentile', 50)
+                    })
+                else:
+                    result['advanced_features'] = False
+                
+                return result
+                
+            except Exception as e:
+                self.logger.error(f"Error getting enhanced data for {symbol}: {str(e)}")
                 return None
-            
-            tick = mt5.symbol_info_tick(symbol)
-            if tick is None:
-                return None
-            
-            current_price = tick.bid
-            
-            # Get multi-timeframe data
-            rates_h4 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 100)
-            rates_h1 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 100)
-            rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 100)
-            rates_m5 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 100)
-            
-            if any(rates is None for rates in [rates_h4, rates_h1, rates_m15, rates_m5]):
-                return None
-            
-            df_h1 = pd.DataFrame(rates_h1)
-            indicators = self.calculate_indicators(df_h1)
-            entry_exit_analysis = self.analyze_entry_exit_points(indicators, current_price, symbol)
-            
-            # Multi-timeframe prices
-            h4_price = rates_h4[-1]['close'] if len(rates_h4) > 0 else current_price
-            h1_price = rates_h1[-1]['close'] if len(rates_h1) > 0 else current_price
-            m15_price = rates_m15[-1]['close'] if len(rates_m15) > 0 else current_price
-            m5_price = rates_m5[-1]['close'] if len(rates_m5) > 0 else current_price
-            
-            # Price change
-            previous_price = df_h1['close'].iloc[-2] if len(df_h1) > 1 else current_price
-            price_change = current_price - previous_price
-            change_percent = (price_change / previous_price) * 100 if previous_price > 0 else 0
-            
-            # Spread
-            spread = tick.ask - tick.bid
-            spread_pips = spread * (10000 if 'JPY' not in symbol else 100)
-            
-            # Trading status for this pair
-            pair_status = self.check_pair_trading_status(symbol)
-            
-            return {
-                'symbol': symbol,
-                'h4': round(h4_price, 5),
-                'h1': round(h1_price, 5),
-                'm15': round(m15_price, 5),
-                'm5': round(m5_price, 5),
-                'current_price': round(current_price, 5),
-                'price_change': round(price_change, 5),
-                'change_percent': round(change_percent, 3),
-                'price_direction': 'up' if m5_price > m15_price else 'down',
-                'bid': tick.bid,
-                'ask': tick.ask,
-                'spread_pips': round(spread_pips, 1),
-                
-                # Technical indicators
-                'rsi': round(indicators.get('rsi', 50), 1),
-                'macd': round(indicators.get('macd', 0), 6),
-                'atrPercent': round(indicators.get('atr_percent', 0), 3),
-                'trendStrength': round(indicators.get('trend_strength', 0), 3),
-                'volumeRatio': round(indicators.get('volume_ratio', 1), 2),
-                
-                # Trading signals and analysis
-                **entry_exit_analysis,
-                
-                # Auto trading info
-                'pair_status': pair_status,
-                'can_trade': pair_status['can_trade'],
-                'active_trades': len(self.active_trades_per_pair.get(symbol, [])),
-                
-                'last_update': datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error getting data for {symbol}: {str(e)}")
-            return None
-    
+
+
     def update_all_data(self):
         """Update all symbols data"""
         try:
@@ -2188,6 +2306,78 @@ class EnhancedSmartAutoTradingDashboard:
                         'success': False,
                         'error': 'Enhanced signal engine not available'
                     })
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        self.app.route('/api/advanced-features-status')
+        def get_advanced_features_status():
+            """Get advanced features status"""
+            return jsonify({
+                'success': True,
+                'advanced_features_available': ADVANCED_FEATURES_AVAILABLE,
+                'advanced_features_active': self.use_advanced_features,
+                'features': {
+                    'market_regime_detection': self.use_advanced_features,
+                    'enhanced_signal_scoring': self.use_advanced_features,
+                    'dynamic_position_sizing': self.use_advanced_features
+                },
+                'message': 'Advanced features active' if self.use_advanced_features else 'Using standard features'
+            })
+        
+        @self.app.route('/api/market-regime/<symbol>')
+        def get_market_regime(symbol):
+            """Get market regime for specific symbol"""
+            if not self.use_advanced_features:
+                return jsonify({
+                    'success': False,
+                    'error': 'Advanced features not available'
+                })
+            
+            try:
+                # Get current data for the symbol
+                symbol_data = self.live_data.get(symbol, {})
+                
+                return jsonify({
+                    'success': True,
+                    'symbol': symbol,
+                    'market_regime': symbol_data.get('market_regime', 'UNKNOWN'),
+                    'regime_confidence': symbol_data.get('regime_confidence', 0),
+                    'trend_strength': symbol_data.get('trend_strength', 0),
+                    'volatility_percentile': symbol_data.get('volatility_percentile', 50),
+                    'enhanced_strength': symbol_data.get('enhanced_strength', 0),
+                    'enhanced_quality': symbol_data.get('enhanced_quality', 'POOR')
+                })
+                
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        @self.app.route('/api/toggle-advanced-features', methods=['POST'])
+        def toggle_advanced_features():
+            """Toggle advanced features on/off"""
+            if not ADVANCED_FEATURES_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'error': 'Advanced features module not available'
+                })
+            
+            try:
+                self.use_advanced_features = not self.use_advanced_features
+                
+                status = 'ENABLED' if self.use_advanced_features else 'DISABLED'
+                self.logger.info(f"Advanced features {status}")
+                
+                return jsonify({
+                    'success': True,
+                    'advanced_features_active': self.use_advanced_features,
+                    'message': f'Advanced features {status}'
+                })
+                
             except Exception as e:
                 return jsonify({
                     'success': False,
