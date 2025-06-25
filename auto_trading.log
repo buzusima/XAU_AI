@@ -1,0 +1,331 @@
+2025-06-25 12:15:17,502 - INFO - MT5 Connected Successfully!
+2025-06-25 12:15:17,551 - INFO - Account: 406429
+2025-06-25 12:15:17,553 - INFO - Balance: $3,801.76
+2025-06-25 12:15:17,553 - INFO - Available Pairs: 28
+2025-06-25 12:15:17,559 - INFO - Found existing position: GBPUSD.c Ticket: 32875545
+2025-06-25 12:15:17,561 - INFO - Found existing position: USDCHF.c Ticket: 32954807
+2025-06-25 12:15:17,562 - INFO - Found existing position: NZDCHF.c Ticket: 32963665
+2025-06-25 12:15:17,564 - INFO - Found existing position: GBPAUD.c Ticket: 32973788
+2025-06-25 12:15:17,614 - INFO - Found existing position: AUDCAD.c Ticket: 33027132
+2025-06-25 12:15:17,621 - INFO - Found existing position: EURCHF.c Ticket: 33027133
+2025-06-25 12:15:17,621 - INFO - Found existing position: EURUSD.c Ticket: 33027134
+2025-06-25 12:15:17,622 - INFO - Found existing position: NZDJPY.c Ticket: 33027135
+2025-06-25 12:15:17,622 - INFO - Found existing position: EURCAD.c Ticket: 33027136
+2025-06-25 12:15:17,623 - INFO - Found existing position: GBPCAD.c Ticket: 33027137
+2025-06-25 12:15:17,623 - INFO - Found existing position: CHFJPY.c Ticket: 33027139
+2025-06-25 12:15:17,624 - INFO - Found existing position: NZDCAD.c Ticket: 33027140
+2025-06-25 12:15:17,628 - INFO - Position verification completed. Active positions: 12
+2025-06-25 12:15:17,687 - INFO - Auto-update system started
+2025-06-25 12:15:17,949 - INFO -  ENHANCED SIGNAL: EURUSD.c
+2025-06-25 12:15:18,038 - INFO -  ENHANCED SIGNAL: EURUSD.c
+2025-06-25 12:15:18,063 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:18,064 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:18,066 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:18,067 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:18,067 - INFO -    Timeframes: 4
+2025-06-25 12:15:18,068 - INFO -    Timeframes: 4
+2025-06-25 12:15:18,068 - INFO -    Risk Factors: 2
+2025-06-25 12:15:18,068 - INFO -    Risk Factors: 2
+2025-06-25 12:15:18,419 - INFO -  Enhanced Analysis for EURUSD.c: Signal: BUY -> Enhanced Strength: 5.04
+2025-06-25 12:15:18,787 - INFO -  Enhanced Analysis for EURUSD.c: Signal: BUY -> Enhanced Strength: 5.81
+2025-06-25 12:15:19,114 - INFO -  ENHANCED SIGNAL: GBPUSD.c
+2025-06-25 12:15:19,145 - INFO -  ENHANCED SIGNAL: GBPUSD.c
+2025-06-25 12:15:19,145 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:19,145 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:19,145 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:19,145 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:19,145 - INFO -    Timeframes: 4
+2025-06-25 12:15:19,145 - INFO -    Timeframes: 4
+2025-06-25 12:15:19,145 - INFO -    Risk Factors: 2
+2025-06-25 12:15:19,145 - INFO -    Risk Factors: 2
+2025-06-25 12:15:19,553 - INFO -  Enhanced Analysis for GBPUSD.c: Signal: BUY -> Enhanced Strength: 5.42
+2025-06-25 12:15:19,703 - INFO -  Enhanced Analysis for GBPUSD.c: Signal: BUY -> Enhanced Strength: 5.42
+2025-06-25 12:15:20,524 - INFO -  Enhanced Analysis for USDJPY.c: Signal: NONE -> Enhanced Strength: 2.35
+2025-06-25 12:15:20,527 - INFO -  Enhanced Analysis for USDJPY.c: Signal: NONE -> Enhanced Strength: 2.18
+2025-06-25 12:15:20,823 - INFO -  ENHANCED SIGNAL: USDCHF.c
+2025-06-25 12:15:20,861 - INFO -  ENHANCED SIGNAL: USDCHF.c
+2025-06-25 12:15:20,863 - INFO -    Signal: WEAK_SELL | Strength: 2.4/10
+2025-06-25 12:15:20,863 - INFO -    Signal: WEAK_SELL | Strength: 2.4/10
+2025-06-25 12:15:20,866 - INFO -    Quality: GOOD | Confluence: -4.0
+2025-06-25 12:15:20,866 - INFO -    Quality: GOOD | Confluence: -4.0
+2025-06-25 12:15:20,867 - INFO -    Timeframes: 4
+2025-06-25 12:15:20,870 - INFO -    Timeframes: 4
+2025-06-25 12:15:20,873 - INFO -    Risk Factors: 2
+2025-06-25 12:15:21,154 - INFO -  Enhanced Analysis for USDCHF.c: Signal: WEAK_SELL -> Enhanced Strength: 4.13
+2025-06-25 12:15:21,154 - INFO -    Risk Factors: 2
+2025-06-25 12:15:21,638 - INFO -  Enhanced Analysis for USDCHF.c: Signal: WEAK_SELL -> Enhanced Strength: 4.13
+2025-06-25 12:15:21,831 - INFO -  ENHANCED SIGNAL: AUDUSD.c
+2025-06-25 12:15:21,834 - INFO -  ENHANCED SIGNAL: AUDUSD.c
+2025-06-25 12:15:21,848 - INFO -    Signal: WEAK_BUY | Strength: 2.4/10
+2025-06-25 12:15:21,848 - INFO -    Quality: GOOD | Confluence: 4.0
+2025-06-25 12:15:21,848 - INFO -    Timeframes: 4
+2025-06-25 12:15:21,848 - INFO -    Risk Factors: 2
+2025-06-25 12:15:22,120 - INFO -    Signal: WEAK_BUY | Strength: 2.4/10
+2025-06-25 12:15:22,189 - INFO -  Enhanced Analysis for AUDUSD.c: Signal: WEAK_BUY -> Enhanced Strength: 2.18
+2025-06-25 12:15:22,197 - INFO -    Quality: GOOD | Confluence: 4.0
+2025-06-25 12:15:22,198 - INFO -    Timeframes: 4
+2025-06-25 12:15:22,199 - INFO -    Risk Factors: 2
+2025-06-25 12:15:22,575 - INFO -  ENHANCED SIGNAL: NZDUSD.c
+2025-06-25 12:15:22,627 - INFO -    Signal: BUY | Strength: 4.8999999999999995/10
+2025-06-25 12:15:22,654 - INFO -  Enhanced Analysis for AUDUSD.c: Signal: WEAK_BUY -> Enhanced Strength: 2.74
+2025-06-25 12:15:22,708 - INFO -    Quality: EXCELLENT | Confluence: 6.0
+2025-06-25 12:15:22,711 - INFO -    Timeframes: 4
+2025-06-25 12:15:22,711 - INFO -    Risk Factors: 2
+2025-06-25 12:15:22,846 - INFO -  ENHANCED SIGNAL: NZDUSD.c
+2025-06-25 12:15:23,051 - INFO -    Signal: BUY | Strength: 4.8999999999999995/10
+2025-06-25 12:15:23,111 - INFO -  Enhanced Analysis for NZDUSD.c: Signal: BUY -> Enhanced Strength: 2.69
+2025-06-25 12:15:23,127 - INFO -    Quality: EXCELLENT | Confluence: 6.0
+2025-06-25 12:15:23,273 - INFO -    Timeframes: 4
+2025-06-25 12:15:23,283 - INFO -    Risk Factors: 2
+2025-06-25 12:15:23,387 - INFO -  ENHANCED SIGNAL: USDCAD.c
+2025-06-25 12:15:23,900 - INFO -  Enhanced Analysis for NZDUSD.c: Signal: BUY -> Enhanced Strength: 2.69
+2025-06-25 12:15:23,904 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:23,906 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:23,906 - INFO -    Timeframes: 4
+2025-06-25 12:15:23,908 - INFO -    Risk Factors: 2
+2025-06-25 12:15:24,148 - INFO -  ENHANCED SIGNAL: USDCAD.c
+2025-06-25 12:15:24,231 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:24,263 - INFO -  Enhanced Analysis for USDCAD.c: Signal: BUY -> Enhanced Strength: 5.89
+2025-06-25 12:15:24,319 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:24,323 - INFO -    Timeframes: 4
+2025-06-25 12:15:24,323 - INFO -    Risk Factors: 2
+2025-06-25 12:15:24,691 - INFO -  Enhanced Analysis for USDCAD.c: Signal: BUY -> Enhanced Strength: 2.32
+2025-06-25 12:15:24,755 - INFO -  ENHANCED SIGNAL: EURGBP.c
+2025-06-25 12:15:24,755 - INFO -    Signal: WEAK_SELL | Strength: 2.2/10
+2025-06-25 12:15:24,755 - INFO -    Quality: FAIR | Confluence: -1.2
+2025-06-25 12:15:24,755 - INFO -    Timeframes: 4
+2025-06-25 12:15:24,755 - INFO -    Risk Factors: 2
+2025-06-25 12:15:24,962 - INFO -  ENHANCED SIGNAL: EURGBP.c
+2025-06-25 12:15:25,055 - INFO -  Enhanced Analysis for EURGBP.c: Signal: WEAK_SELL -> Enhanced Strength: 2.13
+2025-06-25 12:15:25,066 - INFO -    Signal: WEAK_SELL | Strength: 2.2/10
+2025-06-25 12:15:25,076 - INFO -    Quality: FAIR | Confluence: -1.2
+2025-06-25 12:15:25,076 - INFO -    Timeframes: 4
+2025-06-25 12:15:25,133 - INFO -    Risk Factors: 2
+2025-06-25 12:15:25,445 - INFO -  ENHANCED SIGNAL: EURJPY.c
+2025-06-25 12:15:25,565 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:25,580 - INFO -  Enhanced Analysis for EURGBP.c: Signal: WEAK_SELL -> Enhanced Strength: 2.13
+2025-06-25 12:15:25,580 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:25,639 - INFO -    Timeframes: 4
+2025-06-25 12:15:25,639 - INFO -    Risk Factors: 2
+2025-06-25 12:15:26,021 - INFO -  Enhanced Analysis for EURJPY.c: Signal: BUY -> Enhanced Strength: 5.51
+2025-06-25 12:15:26,031 - INFO -  ENHANCED SIGNAL: EURJPY.c
+2025-06-25 12:15:26,036 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:26,036 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:26,037 - INFO -    Timeframes: 4
+2025-06-25 12:15:26,038 - INFO -    Risk Factors: 2
+2025-06-25 12:15:26,396 - INFO -  ENHANCED SIGNAL: EURCHF.c
+2025-06-25 12:15:26,510 - INFO -    Signal: WEAK_SELL | Strength: 2.9/10
+2025-06-25 12:15:26,531 - INFO -    Quality: GOOD | Confluence: -5.2
+2025-06-25 12:15:26,605 - INFO -  Enhanced Analysis for EURJPY.c: Signal: BUY -> Enhanced Strength: 5.89
+2025-06-25 12:15:26,607 - INFO -    Timeframes: 4
+2025-06-25 12:15:26,611 - INFO -    Risk Factors: 2
+2025-06-25 12:15:26,789 - INFO -  ENHANCED SIGNAL: EURCHF.c
+2025-06-25 12:15:26,908 - INFO -    Signal: WEAK_SELL | Strength: 2.9/10
+2025-06-25 12:15:26,974 - INFO -  Enhanced Analysis for EURCHF.c: Signal: WEAK_SELL -> Enhanced Strength: 4.96
+2025-06-25 12:15:26,983 - INFO -    Quality: GOOD | Confluence: -5.2
+2025-06-25 12:15:26,985 - INFO -    Timeframes: 4
+2025-06-25 12:15:26,986 - INFO -    Risk Factors: 2
+2025-06-25 12:15:27,285 - INFO -  ENHANCED SIGNAL: EURAUD.c
+2025-06-25 12:15:27,377 - INFO -    Signal: BUY | Strength: 6.58/10
+2025-06-25 12:15:27,544 - INFO -  Enhanced Analysis for EURCHF.c: Signal: WEAK_SELL -> Enhanced Strength: 4.96
+2025-06-25 12:15:27,549 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:27,562 - INFO -    Timeframes: 4
+2025-06-25 12:15:27,562 - INFO -    Risk Factors: 2
+2025-06-25 12:15:27,690 - INFO -  ENHANCED SIGNAL: EURAUD.c
+2025-06-25 12:15:27,865 - INFO -    Signal: BUY | Strength: 6.58/10
+2025-06-25 12:15:27,935 - INFO -  Enhanced Analysis for EURAUD.c: Signal: BUY -> Enhanced Strength: 5.97
+2025-06-25 12:15:28,005 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:28,008 - INFO -    Timeframes: 4
+2025-06-25 12:15:28,008 - INFO -    Risk Factors: 2
+2025-06-25 12:15:28,354 - INFO -  ENHANCED SIGNAL: EURNZD.c
+2025-06-25 12:15:28,445 - INFO -    Signal: WEAK_SELL | Strength: 2.3/10
+2025-06-25 12:15:28,504 - INFO -  Enhanced Analysis for EURAUD.c: Signal: BUY -> Enhanced Strength: 5.97
+2025-06-25 12:15:28,509 - INFO -    Quality: GOOD | Confluence: -3.7
+2025-06-25 12:15:28,513 - INFO -    Timeframes: 4
+2025-06-25 12:15:28,513 - INFO -    Risk Factors: 3
+2025-06-25 12:15:28,645 - INFO -  ENHANCED SIGNAL: EURNZD.c
+2025-06-25 12:15:28,839 - INFO -    Signal: WEAK_SELL | Strength: 2.3/10
+2025-06-25 12:15:28,892 - INFO -  Enhanced Analysis for EURNZD.c: Signal: WEAK_SELL -> Enhanced Strength: 2.51
+2025-06-25 12:15:28,917 - INFO -    Quality: GOOD | Confluence: -3.7
+2025-06-25 12:15:28,919 - INFO -    Timeframes: 4
+2025-06-25 12:15:28,919 - INFO -    Risk Factors: 3
+2025-06-25 12:15:29,404 - INFO -  ENHANCED SIGNAL: EURCAD.c
+2025-06-25 12:15:29,527 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:29,614 - INFO -  Enhanced Analysis for EURNZD.c: Signal: WEAK_SELL -> Enhanced Strength: 2.14
+2025-06-25 12:15:29,685 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:29,688 - INFO -    Timeframes: 4
+2025-06-25 12:15:29,689 - INFO -    Risk Factors: 2
+2025-06-25 12:15:29,813 - INFO -  ENHANCED SIGNAL: EURCAD.c
+2025-06-25 12:15:29,989 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:30,025 - INFO -  Enhanced Analysis for EURCAD.c: Signal: BUY -> Enhanced Strength: 5.81
+2025-06-25 12:15:30,095 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:30,102 - INFO -    Timeframes: 4
+2025-06-25 12:15:30,102 - INFO -    Risk Factors: 2
+2025-06-25 12:15:30,457 - INFO -  ENHANCED SIGNAL: GBPJPY.c
+2025-06-25 12:15:30,561 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:30,577 - INFO -  Enhanced Analysis for EURCAD.c: Signal: BUY -> Enhanced Strength: 5.81
+2025-06-25 12:15:30,643 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:30,645 - INFO -    Timeframes: 4
+2025-06-25 12:15:30,646 - INFO -    Risk Factors: 3
+2025-06-25 12:15:30,793 - INFO -  ENHANCED SIGNAL: GBPJPY.c
+2025-06-25 12:15:30,951 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:31,041 - INFO -  Enhanced Analysis for GBPJPY.c: Signal: BUY -> Enhanced Strength: 1.74
+2025-06-25 12:15:31,042 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:31,051 - INFO -    Timeframes: 4
+2025-06-25 12:15:31,053 - INFO -    Risk Factors: 3
+2025-06-25 12:15:31,387 - INFO -  ENHANCED SIGNAL: GBPCHF.c
+2025-06-25 12:15:31,458 - INFO -    Signal: SELL | Strength: 6.86/10
+2025-06-25 12:15:31,500 - INFO -  Enhanced Analysis for GBPJPY.c: Signal: BUY -> Enhanced Strength: 1.74
+2025-06-25 12:15:31,846 - INFO -    Quality: EXCELLENT | Confluence: -10
+2025-06-25 12:15:31,936 - INFO -    Timeframes: 4
+2025-06-25 12:15:31,936 - INFO -    Risk Factors: 3
+2025-06-25 12:15:32,177 - INFO -  ENHANCED SIGNAL: GBPCHF.c
+2025-06-25 12:15:32,249 - INFO -    Signal: SELL | Strength: 6.86/10
+2025-06-25 12:15:32,287 - INFO -  Enhanced Analysis for GBPCHF.c: Signal: SELL -> Enhanced Strength: 2.38
+2025-06-25 12:15:32,340 - INFO -    Quality: EXCELLENT | Confluence: -10
+2025-06-25 12:15:32,407 - INFO -    Timeframes: 4
+2025-06-25 12:15:32,475 - INFO -    Risk Factors: 3
+2025-06-25 12:15:32,628 - INFO -  ENHANCED SIGNAL: GBPAUD.c
+2025-06-25 12:15:32,859 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:32,978 - INFO -  Enhanced Analysis for GBPCHF.c: Signal: SELL -> Enhanced Strength: 2.38
+2025-06-25 12:15:33,001 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:33,055 - INFO -    Timeframes: 4
+2025-06-25 12:15:33,055 - INFO -    Risk Factors: 3
+2025-06-25 12:15:33,238 - INFO -  ENHANCED SIGNAL: GBPAUD.c
+2025-06-25 12:15:33,377 - INFO -    Signal: BUY | Strength: 5.88/10
+2025-06-25 12:15:33,415 - INFO -  Enhanced Analysis for GBPAUD.c: Signal: BUY -> Enhanced Strength: 2.32
+2025-06-25 12:15:33,521 - INFO -    Quality: EXCELLENT | Confluence: 8.8
+2025-06-25 12:15:33,528 - INFO -    Timeframes: 4
+2025-06-25 12:15:33,528 - INFO -    Risk Factors: 3
+2025-06-25 12:15:33,903 - INFO -  ENHANCED SIGNAL: GBPNZD.c
+2025-06-25 12:15:33,961 - INFO -    Signal: WEAK_BUY | Strength: 3.8/10
+2025-06-25 12:15:34,104 - INFO -  Enhanced Analysis for GBPAUD.c: Signal: BUY -> Enhanced Strength: 2.32
+2025-06-25 12:15:34,108 - INFO -    Quality: FAIR | Confluence: 2.8
+2025-06-25 12:15:34,112 - INFO -    Timeframes: 4
+2025-06-25 12:15:34,113 - INFO -    Risk Factors: 3
+2025-06-25 12:15:34,237 - INFO -  ENHANCED SIGNAL: GBPNZD.c
+2025-06-25 12:15:34,493 - INFO -    Signal: WEAK_BUY | Strength: 3.8/10
+2025-06-25 12:15:34,554 - INFO -  Enhanced Analysis for GBPNZD.c: Signal: WEAK_BUY -> Enhanced Strength: 2.22
+2025-06-25 12:15:34,562 - INFO -    Quality: FAIR | Confluence: 2.8
+2025-06-25 12:15:34,564 - INFO -    Timeframes: 4
+2025-06-25 12:15:34,565 - INFO -    Risk Factors: 3
+2025-06-25 12:15:34,937 - INFO -  ENHANCED SIGNAL: GBPCAD.c
+2025-06-25 12:15:34,975 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:35,011 - INFO -  Enhanced Analysis for GBPNZD.c: Signal: WEAK_BUY -> Enhanced Strength: 2.22
+2025-06-25 12:15:35,060 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:35,064 - INFO -    Timeframes: 4
+2025-06-25 12:15:35,064 - INFO -    Risk Factors: 3
+2025-06-25 12:15:35,513 - INFO -  Enhanced Analysis for GBPCAD.c: Signal: BUY -> Enhanced Strength: 5.04
+2025-06-25 12:15:35,529 - INFO -  ENHANCED SIGNAL: GBPCAD.c
+2025-06-25 12:15:35,532 - INFO -    Signal: BUY | Strength: 5.18/10
+2025-06-25 12:15:35,533 - INFO -    Quality: EXCELLENT | Confluence: 6.8
+2025-06-25 12:15:35,533 - INFO -    Timeframes: 4
+2025-06-25 12:15:35,533 - INFO -    Risk Factors: 3
+2025-06-25 12:15:35,757 - INFO -  Enhanced Analysis for GBPCAD.c: Signal: BUY -> Enhanced Strength: 5.81
+2025-06-25 12:15:35,942 - INFO -  ENHANCED SIGNAL: AUDCHF.c
+2025-06-25 12:15:35,953 - INFO -  ENHANCED SIGNAL: AUDCHF.c
+2025-06-25 12:15:35,975 - INFO -    Signal: SELL | Strength: 5.319999999999999/10
+2025-06-25 12:15:35,976 - INFO -    Signal: SELL | Strength: 5.319999999999999/10
+2025-06-25 12:15:35,977 - INFO -    Quality: EXCELLENT | Confluence: -7.2
+2025-06-25 12:15:35,978 - INFO -    Quality: EXCELLENT | Confluence: -7.2
+2025-06-25 12:15:35,978 - INFO -    Timeframes: 4
+2025-06-25 12:15:35,979 - INFO -    Timeframes: 4
+2025-06-25 12:15:35,979 - INFO -    Risk Factors: 2
+2025-06-25 12:15:35,980 - INFO -    Risk Factors: 2
+2025-06-25 12:15:36,628 - INFO -  Enhanced Analysis for AUDCHF.c: Signal: SELL -> Enhanced Strength: 5.05
+2025-06-25 12:15:36,630 - INFO -  Enhanced Analysis for AUDCHF.c: Signal: SELL -> Enhanced Strength: 5.05
+2025-06-25 12:15:37,033 - INFO -  ENHANCED SIGNAL: AUDJPY.c
+2025-06-25 12:15:37,038 - INFO -  ENHANCED SIGNAL: AUDJPY.c
+2025-06-25 12:15:37,054 - INFO -    Signal: WEAK_SELL | Strength: 3.0/10
+2025-06-25 12:15:37,054 - INFO -    Signal: WEAK_SELL | Strength: 3.0/10
+2025-06-25 12:15:37,054 - INFO -    Quality: FAIR | Confluence: -2.0
+2025-06-25 12:15:37,054 - INFO -    Quality: FAIR | Confluence: -2.0
+2025-06-25 12:15:37,054 - INFO -    Timeframes: 4
+2025-06-25 12:15:37,054 - INFO -    Timeframes: 4
+2025-06-25 12:15:37,054 - INFO -    Risk Factors: 3
+2025-06-25 12:15:37,054 - INFO -    Risk Factors: 3
+2025-06-25 12:15:37,422 - INFO -  Enhanced Analysis for AUDJPY.c: Signal: WEAK_SELL -> Enhanced Strength: 2.17
+2025-06-25 12:15:37,652 - INFO -  Enhanced Analysis for AUDJPY.c: Signal: WEAK_SELL -> Enhanced Strength: 2.17
+2025-06-25 12:15:38,759 - INFO -  Enhanced Analysis for AUDNZD.c: Signal: NONE -> Enhanced Strength: 1.43
+2025-06-25 12:15:38,767 - INFO -  Enhanced Analysis for AUDNZD.c: Signal: NONE -> Enhanced Strength: 1.43
+2025-06-25 12:15:39,110 - INFO -  ENHANCED SIGNAL: AUDCAD.c
+2025-06-25 12:15:39,129 - INFO -  ENHANCED SIGNAL: AUDCAD.c
+2025-06-25 12:15:39,156 - INFO -    Signal: BUY | Strength: 4.8999999999999995/10
+2025-06-25 12:15:39,163 - INFO -    Signal: BUY | Strength: 4.8999999999999995/10
+2025-06-25 12:15:39,165 - INFO -    Quality: EXCELLENT | Confluence: 6.0
+2025-06-25 12:15:39,165 - INFO -    Quality: EXCELLENT | Confluence: 6.0
+2025-06-25 12:15:39,166 - INFO -    Timeframes: 4
+2025-06-25 12:15:39,167 - INFO -    Timeframes: 4
+2025-06-25 12:15:39,167 - INFO -    Risk Factors: 2
+2025-06-25 12:15:39,168 - INFO -    Risk Factors: 2
+2025-06-25 12:15:39,691 - INFO -  Enhanced Analysis for AUDCAD.c: Signal: BUY -> Enhanced Strength: 4.43
+2025-06-25 12:15:39,786 - INFO -  Enhanced Analysis for AUDCAD.c: Signal: BUY -> Enhanced Strength: 4.43
+2025-06-25 12:15:40,128 - INFO -  ENHANCED SIGNAL: NZDJPY.c
+2025-06-25 12:15:40,138 - INFO -  ENHANCED SIGNAL: NZDJPY.c
+2025-06-25 12:15:40,153 - INFO -    Signal: BUY | Strength: 7.0/10
+2025-06-25 12:15:40,153 - INFO -    Signal: BUY | Strength: 7.0/10
+2025-06-25 12:15:40,159 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:40,159 - INFO -    Timeframes: 4
+2025-06-25 12:15:40,159 - INFO -    Risk Factors: 3
+2025-06-25 12:15:40,378 - INFO -  Enhanced Analysis for NZDJPY.c: Signal: BUY -> Enhanced Strength: 5.26
+2025-06-25 12:15:40,493 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:40,502 - INFO -    Timeframes: 4
+2025-06-25 12:15:40,505 - INFO -    Risk Factors: 3
+2025-06-25 12:15:40,825 - INFO -  ENHANCED SIGNAL: NZDCHF.c
+2025-06-25 12:15:40,984 - INFO -    Signal: SELL | Strength: 5.6/10
+2025-06-25 12:15:40,984 - INFO -  Enhanced Analysis for NZDJPY.c: Signal: BUY -> Enhanced Strength: 5.26
+2025-06-25 12:15:41,060 - INFO -    Quality: EXCELLENT | Confluence: -8.0
+2025-06-25 12:15:41,063 - INFO -    Timeframes: 4
+2025-06-25 12:15:41,064 - INFO -    Risk Factors: 2
+2025-06-25 12:15:41,222 - INFO -  ENHANCED SIGNAL: NZDCHF.c
+2025-06-25 12:15:41,374 - INFO -    Signal: SELL | Strength: 5.6/10
+2025-06-25 12:15:41,482 - INFO -  Enhanced Analysis for NZDCHF.c: Signal: SELL -> Enhanced Strength: 4.51
+2025-06-25 12:15:41,538 - INFO -    Quality: EXCELLENT | Confluence: -8.0
+2025-06-25 12:15:41,542 - INFO -    Timeframes: 4
+2025-06-25 12:15:41,543 - INFO -    Risk Factors: 2
+2025-06-25 12:15:41,806 - INFO -  ENHANCED SIGNAL: NZDCAD.c
+2025-06-25 12:15:41,940 - INFO -    Signal: BUY | Strength: 7.0/10
+2025-06-25 12:15:41,977 - INFO -  Enhanced Analysis for NZDCHF.c: Signal: SELL -> Enhanced Strength: 5.47
+2025-06-25 12:15:42,040 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:42,049 - INFO -    Timeframes: 4
+2025-06-25 12:15:42,049 - INFO -    Risk Factors: 2
+2025-06-25 12:15:42,185 - INFO -  ENHANCED SIGNAL: NZDCAD.c
+2025-06-25 12:15:42,426 - INFO -    Signal: BUY | Strength: 7.0/10
+2025-06-25 12:15:42,473 - INFO -  Enhanced Analysis for NZDCAD.c: Signal: BUY -> Enhanced Strength: 4.68
+2025-06-25 12:15:42,544 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:42,688 - INFO -    Timeframes: 4
+2025-06-25 12:15:42,689 - INFO -    Risk Factors: 2
+2025-06-25 12:15:43,052 - INFO -  ENHANCED SIGNAL: CHFJPY.c
+2025-06-25 12:15:43,159 - INFO -    Signal: BUY | Strength: 7.0/10
+2025-06-25 12:15:43,249 - INFO -  Enhanced Analysis for NZDCAD.c: Signal: BUY -> Enhanced Strength: 4.68
+2025-06-25 12:15:43,250 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:43,315 - INFO -    Timeframes: 4
+2025-06-25 12:15:43,405 - INFO -    Risk Factors: 3
+2025-06-25 12:15:43,550 - INFO -  ENHANCED SIGNAL: CHFJPY.c
+2025-06-25 12:15:43,830 - INFO -    Signal: BUY | Strength: 7.0/10
+2025-06-25 12:15:43,862 - INFO -  Enhanced Analysis for CHFJPY.c: Signal: BUY -> Enhanced Strength: 4.68
+2025-06-25 12:15:43,938 - INFO -    Quality: EXCELLENT | Confluence: 10
+2025-06-25 12:15:43,954 - INFO -    Timeframes: 4
+2025-06-25 12:15:43,955 - INFO -    Risk Factors: 3
+2025-06-25 12:15:44,633 - INFO -  Enhanced Analysis for CHFJPY.c: Signal: BUY -> Enhanced Strength: 4.68
+2025-06-25 12:15:44,823 - INFO -  Enhanced Analysis for CADJPY.c: Signal: NONE -> Enhanced Strength: 1.85
+2025-06-25 12:15:45,282 - INFO -  ENHANCED SIGNAL: XAUUSD.c
+2025-06-25 12:15:45,318 - INFO -    Signal: SELL | Strength: 5.319999999999999/10
+2025-06-25 12:15:45,447 - INFO -    Quality: EXCELLENT | Confluence: -7.2
+2025-06-25 12:15:45,518 - INFO -    Timeframes: 4
+2025-06-25 12:15:45,519 - INFO -    Risk Factors: 3
+2025-06-25 12:15:45,861 - INFO -  Enhanced Analysis for XAUUSD.c: Signal: SELL -> Enhanced Strength: 5.82
+2025-06-25 12:15:45,862 - INFO -  Enhanced Analysis for CADJPY.c: Signal: NONE -> Enhanced Strength: 1.85
+2025-06-25 12:15:46,386 - INFO - Updated 28/28 pairs
+2025-06-25 12:15:46,453 - INFO -  ENHANCED SIGNAL: XAUUSD.c
+2025-06-25 12:15:46,501 - INFO -    Signal: SELL | Strength: 5.319999999999999/10
+2025-06-25 12:15:46,508 - INFO -    Quality: EXCELLENT | Confluence: -7.2
+2025-06-25 12:15:46,512 - INFO -    Timeframes: 4
+2025-06-25 12:15:46,516 - INFO -    Risk Factors: 3
+2025-06-25 12:15:46,991 - INFO -  Enhanced Analysis for XAUUSD.c: Signal: SELL -> Enhanced Strength: 2.13
+2025-06-25 12:15:47,170 - INFO - Updated 28/28 pairs
+2025-06-25 12:15:47,812 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://123.253.62.109:5000
+2025-06-25 12:15:47,830 - INFO - [33mPress CTRL+C to quit[0m

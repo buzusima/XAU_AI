@@ -5,7 +5,7 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "GBPUSD.c": {
     "active_trades": [
@@ -13,13 +13,13 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "USDJPY.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "USDCHF.c": {
     "active_trades": [
@@ -27,37 +27,37 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "AUDUSD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "NZDUSD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "USDCAD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "EURGBP.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "EURJPY.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "EURCHF.c": {
     "active_trades": [
@@ -65,19 +65,19 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "EURAUD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "EURNZD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "EURCAD.c": {
     "active_trades": [
@@ -85,19 +85,19 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "GBPJPY.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "GBPCHF.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "GBPAUD.c": {
     "active_trades": [
@@ -105,13 +105,13 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "GBPNZD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "GBPCAD.c": {
     "active_trades": [
@@ -119,25 +119,27 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "AUDCHF.c": {
-    "active_trades": [],
-    "status": "READY",
+    "active_trades": [
+      33038645
+    ],
+    "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "AUDJPY.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "AUDNZD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "AUDCAD.c": {
     "active_trades": [
@@ -145,7 +147,7 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "NZDJPY.c": {
     "active_trades": [
@@ -153,7 +155,7 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "NZDCHF.c": {
     "active_trades": [
@@ -161,7 +163,7 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "NZDCAD.c": {
     "active_trades": [
@@ -169,7 +171,7 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "CHFJPY.c": {
     "active_trades": [
@@ -177,18 +179,18 @@
     ],
     "status": "TRADING",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "CADJPY.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   },
   "XAUUSD.c": {
     "active_trades": [],
     "status": "READY",
     "cooldown_until": null,
-    "last_updated": "2025-06-25T11:04:03.940823"
+    "last_updated": "2025-06-25T12:16:30.402629"
   }
 }

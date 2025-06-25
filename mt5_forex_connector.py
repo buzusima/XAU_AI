@@ -21,6 +21,50 @@ from typing import Dict, List, Optional, Tuple
 import warnings
 from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
+# CRITICAL FIX: Add clean_data_for_json function
+def clean_data_for_json(data):
+    """Clean data for JSON serialization - COMPLETELY FIXED"""
+    if isinstance(data, dict):
+        cleaned = {}
+        for key, value in data.items():
+            cleaned[key] = clean_data_for_json(value)
+        return cleaned
+    elif isinstance(data, list):
+        return [clean_data_for_json(item) for item in data]
+    elif isinstance(data, tuple):
+        return tuple(clean_data_for_json(item) for item in data)
+    elif isinstance(data, (np.integer, np.int64, np.int32)):
+        return int(data)
+    elif isinstance(data, (np.floating, np.float64, np.float32)):
+        return float(data)
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, pd.Series):
+        return data.tolist()
+    elif isinstance(data, pd.DataFrame):
+        return data.to_dict('records')
+    elif hasattr(data, 'value'):  # Enum handling
+        return data.value
+    elif hasattr(data, '__dict__'):
+        return str(data)
+    elif pd.isna(data):
+        return None
+    elif data in [np.inf, -np.inf]:
+        return None
+    else:
+        return data
+
+# FIXED: Import enhanced_signal_system with error handling
+try:
+    from enhanced_signal_system import MultiTimeframeSignalEngine
+    ENHANCED_SIGNAL_AVAILABLE = True
+    print("✅ Enhanced Signal System Loaded Successfully!")
+except ImportError as e:
+    print(f"⚠️ Enhanced signal system not available: {str(e)}")
+    print("📋 Using standard signal system...")
+    ENHANCED_SIGNAL_AVAILABLE = False
+
+# FIXED: Import advanced_features with error handling
 try:
     from advanced_features import AdvancedTradingIntegrator, MarketRegime
     ADVANCED_FEATURES_AVAILABLE = True
@@ -114,8 +158,9 @@ class DataPersistenceManager:
     def save_settings(self, settings: Dict):
         """บันทึกการตั้งค่าระบบ"""
         try:
+            cleaned_settings = clean_data_for_json(settings)
             with open(self.settings_file, 'w') as f:
-                json.dump(settings, f, indent=2, default=str)
+                json.dump(cleaned_settings, f, indent=2, default=str)
             return True
         except Exception as e:
             print(f"Error saving settings: {str(e)}")
@@ -135,8 +180,10 @@ class DataPersistenceManager:
     def save_daily_stats(self, stats: Dict):
         """บันทึกสถิติรายวัน"""
         try:
+            # Clean data before saving
+            cleaned_stats = clean_data_for_json(stats)
             with open(self.daily_stats_file, 'w') as f:
-                json.dump(stats, f, indent=2, default=str)
+                json.dump(cleaned_stats, f, indent=2, default=str)
             
             # บันทึกลงฐานข้อมูลด้วย
             today = datetime.now().strftime('%Y-%m-%d')
@@ -163,8 +210,7 @@ class DataPersistenceManager:
             
         except Exception as e:
             print(f"Error saving daily stats: {str(e)}")
-            return False
-    
+            return False    
     def load_daily_stats(self) -> Dict:
         """โหลดสถิติรายวัน"""
         try:
@@ -186,13 +232,14 @@ class DataPersistenceManager:
     def save_pair_status(self, pair_status: Dict):
         """บันทึกสถานะของแต่ละ pair"""
         try:
+            # Clean data before saving
+            cleaned_status = clean_data_for_json(pair_status)
             with open(self.pair_status_file, 'w') as f:
-                json.dump(pair_status, f, indent=2, default=str)
+                json.dump(cleaned_status, f, indent=2, default=str)
             return True
         except Exception as e:
             print(f"Error saving pair status: {str(e)}")
-            return False
-    
+            return False    
     def load_pair_status(self) -> Dict:
         """โหลดสถานะของแต่ละ pair"""
         try:

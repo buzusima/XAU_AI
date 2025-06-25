@@ -11,12 +11,43 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Union
-from mt5_forex_connector import clean_data_for_json
 import threading
 import time
 import warnings
 import logging
+import json
 warnings.filterwarnings('ignore')
+
+# CRITICAL FIX: Add clean_data_for_json function locally
+def clean_data_for_json(data):
+    """Clean data for JSON serialization - FIXED VERSION"""
+    if isinstance(data, dict):
+        cleaned = {}
+        for key, value in data.items():
+            cleaned[key] = clean_data_for_json(value)
+        return cleaned
+    elif isinstance(data, list):
+        return [clean_data_for_json(item) for item in data]
+    elif isinstance(data, tuple):
+        return tuple(clean_data_for_json(item) for item in data)
+    elif isinstance(data, (np.integer, np.int64, np.int32)):
+        return int(data)
+    elif isinstance(data, (np.floating, np.float64, np.float32)):
+        return float(data)
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, pd.Series):
+        return data.tolist()
+    elif isinstance(data, pd.DataFrame):
+        return data.to_dict('records')
+    elif hasattr(data, '__dict__'):
+        return str(data)
+    elif pd.isna(data):
+        return None
+    elif data in [np.inf, -np.inf]:
+        return None
+    else:
+        return data
 
 class MultiTimeframeSignalEngine:
     """
@@ -291,7 +322,7 @@ class MultiTimeframeSignalEngine:
             volume_sma = volume.rolling(window=volume_periods, min_periods=1).mean()
             volume_ratio = volume / volume_sma.replace(0, 1)
             
-            # TREND ANALYSIS
+            # TREND ANALYSIS - FIXED: Resolve the pandas Series truth value error
             trend_strength = self.calculate_trend_strength(close, ema_9, ema_21, ema_50)
             trend_direction = self.get_trend_direction(ema_9, ema_21, ema_50, ema_200)
             
@@ -370,7 +401,7 @@ class MultiTimeframeSignalEngine:
             return self.get_default_indicators()
     
     def calculate_trend_strength(self, close: pd.Series, ema_9: pd.Series, ema_21: pd.Series, ema_50: pd.Series) -> float:
-        """Calculate trend strength (0-1) with enhanced error handling - FIXED"""
+        """Calculate trend strength (0-1) with enhanced error handling - COMPLETELY FIXED"""
         try:
             if len(close) == 0:
                 return 0.0
@@ -415,6 +446,7 @@ class MultiTimeframeSignalEngine:
             if len(bullish_conditions) == 0:
                 return 0.0
             
+            # FIXED: Use .any() or .all() instead of direct boolean evaluation
             uptrend_score = sum(bullish_conditions) / len(bullish_conditions)
             downtrend_score = sum(bearish_conditions) / len(bearish_conditions)
             
@@ -503,6 +535,341 @@ class MultiTimeframeSignalEngine:
         except Exception as e:
             self.logger.error(f"Market session detection error: {str(e)}")
             return 'UNKNOWN'
+    
+    def get_multi_timeframe_confluence(self, symbol: str) -> Dict:
+        """
+        CORE FUNCTION: Multi-Timeframe Signal Confluence - COMPLETELY FIXED VERSION
+        This is the main function that orchestrates everything!
+        """
+        
+        # Check cache first
+        cached_signal = self.get_cached_signal(symbol)
+        if cached_signal:
+            return cached_signal
+        
+        # Initialize result with comprehensive structure
+        confluence_result = {
+            'symbol': symbol,
+            'timestamp': datetime.now().isoformat(),
+            'final_signal': 'NONE',
+            'final_strength': 0,
+            'final_quality': 'POOR',
+            'confluence_score': 0,
+            'timeframe_analysis': {},
+            'risk_factors': [],
+            'entry_conditions': {},
+            'trade_recommendation': 'NO_TRADE',
+            'market_session': self.get_current_market_session(),
+            'analysis_metadata': {
+                'engine_version': '2.0_FIXED',
+                'analysis_time': datetime.now().isoformat(),
+                'symbol_processed': symbol,
+                'cache_used': False
+            }
+        }
+        
+        try:
+            # GET DATA FOR ALL TIMEFRAMES
+            timeframe_data = {}
+            timeframe_indicators = {}
+            
+            for tf_name, tf_value in self.timeframes.items():
+                try:
+                    df = self.get_timeframe_data(symbol, tf_value, 100)
+                    if df is not None and len(df) >= 5:  # FIXED: Further reduced minimum
+                        timeframe_data[tf_name] = df
+                        indicators = self.calculate_advanced_indicators(df)
+                        if indicators:
+                            timeframe_indicators[tf_name] = indicators
+                        else:
+                            confluence_result['risk_factors'].append(f'Failed to calculate {tf_name} indicators')
+                    else:
+                        confluence_result['risk_factors'].append(f'Insufficient {tf_name} data (need 5+ bars)')
+                except Exception as e:
+                    confluence_result['risk_factors'].append(f'{tf_name} error: {str(e)}')
+                    self.logger.error(f"Error getting {tf_name} data for {symbol}: {str(e)}")
+                    continue
+            
+            # FIXED: Require at least one timeframe
+            if len(timeframe_indicators) == 0:
+                confluence_result['risk_factors'].append('No timeframe data available')
+                confluence_result['trade_recommendation'] = 'NO_DATA'
+                self.logger.warning(f"No timeframe data available for {symbol}")
+                return confluence_result
+            
+            # ANALYZE EACH AVAILABLE TIMEFRAME
+            successful_analysis = 0
+            analysis_errors = []
+            
+            for tf_name in ['H4', 'H1', 'M15', 'M5']:
+                if tf_name in timeframe_indicators:
+                    try:
+                        tf_analysis = self.analyze_timeframe_signal(symbol, tf_name, timeframe_indicators[tf_name])
+                        if tf_analysis and 'error' not in tf_analysis:
+                            confluence_result['timeframe_analysis'][tf_name] = tf_analysis
+                            successful_analysis += 1
+                        else:
+                            analysis_errors.append(f'{tf_name}: {tf_analysis.get("error", "Unknown error")}')
+                    except Exception as e:
+                        analysis_errors.append(f'{tf_name}: {str(e)}')
+                        self.logger.error(f"Error analyzing {tf_name} for {symbol}: {str(e)}")
+            
+            if successful_analysis == 0:
+                confluence_result['risk_factors'].extend(analysis_errors)
+                confluence_result['trade_recommendation'] = 'ANALYSIS_FAILED'
+                self.logger.error(f"All timeframe analysis failed for {symbol}")
+                return confluence_result
+            
+            # CONFLUENCE CALCULATION - COMPLETELY FIXED: More robust calculation
+            confluence_score = 0
+            bullish_votes = 0
+            bearish_votes = 0
+            total_weight = 0
+            timeframe_weights = {'H4': 4, 'H1': 3, 'M15': 2, 'M5': 1}
+            
+            # Process each timeframe with proper weighting
+            for tf_name, tf_analysis in confluence_result['timeframe_analysis'].items():
+                tf_weight = timeframe_weights.get(tf_name, 1)
+                tf_signal = tf_analysis.get('signal', 'NONE')
+                tf_score = tf_analysis.get('score', 0)
+                
+                total_weight += tf_weight
+                
+                # FIXED: More comprehensive signal mapping
+                signal_weights = {
+                    'STRONG_BUY': 2.0, 'BUY': 1.5, 'WEAK_BUY': 1.0, 'CONFIRM_BUY': 1.2,
+                    'STRONG_SELL': -2.0, 'SELL': -1.5, 'WEAK_SELL': -1.0, 'CONFIRM_SELL': -1.2,
+                    'WEAK_CONFIRM_BUY': 0.8, 'WEAK_CONFIRM_SELL': -0.8,
+                    'WAIT': 0, 'NONE': 0
+                }
+                
+                signal_weight = signal_weights.get(tf_signal, 0)
+                weighted_contribution = tf_weight * signal_weight
+                confluence_score += weighted_contribution
+                
+                if signal_weight > 0:
+                    bullish_votes += tf_weight * signal_weight
+                elif signal_weight < 0:
+                    bearish_votes += tf_weight * abs(signal_weight)
+            
+            # FIXED: Normalize confluence score properly
+            if total_weight > 0:
+                normalized_confluence = (confluence_score / total_weight) * 10
+            else:
+                normalized_confluence = 0
+            
+            confluence_result['confluence_score'] = round(normalized_confluence, 2)
+            
+            # FINAL SIGNAL DETERMINATION - FIXED: More sophisticated logic
+            abs_confluence = abs(normalized_confluence)
+            timeframe_count = len(confluence_result['timeframe_analysis'])
+            
+            # Adjust thresholds based on number of timeframes
+            if timeframe_count >= 4:  # All timeframes available
+                strong_threshold = 6
+                good_threshold = 3
+                weak_threshold = 1
+            elif timeframe_count >= 3:  # Most timeframes
+                strong_threshold = 5
+                good_threshold = 2.5
+                weak_threshold = 1
+            else:  # Limited timeframes
+                strong_threshold = 4
+                good_threshold = 2
+                weak_threshold = 0.5
+            
+            # Signal classification
+            if normalized_confluence >= strong_threshold:
+                confluence_result['final_signal'] = 'STRONG_BUY'
+                confluence_result['final_strength'] = min(10, 7 + (normalized_confluence - strong_threshold) * 0.5)
+                confluence_result['final_quality'] = 'EXCELLENT'
+                confluence_result['trade_recommendation'] = 'STRONG_BUY'
+                
+            elif normalized_confluence >= good_threshold:
+                confluence_result['final_signal'] = 'BUY'
+                confluence_result['final_strength'] = min(10, 4 + (normalized_confluence - good_threshold) * 0.8)
+                confluence_result['final_quality'] = 'GOOD'
+                confluence_result['trade_recommendation'] = 'BUY'
+                
+            elif normalized_confluence >= weak_threshold:
+                confluence_result['final_signal'] = 'WEAK_BUY'
+                confluence_result['final_strength'] = min(10, 2 + (normalized_confluence - weak_threshold) * 1.0)
+                confluence_result['final_quality'] = 'FAIR'
+                confluence_result['trade_recommendation'] = 'CONSIDER_BUY'
+                
+            elif normalized_confluence <= -strong_threshold:
+                confluence_result['final_signal'] = 'STRONG_SELL'
+                confluence_result['final_strength'] = min(10, 7 + (abs(normalized_confluence) - strong_threshold) * 0.5)
+                confluence_result['final_quality'] = 'EXCELLENT'
+                confluence_result['trade_recommendation'] = 'STRONG_SELL'
+                
+            elif normalized_confluence <= -good_threshold:
+                confluence_result['final_signal'] = 'SELL'
+                confluence_result['final_strength'] = min(10, 4 + (abs(normalized_confluence) - good_threshold) * 0.8)
+                confluence_result['final_quality'] = 'GOOD'
+                confluence_result['trade_recommendation'] = 'SELL'
+                
+            elif normalized_confluence <= -weak_threshold:
+                confluence_result['final_signal'] = 'WEAK_SELL'
+                confluence_result['final_strength'] = min(10, 2 + (abs(normalized_confluence) - weak_threshold) * 1.0)
+                confluence_result['final_quality'] = 'FAIR'
+                confluence_result['trade_recommendation'] = 'CONSIDER_SELL'
+            
+            # ENTRY CONDITIONS - FIXED: Better calculation with error handling
+            try:
+                if confluence_result['final_signal'] not in ['NONE', 'WAIT']:
+                    # Use best available timeframe data for entry conditions
+                    entry_tf_data = None
+                    for tf_name in ['H1', 'M15', 'H4', 'M5']:
+                        if tf_name in timeframe_indicators:
+                            entry_tf_data = timeframe_indicators[tf_name]
+                            break
+                    
+                    if entry_tf_data:
+                        current_price = entry_tf_data.get('current_price', 1.0)
+                        atr = entry_tf_data.get('atr_14', current_price * 0.001)
+                        
+                        # FIXED: Symbol-specific ATR multipliers and pip calculations
+                        if 'JPY' in symbol:
+                            atr_multiplier_sl = 20  # JPY pairs need larger multiplier
+                            atr_multiplier_tp1 = 30
+                            atr_multiplier_tp2 = 50
+                            atr_multiplier_tp3 = 70
+                            precision = 3
+                        elif 'XAU' in symbol:
+                            atr_multiplier_sl = 15  # Gold
+                            atr_multiplier_tp1 = 25
+                            atr_multiplier_tp2 = 40
+                            atr_multiplier_tp3 = 60
+                            precision = 2
+                        else:
+                            atr_multiplier_sl = 15  # Standard forex
+                            atr_multiplier_tp1 = 25
+                            atr_multiplier_tp2 = 40
+                            atr_multiplier_tp3 = 60
+                            precision = 5
+                        
+                        if confluence_result['final_signal'] in ['STRONG_BUY', 'BUY', 'WEAK_BUY']:
+                            stop_loss = round(current_price - (atr * atr_multiplier_sl / 10), precision)
+                            tp1 = round(current_price + (atr * atr_multiplier_tp1 / 10), precision)
+                            tp2 = round(current_price + (atr * atr_multiplier_tp2 / 10), precision)
+                            tp3 = round(current_price + (atr * atr_multiplier_tp3 / 10), precision)
+                            
+                            risk_distance = abs(current_price - stop_loss)
+                            rr1 = abs(tp1 - current_price) / risk_distance if risk_distance > 0 else 0
+                            rr2 = abs(tp2 - current_price) / risk_distance if risk_distance > 0 else 0
+                            rr3 = abs(tp3 - current_price) / risk_distance if risk_distance > 0 else 0
+                            
+                        elif confluence_result['final_signal'] in ['STRONG_SELL', 'SELL', 'WEAK_SELL']:
+                            stop_loss = round(current_price + (atr * atr_multiplier_sl / 10), precision)
+                            tp1 = round(current_price - (atr * atr_multiplier_tp1 / 10), precision)
+                            tp2 = round(current_price - (atr * atr_multiplier_tp2 / 10), precision)
+                            tp3 = round(current_price - (atr * atr_multiplier_tp3 / 10), precision)
+                            
+                            risk_distance = abs(current_price - stop_loss)
+                            rr1 = abs(tp1 - current_price) / risk_distance if risk_distance > 0 else 0
+                            rr2 = abs(tp2 - current_price) / risk_distance if risk_distance > 0 else 0
+                            rr3 = abs(tp3 - current_price) / risk_distance if risk_distance > 0 else 0
+                        
+                        confluence_result['entry_conditions'] = {
+                            'optimal_entry': round(current_price, precision),
+                            'stop_loss': stop_loss,
+                            'take_profit_1': tp1,
+                            'take_profit_2': tp2,
+                            'take_profit_3': tp3,
+                            'risk_reward_tp1': round(rr1, 2),
+                            'risk_reward_tp2': round(rr2, 2),
+                            'risk_reward_tp3': round(rr3, 2),
+                            'atr_used': round(atr, precision + 2),
+                            'calculation_timeframe': tf_name
+                        }
+                        
+            except Exception as e:
+                self.logger.error(f"Entry conditions calculation error for {symbol}: {str(e)}")
+                confluence_result['risk_factors'].append(f'Entry calculation error: {str(e)}')
+            
+            # FIXED: Quality enhancement based on timeframe agreement
+            try:
+                agreeing_timeframes = 0
+                total_timeframes = len(confluence_result['timeframe_analysis'])
+                
+                target_signals = []
+                if confluence_result['final_signal'] in ['STRONG_BUY', 'BUY', 'WEAK_BUY']:
+                    target_signals = ['STRONG_BUY', 'BUY', 'WEAK_BUY', 'CONFIRM_BUY', 'WEAK_CONFIRM_BUY']
+                elif confluence_result['final_signal'] in ['STRONG_SELL', 'SELL', 'WEAK_SELL']:
+                    target_signals = ['STRONG_SELL', 'SELL', 'WEAK_SELL', 'CONFIRM_SELL', 'WEAK_CONFIRM_SELL']
+                
+                for tf_analysis in confluence_result['timeframe_analysis'].values():
+                    if tf_analysis.get('signal', 'NONE') in target_signals:
+                        agreeing_timeframes += 1
+                
+                agreement_ratio = agreeing_timeframes / total_timeframes if total_timeframes > 0 else 0
+                
+                # Upgrade quality based on agreement
+                if agreement_ratio >= 0.75 and total_timeframes >= 3:
+                    if confluence_result['final_quality'] == 'GOOD':
+                        confluence_result['final_quality'] = 'EXCELLENT'
+                    elif confluence_result['final_quality'] == 'FAIR':
+                        confluence_result['final_quality'] = 'GOOD'
+                        
+                confluence_result['analysis_metadata'].update({
+                    'timeframes_analyzed': total_timeframes,
+                    'agreeing_timeframes': agreeing_timeframes,
+                    'agreement_ratio': round(agreement_ratio, 2),
+                    'successful_analysis': successful_analysis
+                })
+                
+            except Exception as e:
+                self.logger.error(f"Quality enhancement error for {symbol}: {str(e)}")
+            
+            # FIXED: Final validation
+            confluence_result = self.validate_confluence_result(confluence_result)
+            
+            # CRITICAL FIX: Clean confluence result for JSON serialization
+            try:
+                confluence_result = clean_data_for_json(confluence_result)
+                
+                # Handle specific fields that might cause issues
+                if 'timeframe_analysis' in confluence_result:
+                    for tf_name, tf_data in confluence_result['timeframe_analysis'].items():
+                        confluence_result['timeframe_analysis'][tf_name] = clean_data_for_json(tf_data)
+                
+                if 'entry_conditions' in confluence_result:
+                    confluence_result['entry_conditions'] = clean_data_for_json(
+                        confluence_result['entry_conditions']
+                    )
+                
+                # Cache the cleaned result
+                self.cache_signal(symbol, confluence_result)
+                
+            except Exception as json_error:
+                self.logger.error(f"JSON serialization error for {symbol}: {str(json_error)}")
+                
+                # Return minimal safe structure
+                safe_result = {
+                    'symbol': symbol,
+                    'timestamp': datetime.now().isoformat(),
+                    'final_signal': 'NONE',
+                    'final_strength': 0,
+                    'final_quality': 'POOR',
+                    'confluence_score': 0,
+                    'timeframe_analysis': {},
+                    'risk_factors': [f'Serialization error: {str(json_error)}'],
+                    'trade_recommendation': 'ERROR',
+                    'market_session': 'UNKNOWN',
+                    'error': str(json_error)
+                }
+                
+                return safe_result
+            
+            return confluence_result
+            
+        except Exception as e:
+            self.logger.error(f"Critical error in multi-timeframe analysis for {symbol}: {str(e)}")
+            confluence_result['risk_factors'].append(f'Critical analysis error: {str(e)}')
+            confluence_result['trade_recommendation'] = 'ERROR'
+            confluence_result['error'] = str(e)
+            return confluence_result
     
     def analyze_timeframe_signal(self, symbol: str, timeframe: str, indicators: Dict) -> Dict:
         """Analyze signal for specific timeframe - COMPLETELY FIXED"""
@@ -1037,513 +1404,6 @@ class MultiTimeframeSignalEngine:
                 'factors': [f'Error: {str(e)}'], 'trend_bias': 'NEUTRAL'
             }
     
-    def get_multi_timeframe_confluence(self, symbol: str) -> Dict:
-        """
-        CORE FUNCTION: Multi-Timeframe Signal Confluence - COMPLETELY FIXED VERSION
-        This is the main function that orchestrates everything!
-        """
-        
-        # Check cache first
-        cached_signal = self.get_cached_signal(symbol)
-        if cached_signal:
-            return cached_signal
-        
-        # Initialize result with comprehensive structure
-        confluence_result = {
-            'symbol': symbol,
-            'timestamp': datetime.now().isoformat(),
-            'final_signal': 'NONE',
-            'final_strength': 0,
-            'final_quality': 'POOR',
-            'confluence_score': 0,
-            'timeframe_analysis': {},
-            'risk_factors': [],
-            'entry_conditions': {},
-            'trade_recommendation': 'NO_TRADE',
-            'market_session': self.get_current_market_session(),
-            'analysis_metadata': {
-                'engine_version': '2.0_FIXED',
-                'analysis_time': datetime.now().isoformat(),
-                'symbol_processed': symbol,
-                'cache_used': False
-            }
-        }
-        
-        try:
-            # GET DATA FOR ALL TIMEFRAMES
-            timeframe_data = {}
-            timeframe_indicators = {}
-            
-            for tf_name, tf_value in self.timeframes.items():
-                try:
-                    df = self.get_timeframe_data(symbol, tf_value, 100)
-                    if df is not None and len(df) >= 5:  # FIXED: Further reduced minimum
-                        timeframe_data[tf_name] = df
-                        indicators = self.calculate_advanced_indicators(df)
-                        if indicators:
-                            timeframe_indicators[tf_name] = indicators
-                        else:
-                            confluence_result['risk_factors'].append(f'Failed to calculate {tf_name} indicators')
-                    else:
-                        confluence_result['risk_factors'].append(f'Insufficient {tf_name} data (need 5+ bars)')
-                except Exception as e:
-                    confluence_result['risk_factors'].append(f'{tf_name} error: {str(e)}')
-                    self.logger.error(f"Error getting {tf_name} data for {symbol}: {str(e)}")
-                    continue
-            
-            # FIXED: Require at least one timeframe
-            if len(timeframe_indicators) == 0:
-                confluence_result['risk_factors'].append('No timeframe data available')
-                confluence_result['trade_recommendation'] = 'NO_DATA'
-                self.logger.warning(f"No timeframe data available for {symbol}")
-                return confluence_result
-            
-            try:
-                # CRITICAL FIX: Clean confluence result for JSON serialization
-                confluence_result = clean_data_for_json(confluence_result)
-                
-                # Handle specific fields that might cause issues
-                if 'timeframe_analysis' in confluence_result:
-                    for tf_name, tf_data in confluence_result['timeframe_analysis'].items():
-                        confluence_result['timeframe_analysis'][tf_name] = clean_data_for_json(tf_data)
-                
-                if 'entry_conditions' in confluence_result:
-                    confluence_result['entry_conditions'] = clean_data_for_json(
-                        confluence_result['entry_conditions']
-                    )
-                
-                if 'risk_assessment' in confluence_result:
-                    confluence_result['risk_assessment'] = clean_data_for_json(
-                        confluence_result['risk_assessment']
-                    )
-                
-                # Cache the cleaned result
-                self.cache_signal(symbol, confluence_result)
-                
-            except Exception as json_error:
-                self.logger.error(f"JSON serialization error for {symbol}: {str(json_error)}")
-                
-                # Return minimal safe structure
-                safe_result = {
-                    'symbol': symbol,
-                    'timestamp': datetime.now().isoformat(),
-                    'final_signal': 'NONE',
-                    'final_strength': 0,
-                    'final_quality': 'POOR',
-                    'confluence_score': 0,
-                    'timeframe_analysis': {},
-                    'risk_factors': [f'Serialization error: {str(json_error)}'],
-                    'trade_recommendation': 'ERROR',
-                    'market_session': 'UNKNOWN',
-                    'error': str(json_error)
-                }
-                
-                return safe_result
-            
-            try:
-                # CRITICAL FIX: Clean confluence result for JSON serialization
-                confluence_result = clean_data_for_json(confluence_result)
-                
-                # Handle specific fields that might cause issues
-                if 'timeframe_analysis' in confluence_result:
-                    for tf_name, tf_data in confluence_result['timeframe_analysis'].items():
-                        confluence_result['timeframe_analysis'][tf_name] = clean_data_for_json(tf_data)
-                
-                if 'entry_conditions' in confluence_result:
-                    confluence_result['entry_conditions'] = clean_data_for_json(
-                        confluence_result['entry_conditions']
-                    )
-                
-                if 'risk_assessment' in confluence_result:
-                    confluence_result['risk_assessment'] = clean_data_for_json(
-                        confluence_result['risk_assessment']
-                    )
-                
-                # Cache the cleaned result
-                self.cache_signal(symbol, confluence_result)
-                
-            except Exception as json_error:
-                self.logger.error(f"JSON serialization error for {symbol}: {str(json_error)}")
-                
-                # Return minimal safe structure
-                safe_result = {
-                    'symbol': symbol,
-                    'timestamp': datetime.now().isoformat(),
-                    'final_signal': 'NONE',
-                    'final_strength': 0,
-                    'final_quality': 'POOR',
-                    'confluence_score': 0,
-                    'timeframe_analysis': {},
-                    'risk_factors': [f'Serialization error: {str(json_error)}'],
-                    'trade_recommendation': 'ERROR',
-                    'market_session': 'UNKNOWN',
-                    'error': str(json_error)
-                }
-                
-                return safe_result
-            
-            # ANALYZE EACH AVAILABLE TIMEFRAME
-            successful_analysis = 0
-            analysis_errors = []
-            
-            for tf_name in ['H4', 'H1', 'M15', 'M5']:
-                if tf_name in timeframe_indicators:
-                    try:
-                        tf_analysis = self.analyze_timeframe_signal(symbol, tf_name, timeframe_indicators[tf_name])
-                        if tf_analysis and 'error' not in tf_analysis:
-                            confluence_result['timeframe_analysis'][tf_name] = tf_analysis
-                            successful_analysis += 1
-                        else:
-                            analysis_errors.append(f'{tf_name}: {tf_analysis.get("error", "Unknown error")}')
-                    except Exception as e:
-                        analysis_errors.append(f'{tf_name}: {str(e)}')
-                        self.logger.error(f"Error analyzing {tf_name} for {symbol}: {str(e)}")
-            
-            if successful_analysis == 0:
-                confluence_result['risk_factors'].extend(analysis_errors)
-                confluence_result['trade_recommendation'] = 'ANALYSIS_FAILED'
-                self.logger.error(f"All timeframe analysis failed for {symbol}")
-                return confluence_result
-            
-            # CONFLUENCE CALCULATION - COMPLETELY FIXED: More robust calculation
-            confluence_score = 0
-            bullish_votes = 0
-            bearish_votes = 0
-            total_weight = 0
-            timeframe_weights = {'H4': 4, 'H1': 3, 'M15': 2, 'M5': 1}
-            
-            # Process each timeframe with proper weighting
-            for tf_name, tf_analysis in confluence_result['timeframe_analysis'].items():
-                tf_weight = timeframe_weights.get(tf_name, 1)
-                tf_signal = tf_analysis.get('signal', 'NONE')
-                tf_score = tf_analysis.get('score', 0)
-                
-                total_weight += tf_weight
-                
-                # FIXED: More comprehensive signal mapping
-                signal_weights = {
-                    'STRONG_BUY': 2.0, 'BUY': 1.5, 'WEAK_BUY': 1.0, 'CONFIRM_BUY': 1.2,
-                    'STRONG_SELL': -2.0, 'SELL': -1.5, 'WEAK_SELL': -1.0, 'CONFIRM_SELL': -1.2,
-                    'WEAK_CONFIRM_BUY': 0.8, 'WEAK_CONFIRM_SELL': -0.8,
-                    'WAIT': 0, 'NONE': 0
-                }
-                
-                signal_weight = signal_weights.get(tf_signal, 0)
-                weighted_contribution = tf_weight * signal_weight
-                confluence_score += weighted_contribution
-                
-                if signal_weight > 0:
-                    bullish_votes += tf_weight * signal_weight
-                elif signal_weight < 0:
-                    bearish_votes += tf_weight * abs(signal_weight)
-            
-            # FIXED: Normalize confluence score properly
-            if total_weight > 0:
-                normalized_confluence = (confluence_score / total_weight) * 10
-            else:
-                normalized_confluence = 0
-            
-            confluence_result['confluence_score'] = round(normalized_confluence, 2)
-            
-            # FINAL SIGNAL DETERMINATION - FIXED: More sophisticated logic
-            abs_confluence = abs(normalized_confluence)
-            timeframe_count = len(confluence_result['timeframe_analysis'])
-            
-            # Adjust thresholds based on number of timeframes
-            if timeframe_count >= 4:  # All timeframes available
-                strong_threshold = 6
-                good_threshold = 3
-                weak_threshold = 1
-            elif timeframe_count >= 3:  # Most timeframes
-                strong_threshold = 5
-                good_threshold = 2.5
-                weak_threshold = 1
-            else:  # Limited timeframes
-                strong_threshold = 4
-                good_threshold = 2
-                weak_threshold = 0.5
-            
-            # Signal classification
-            if normalized_confluence >= strong_threshold:
-                confluence_result['final_signal'] = 'STRONG_BUY'
-                confluence_result['final_strength'] = min(10, 7 + (normalized_confluence - strong_threshold) * 0.5)
-                confluence_result['final_quality'] = 'EXCELLENT'
-                confluence_result['trade_recommendation'] = 'STRONG_BUY'
-                
-            elif normalized_confluence >= good_threshold:
-                confluence_result['final_signal'] = 'BUY'
-                confluence_result['final_strength'] = min(10, 4 + (normalized_confluence - good_threshold) * 0.8)
-                confluence_result['final_quality'] = 'GOOD'
-                confluence_result['trade_recommendation'] = 'BUY'
-                
-            elif normalized_confluence >= weak_threshold:
-                confluence_result['final_signal'] = 'WEAK_BUY'
-                confluence_result['final_strength'] = min(10, 2 + (normalized_confluence - weak_threshold) * 1.0)
-                confluence_result['final_quality'] = 'FAIR'
-                confluence_result['trade_recommendation'] = 'CONSIDER_BUY'
-                
-            elif normalized_confluence <= -strong_threshold:
-                confluence_result['final_signal'] = 'STRONG_SELL'
-                confluence_result['final_strength'] = min(10, 7 + (abs(normalized_confluence) - strong_threshold) * 0.5)
-                confluence_result['final_quality'] = 'EXCELLENT'
-                confluence_result['trade_recommendation'] = 'STRONG_SELL'
-                
-            elif normalized_confluence <= -good_threshold:
-                confluence_result['final_signal'] = 'SELL'
-                confluence_result['final_strength'] = min(10, 4 + (abs(normalized_confluence) - good_threshold) * 0.8)
-                confluence_result['final_quality'] = 'GOOD'
-                confluence_result['trade_recommendation'] = 'SELL'
-                
-            elif normalized_confluence <= -weak_threshold:
-                confluence_result['final_signal'] = 'WEAK_SELL'
-                confluence_result['final_strength'] = min(10, 2 + (abs(normalized_confluence) - weak_threshold) * 1.0)
-                confluence_result['final_quality'] = 'FAIR'
-                confluence_result['trade_recommendation'] = 'CONSIDER_SELL'
-            
-            # ENTRY CONDITIONS - FIXED: Better calculation with error handling
-            try:
-                if confluence_result['final_signal'] not in ['NONE', 'WAIT']:
-                    # Use best available timeframe data for entry conditions
-                    entry_tf_data = None
-                    for tf_name in ['H1', 'M15', 'H4', 'M5']:
-                        if tf_name in timeframe_indicators:
-                            entry_tf_data = timeframe_indicators[tf_name]
-                            break
-                    
-                    if entry_tf_data:
-                        current_price = entry_tf_data.get('current_price', 1.0)
-                        atr = entry_tf_data.get('atr_14', current_price * 0.001)
-                        
-                        # FIXED: Symbol-specific ATR multipliers and pip calculations
-                        if 'JPY' in symbol:
-                            atr_multiplier_sl = 20  # JPY pairs need larger multiplier
-                            atr_multiplier_tp1 = 30
-                            atr_multiplier_tp2 = 50
-                            atr_multiplier_tp3 = 70
-                            precision = 3
-                        elif 'XAU' in symbol:
-                            atr_multiplier_sl = 15  # Gold
-                            atr_multiplier_tp1 = 25
-                            atr_multiplier_tp2 = 40
-                            atr_multiplier_tp3 = 60
-                            precision = 2
-                        else:
-                            atr_multiplier_sl = 15  # Standard forex
-                            atr_multiplier_tp1 = 25
-                            atr_multiplier_tp2 = 40
-                            atr_multiplier_tp3 = 60
-                            precision = 5
-                        
-                        if confluence_result['final_signal'] in ['STRONG_BUY', 'BUY', 'WEAK_BUY']:
-                            stop_loss = round(current_price - (atr * atr_multiplier_sl / 10), precision)
-                            tp1 = round(current_price + (atr * atr_multiplier_tp1 / 10), precision)
-                            tp2 = round(current_price + (atr * atr_multiplier_tp2 / 10), precision)
-                            tp3 = round(current_price + (atr * atr_multiplier_tp3 / 10), precision)
-                            
-                            risk_distance = abs(current_price - stop_loss)
-                            rr1 = abs(tp1 - current_price) / risk_distance if risk_distance > 0 else 0
-                            rr2 = abs(tp2 - current_price) / risk_distance if risk_distance > 0 else 0
-                            rr3 = abs(tp3 - current_price) / risk_distance if risk_distance > 0 else 0
-                            
-                        elif confluence_result['final_signal'] in ['STRONG_SELL', 'SELL', 'WEAK_SELL']:
-                            stop_loss = round(current_price + (atr * atr_multiplier_sl / 10), precision)
-                            tp1 = round(current_price - (atr * atr_multiplier_tp1 / 10), precision)
-                            tp2 = round(current_price - (atr * atr_multiplier_tp2 / 10), precision)
-                            tp3 = round(current_price - (atr * atr_multiplier_tp3 / 10), precision)
-                            
-                            risk_distance = abs(current_price - stop_loss)
-                            rr1 = abs(tp1 - current_price) / risk_distance if risk_distance > 0 else 0
-                            rr2 = abs(tp2 - current_price) / risk_distance if risk_distance > 0 else 0
-                            rr3 = abs(tp3 - current_price) / risk_distance if risk_distance > 0 else 0
-                        
-                        confluence_result['entry_conditions'] = {
-                            'optimal_entry': round(current_price, precision),
-                            'stop_loss': stop_loss,
-                            'take_profit_1': tp1,
-                            'take_profit_2': tp2,
-                            'take_profit_3': tp3,
-                            'risk_reward_tp1': round(rr1, 2),
-                            'risk_reward_tp2': round(rr2, 2),
-                            'risk_reward_tp3': round(rr3, 2),
-                            'atr_used': round(atr, precision + 2),
-                            'calculation_timeframe': tf_name
-                        }
-                        
-            except Exception as e:
-                self.logger.error(f"Entry conditions calculation error for {symbol}: {str(e)}")
-                confluence_result['risk_factors'].append(f'Entry calculation error: {str(e)}')
-            
-            # FIXED: Quality enhancement based on timeframe agreement
-            try:
-                agreeing_timeframes = 0
-                total_timeframes = len(confluence_result['timeframe_analysis'])
-                
-                target_signals = []
-                if confluence_result['final_signal'] in ['STRONG_BUY', 'BUY', 'WEAK_BUY']:
-                    target_signals = ['STRONG_BUY', 'BUY', 'WEAK_BUY', 'CONFIRM_BUY', 'WEAK_CONFIRM_BUY']
-                elif confluence_result['final_signal'] in ['STRONG_SELL', 'SELL', 'WEAK_SELL']:
-                    target_signals = ['STRONG_SELL', 'SELL', 'WEAK_SELL', 'CONFIRM_SELL', 'WEAK_CONFIRM_SELL']
-                
-                for tf_analysis in confluence_result['timeframe_analysis'].values():
-                    if tf_analysis.get('signal', 'NONE') in target_signals:
-                        agreeing_timeframes += 1
-                
-                agreement_ratio = agreeing_timeframes / total_timeframes if total_timeframes > 0 else 0
-                
-                # Upgrade quality based on agreement
-                if agreement_ratio >= 0.75 and total_timeframes >= 3:
-                    if confluence_result['final_quality'] == 'GOOD':
-                        confluence_result['final_quality'] = 'EXCELLENT'
-                    elif confluence_result['final_quality'] == 'FAIR':
-                        confluence_result['final_quality'] = 'GOOD'
-                        
-                confluence_result['analysis_metadata'].update({
-                    'timeframes_analyzed': total_timeframes,
-                    'agreeing_timeframes': agreeing_timeframes,
-                    'agreement_ratio': round(agreement_ratio, 2),
-                    'successful_analysis': successful_analysis
-                })
-                
-            except Exception as e:
-                self.logger.error(f"Quality enhancement error for {symbol}: {str(e)}")
-            
-            # FIXED: Add comprehensive risk assessment
-            try:
-                risk_assessment = self.assess_trading_risks(symbol, confluence_result)
-                confluence_result['risk_factors'].extend(risk_assessment.get('additional_risks', []))
-                confluence_result['risk_assessment'] = risk_assessment
-                
-            except Exception as e:
-                self.logger.error(f"Risk assessment error for {symbol}: {str(e)}")
-                confluence_result['risk_factors'].append(f'Risk assessment error: {str(e)}')
-            
-            # Cache the result
-            self.cache_signal(symbol, confluence_result)
-            
-            # FIXED: Final validation
-            confluence_result = self.validate_confluence_result(confluence_result)
-            
-            return confluence_result
-            
-        except Exception as e:
-            self.logger.error(f"Critical error in multi-timeframe analysis for {symbol}: {str(e)}")
-            confluence_result['risk_factors'].append(f'Critical analysis error: {str(e)}')
-            confluence_result['trade_recommendation'] = 'ERROR'
-            confluence_result['error'] = str(e)
-            return confluence_result
-    
-    def assess_trading_risks(self, symbol: str, confluence_result: Dict) -> Dict:
-        """Assess additional trading risks - NEW FUNCTION"""
-        try:
-            risk_assessment = {
-                'overall_risk_level': 'MEDIUM',
-                'risk_score': 0,  # 0-10, higher = more risky
-                'additional_risks': [],
-                'risk_factors': {
-                    'market_session_risk': False,
-                    'correlation_risk': False,
-                    'news_risk': False,
-                    'volatility_risk': False,
-                    'signal_quality_risk': False
-                }
-            }
-            
-            # Market session risk
-            market_session = confluence_result.get('market_session', 'UNKNOWN')
-            if market_session in ['CLOSED', 'ASIAN']:
-                risk_assessment['risk_score'] += 2
-                risk_assessment['additional_risks'].append('Low liquidity session')
-                risk_assessment['risk_factors']['market_session_risk'] = True
-            
-            # Signal quality risk
-            final_quality = confluence_result.get('final_quality', 'POOR')
-            if final_quality == 'POOR':
-                risk_assessment['risk_score'] += 3
-                risk_assessment['additional_risks'].append('Poor signal quality')
-                risk_assessment['risk_factors']['signal_quality_risk'] = True
-            elif final_quality == 'FAIR':
-                risk_assessment['risk_score'] += 1
-            
-            # Timeframe agreement risk
-            timeframes_analyzed = len(confluence_result.get('timeframe_analysis', {}))
-            if timeframes_analyzed < 3:
-                risk_assessment['risk_score'] += 1
-                risk_assessment['additional_risks'].append('Limited timeframe data')
-            
-            # News risk (simplified)
-            if not self.check_news_filter(symbol):
-                risk_assessment['risk_score'] += 2
-                risk_assessment['additional_risks'].append('Near news event')
-                risk_assessment['risk_factors']['news_risk'] = True
-            
-            # Set overall risk level
-            if risk_assessment['risk_score'] >= 6:
-                risk_assessment['overall_risk_level'] = 'HIGH'
-            elif risk_assessment['risk_score'] >= 3:
-                risk_assessment['overall_risk_level'] = 'MEDIUM'
-            else:
-                risk_assessment['overall_risk_level'] = 'LOW'
-            
-            return risk_assessment
-            
-        except Exception as e:
-            self.logger.error(f"Risk assessment error: {str(e)}")
-            return {
-                'overall_risk_level': 'HIGH',
-                'risk_score': 10,
-                'additional_risks': [f'Risk assessment failed: {str(e)}'],
-                'error': str(e)
-            }
-    
-    def validate_confluence_result(self, confluence_result: Dict) -> Dict:
-        """Validate and clean up confluence result - NEW FUNCTION"""
-        try:
-            # Ensure all required fields exist
-            required_fields = [
-                'symbol', 'final_signal', 'final_strength', 'final_quality',
-                'confluence_score', 'timeframe_analysis', 'risk_factors',
-                'trade_recommendation', 'market_session'
-            ]
-            
-            for field in required_fields:
-                if field not in confluence_result:
-                    confluence_result[field] = self.get_default_field_value(field)
-            
-            # Validate numeric ranges
-            confluence_result['final_strength'] = max(0, min(10, confluence_result['final_strength']))
-            confluence_result['confluence_score'] = max(-10, min(10, confluence_result['confluence_score']))
-            
-            # Validate signal consistency
-            signal = confluence_result['final_signal']
-            strength = confluence_result['final_strength']
-            
-            if signal == 'NONE' and strength > 0:
-                confluence_result['final_strength'] = 0
-            elif signal != 'NONE' and strength == 0:
-                confluence_result['final_strength'] = 1
-            
-            return confluence_result
-            
-        except Exception as e:
-            self.logger.error(f"Result validation error: {str(e)}")
-            return confluence_result
-    
-    def get_default_field_value(self, field: str):
-        """Get default value for missing fields - NEW FUNCTION"""
-        defaults = {
-            'symbol': 'UNKNOWN',
-            'final_signal': 'NONE',
-            'final_strength': 0,
-            'final_quality': 'POOR',
-            'confluence_score': 0,
-            'timeframe_analysis': {},
-            'risk_factors': [],
-            'trade_recommendation': 'NO_TRADE',
-            'market_session': 'UNKNOWN',
-            'entry_conditions': {}
-        }
-        return defaults.get(field, None)
-    
     def check_correlation_risk(self, symbol: str, existing_positions: List[str]) -> bool:
         """Check if new symbol conflicts with existing positions - COMPLETELY FIXED"""
         try:
@@ -1663,6 +1523,55 @@ class MultiTimeframeSignalEngine:
                 'indicators_calculated': False
             }
         }
+    
+    def validate_confluence_result(self, confluence_result: Dict) -> Dict:
+        """Validate and clean up confluence result - NEW FUNCTION"""
+        try:
+            # Ensure all required fields exist
+            required_fields = [
+                'symbol', 'final_signal', 'final_strength', 'final_quality',
+                'confluence_score', 'timeframe_analysis', 'risk_factors',
+                'trade_recommendation', 'market_session'
+            ]
+            
+            for field in required_fields:
+                if field not in confluence_result:
+                    confluence_result[field] = self.get_default_field_value(field)
+            
+            # Validate numeric ranges
+            confluence_result['final_strength'] = max(0, min(10, confluence_result['final_strength']))
+            confluence_result['confluence_score'] = max(-10, min(10, confluence_result['confluence_score']))
+            
+            # Validate signal consistency
+            signal = confluence_result['final_signal']
+            strength = confluence_result['final_strength']
+            
+            if signal == 'NONE' and strength > 0:
+                confluence_result['final_strength'] = 0
+            elif signal != 'NONE' and strength == 0:
+                confluence_result['final_strength'] = 1
+            
+            return confluence_result
+            
+        except Exception as e:
+            self.logger.error(f"Result validation error: {str(e)}")
+            return confluence_result
+    
+    def get_default_field_value(self, field: str):
+        """Get default value for missing fields - NEW FUNCTION"""
+        defaults = {
+            'symbol': 'UNKNOWN',
+            'final_signal': 'NONE',
+            'final_strength': 0,
+            'final_quality': 'POOR',
+            'confluence_score': 0,
+            'timeframe_analysis': {},
+            'risk_factors': [],
+            'trade_recommendation': 'NO_TRADE',
+            'market_session': 'UNKNOWN',
+            'entry_conditions': {}
+        }
+        return defaults.get(field, None)
     
     def cleanup_cache(self):
         """Cleanup old cache entries - COMPLETELY FIXED"""

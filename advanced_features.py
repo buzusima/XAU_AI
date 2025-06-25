@@ -2,9 +2,10 @@
 # วางไฟล์นี้ในโฟลเดอร์เดียวกับ mt5_forex_connector.py
 
 """
-Advanced Trading Features - Simplified Integration
+Advanced Trading Features - Simplified Integration - FIXED VERSION
 ===============================================
 เพิ่มความสามารถขั้นสูงในระบบที่มีอยู่แล้ว
+FIXED: Duplicate returns, enum handling, JSON serialization
 """
 
 import MetaTrader5 as mt5
@@ -12,8 +13,41 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from mt5_forex_connector import clean_data_for_json
 from enum import Enum
+import json
+
+# CRITICAL FIX: Add clean_data_for_json function locally
+def clean_data_for_json(data):
+    """Clean data for JSON serialization - FIXED VERSION"""
+    if isinstance(data, dict):
+        cleaned = {}
+        for key, value in data.items():
+            cleaned[key] = clean_data_for_json(value)
+        return cleaned
+    elif isinstance(data, list):
+        return [clean_data_for_json(item) for item in data]
+    elif isinstance(data, tuple):
+        return tuple(clean_data_for_json(item) for item in data)
+    elif isinstance(data, (np.integer, np.int64, np.int32)):
+        return int(data)
+    elif isinstance(data, (np.floating, np.float64, np.float32)):
+        return float(data)
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, pd.Series):
+        return data.tolist()
+    elif isinstance(data, pd.DataFrame):
+        return data.to_dict('records')
+    elif isinstance(data, Enum):
+        return data.value
+    elif hasattr(data, '__dict__'):
+        return str(data)
+    elif pd.isna(data):
+        return None
+    elif data in [np.inf, -np.inf]:
+        return None
+    else:
+        return data
 
 # ============================================================================
 # 1. MARKET REGIME DETECTOR (เวอร์ชันง่าย)
@@ -83,55 +117,67 @@ class SimpleMarketRegimeDetector:
     
     def calculate_atr(self, df: pd.DataFrame, period: int = 14) -> float:
         """คำนวณ ATR"""
-        high = df['high']
-        low = df['low']
-        close = df['close']
-        
-        tr1 = high - low
-        tr2 = abs(high - close.shift())
-        tr3 = abs(low - close.shift())
-        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-        atr = tr.rolling(window=period).mean().iloc[-1]
-        
-        return atr if not pd.isna(atr) else 0.001
+        try:
+            high = df['high']
+            low = df['low']
+            close = df['close']
+            
+            tr1 = high - low
+            tr2 = abs(high - close.shift())
+            tr3 = abs(low - close.shift())
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            atr = tr.rolling(window=period).mean().iloc[-1]
+            
+            return atr if not pd.isna(atr) else 0.001
+        except Exception as e:
+            print(f"ATR calculation error: {str(e)}")
+            return 0.001
     
     def get_atr_percentile(self, df: pd.DataFrame, current_atr: float) -> float:
         """คำนวณ ATR Percentile"""
-        atr_series = []
-        for i in range(14, len(df)):
-            window_df = df.iloc[i-14:i]
-            atr_val = self.calculate_atr(window_df)
-            atr_series.append(atr_val)
-        
-        if len(atr_series) == 0:
-            return 50.0
+        try:
+            atr_series = []
+            for i in range(14, len(df)):
+                window_df = df.iloc[i-14:i]
+                atr_val = self.calculate_atr(window_df)
+                atr_series.append(atr_val)
             
-        atr_series = pd.Series(atr_series)
-        percentile = (atr_series <= current_atr).mean() * 100
-        return percentile
+            if len(atr_series) == 0:
+                return 50.0
+                
+            atr_series = pd.Series(atr_series)
+            percentile = (atr_series <= current_atr).mean() * 100
+            return percentile
+        except Exception as e:
+            print(f"ATR percentile error: {str(e)}")
+            return 50.0
     
     def calculate_trend_strength(self, df: pd.DataFrame) -> float:
         """คำนวณ Trend Strength"""
-        close = df['close']
-        ema_10 = close.ewm(span=10).mean()
-        ema_20 = close.ewm(span=20).mean()
-        ema_50 = close.ewm(span=50).mean()
-        
-        current_price = close.iloc[-1]
-        
-        # Bullish conditions
-        bullish_score = 0
-        if current_price > ema_10.iloc[-1]: bullish_score += 1
-        if ema_10.iloc[-1] > ema_20.iloc[-1]: bullish_score += 1
-        if ema_20.iloc[-1] > ema_50.iloc[-1]: bullish_score += 1
-        
-        # Bearish conditions  
-        bearish_score = 0
-        if current_price < ema_10.iloc[-1]: bearish_score += 1
-        if ema_10.iloc[-1] < ema_20.iloc[-1]: bearish_score += 1
-        if ema_20.iloc[-1] < ema_50.iloc[-1]: bearish_score += 1
-        
-        return max(bullish_score, bearish_score) / 3.0
+        try:
+            close = df['close']
+            ema_10 = close.ewm(span=10).mean()
+            ema_20 = close.ewm(span=20).mean()
+            ema_50 = close.ewm(span=50).mean()
+            
+            current_price = close.iloc[-1]
+            
+            # Bullish conditions
+            bullish_score = 0
+            if current_price > ema_10.iloc[-1]: bullish_score += 1
+            if ema_10.iloc[-1] > ema_20.iloc[-1]: bullish_score += 1
+            if ema_20.iloc[-1] > ema_50.iloc[-1]: bullish_score += 1
+            
+            # Bearish conditions  
+            bearish_score = 0
+            if current_price < ema_10.iloc[-1]: bearish_score += 1
+            if ema_10.iloc[-1] < ema_20.iloc[-1]: bearish_score += 1
+            if ema_20.iloc[-1] < ema_50.iloc[-1]: bearish_score += 1
+            
+            return max(bullish_score, bearish_score) / 3.0
+        except Exception as e:
+            print(f"Trend strength error: {str(e)}")
+            return 0.0
 
 # ============================================================================
 # 2. ADVANCED SIGNAL SCORER
@@ -217,7 +263,7 @@ class AdvancedSignalScorer:
                     'regime_fit': round(regime_score, 3)
                 },
                 'regime_multiplier': regime_multiplier,
-                'regime': regime_data['regime'].value,
+                'regime': regime_data['regime'].value if hasattr(regime_data['regime'], 'value') else str(regime_data['regime']),
                 'confidence': regime_data['confidence']
             }
             
@@ -489,7 +535,7 @@ class AdvancedTradingIntegrator:
             enhanced_result.update({
                 'enhanced_strength': enhanced_score['enhanced_strength'],
                 'enhanced_quality': enhanced_score['enhanced_quality'],
-                'market_regime': regime_data['regime'].value,
+                'market_regime': regime_data['regime'].value if hasattr(regime_data['regime'], 'value') else str(regime_data['regime']),
                 'regime_confidence': regime_data['confidence'],
                 'trend_strength': regime_data['trend_strength'],
                 'volatility_percentile': regime_data['volatility_percentile'],
@@ -503,35 +549,21 @@ class AdvancedTradingIntegrator:
                 }
             })
             
+            # CRITICAL FIX: Ensure all data is JSON serializable
+            enhanced_result = clean_data_for_json(enhanced_result)
+            
+            # Handle specific enum conversions
+            if 'market_regime' in enhanced_result:
+                if hasattr(enhanced_result['market_regime'], 'value'):
+                    enhanced_result['market_regime'] = enhanced_result['market_regime'].value
+            
+            # Handle enhancement_details
+            if 'enhancement_details' in enhanced_result:
+                enhanced_result['enhancement_details'] = clean_data_for_json(
+                    enhanced_result['enhancement_details']
+                )
+            
             return enhanced_result
-            
-            # CRITICAL FIX: Ensure all data is JSON serializable
-            enhanced_result = clean_data_for_json(enhanced_result)
-            
-            # Handle specific enum conversions
-            if 'market_regime' in enhanced_result:
-                if hasattr(enhanced_result['market_regime'], 'value'):
-                    enhanced_result['market_regime'] = enhanced_result['market_regime'].value
-            
-            # Handle enhancement_details
-            if 'enhancement_details' in enhanced_result:
-                enhanced_result['enhancement_details'] = clean_data_for_json(
-                    enhanced_result['enhancement_details']
-                )
-            
-            # CRITICAL FIX: Ensure all data is JSON serializable
-            enhanced_result = clean_data_for_json(enhanced_result)
-            
-            # Handle specific enum conversions
-            if 'market_regime' in enhanced_result:
-                if hasattr(enhanced_result['market_regime'], 'value'):
-                    enhanced_result['market_regime'] = enhanced_result['market_regime'].value
-            
-            # Handle enhancement_details
-            if 'enhancement_details' in enhanced_result:
-                enhanced_result['enhancement_details'] = clean_data_for_json(
-                    enhanced_result['enhancement_details']
-                )
             
         except Exception as e:
             print(f"Enhancement error for {symbol}: {str(e)}")
