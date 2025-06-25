@@ -377,8 +377,8 @@ class EnhancedSmartAutoTradingDashboard:
 
         try:
             self.signal_engine = MultiTimeframeSignalEngine()
-            print("🎯 Enhanced Multi-Timeframe Signal Engine Activated!")
-            print("✅ Expected Win Rate Improvement: 55% → 65-75%")
+            print(" Enhanced Multi-Timeframe Signal Engine Activated!")
+            print(" Expected Win Rate Improvement: 55% → 65-75%")
         except Exception as e:
             print(f"❌ Error initializing signal engine: {str(e)}")
             self.signal_engine = None
@@ -997,7 +997,7 @@ class EnhancedSmartAutoTradingDashboard:
     def test_enhanced_signals(self):
             """Test the enhanced signal system - เรียกใช้ผ่าน API"""
             try:
-                print("🎯 Testing Enhanced Multi-Timeframe Signal System...")
+                print(" Testing Enhanced Multi-Timeframe Signal System...")
                 
                 # Basic test without external import
                 test_pairs = ['EURUSD.c', 'GBPUSD.c', 'USDJPY.c']
@@ -1448,7 +1448,7 @@ class EnhancedSmartAutoTradingDashboard:
     
     def analyze_entry_exit_points(self, indicators: Dict, current_price: float, symbol: str) -> Dict:
             """
-            🎯 ENHANCED Multi-Timeframe Signal Analysis
+             ENHANCED Multi-Timeframe Signal Analysis
             Using Professional Confluence System
             """
             try:
@@ -1558,7 +1558,7 @@ class EnhancedSmartAutoTradingDashboard:
                 
                 # 📊 Log enhanced signal info
                 if result['signal'] != 'NONE':
-                    self.logger.info(f"🎯 ENHANCED SIGNAL: {symbol}")
+                    self.logger.info(f" ENHANCED SIGNAL: {symbol}")
                     self.logger.info(f"   Signal: {result['signal']} | Strength: {result['strength']}/10")
                     self.logger.info(f"   Quality: {result['entry_quality']} | Confluence: {confluence_result.get('confluence_score', 0)}")
                     self.logger.info(f"   Timeframes: {len(confluence_result.get('timeframe_analysis', {}))}")
@@ -1593,6 +1593,155 @@ class EnhancedSmartAutoTradingDashboard:
                         'system_version': 'Enhanced_MultiTimeframe_v2.0'
                     }
                 }    
+            
+    def old_analyze_entry_exit_points(self, indicators: Dict, current_price: float, symbol: str) -> Dict:
+        """
+        Backup method - ระบบเก่าสำหรับกรณี signal engine ไม่ทำงาน
+        """
+        try:
+            # Get indicators
+            rsi = indicators.get('rsi', 50)
+            trend_strength = indicators.get('trend_strength', 0)
+            atr = indicators.get('atr', current_price * 0.005)
+            ema_9 = indicators.get('ema_9', current_price)
+            ema_21 = indicators.get('ema_21', current_price)
+            ema_50 = indicators.get('ema_50', current_price)
+            volume_ratio = indicators.get('volume_ratio', 1.0)
+            
+            # Simple signal analysis (ระบบเก่า)
+            signal_direction = 'NONE'
+            signal_strength = 0
+            entry_score = 0
+            entry_reasons = ['Using fallback system']
+            
+            # Basic bullish conditions
+            bullish_score = 0
+            if current_price > ema_9:
+                bullish_score += 2
+                entry_reasons.append("Price above EMA9")
+            if ema_9 > ema_21:
+                bullish_score += 1
+                entry_reasons.append("EMA9 > EMA21")
+            if ema_21 > ema_50:
+                bullish_score += 1
+                entry_reasons.append("EMA21 > EMA50")
+            if 25 <= rsi <= 75:
+                bullish_score += 1
+                entry_reasons.append("RSI in safe zone")
+            if trend_strength >= 0.3:
+                bullish_score += 1
+                entry_reasons.append("Trend detected")
+            if volume_ratio >= 1.0:
+                bullish_score += 1
+                entry_reasons.append("Volume support")
+            
+            # Basic bearish conditions
+            bearish_score = 0
+            if current_price < ema_9:
+                bearish_score += 2
+            if ema_9 < ema_21:
+                bearish_score += 1
+            if ema_21 < ema_50:
+                bearish_score += 1
+            if 25 <= rsi <= 75:
+                bearish_score += 1
+            if trend_strength >= 0.3:
+                bearish_score += 1
+            if volume_ratio >= 1.0:
+                bearish_score += 1
+            
+            # Signal generation
+            if bullish_score >= bearish_score and bullish_score >= 3:
+                signal_direction = 'BUY'
+                signal_strength = min(10, 2 + bullish_score * 0.8)
+                entry_score = bullish_score
+                
+                if bullish_score >= 6:
+                    signal_direction = 'STRONG_BUY'
+                    signal_strength = min(10, 6 + bullish_score * 0.5)
+                    
+            elif bearish_score > bullish_score and bearish_score >= 3:
+                signal_direction = 'SELL'
+                signal_strength = min(10, 2 + bearish_score * 0.8)
+                entry_score = bearish_score
+                
+                if bearish_score >= 6:
+                    signal_direction = 'STRONG_SELL'
+                    signal_strength = min(10, 6 + bearish_score * 0.5)
+            
+            # Entry quality
+            if entry_score >= 7:
+                entry_quality = 'EXCELLENT'
+            elif entry_score >= 5:
+                entry_quality = 'GOOD'
+            elif entry_score >= 3:
+                entry_quality = 'FAIR'
+            else:
+                entry_quality = 'POOR'
+            
+            # Calculate levels
+            atr_multiplier = 1.5
+            
+            if signal_direction in ['BUY', 'STRONG_BUY']:
+                stop_loss = current_price - (atr * atr_multiplier)
+                take_profit_1 = current_price + (atr * 2.5)
+                take_profit_2 = current_price + (atr * 4.0)
+                take_profit_3 = current_price + (atr * 6.0)
+            elif signal_direction in ['SELL', 'STRONG_SELL']:
+                stop_loss = current_price + (atr * atr_multiplier)
+                take_profit_1 = current_price - (atr * 2.5)
+                take_profit_2 = current_price - (atr * 4.0)
+                take_profit_3 = current_price - (atr * 6.0)
+            else:
+                stop_loss = take_profit_1 = take_profit_2 = take_profit_3 = current_price
+            
+            # Position sizing
+            position_info = self.calculate_position_size(current_price, stop_loss, symbol)
+            
+            # R/R ratios
+            risk = abs(current_price - stop_loss)
+            rr_tp1 = abs(take_profit_1 - current_price) / risk if risk > 0 else 0
+            rr_tp2 = abs(take_profit_2 - current_price) / risk if risk > 0 else 0
+            rr_tp3 = abs(take_profit_3 - current_price) / risk if risk > 0 else 0
+            
+            return {
+                'signal': signal_direction,
+                'strength': round(signal_strength, 1),
+                'entry_quality': entry_quality,
+                'entry_score': entry_score,
+                'entry_reasons': entry_reasons,
+                'optimal_entry': round(current_price, 5),
+                'stop_loss': round(stop_loss, 5),
+                'take_profit_1': round(take_profit_1, 5),
+                'take_profit_2': round(take_profit_2, 5),
+                'take_profit_3': round(take_profit_3, 5),
+                'lot_size': position_info.get('lot_size', self.default_lot_size),
+                'risk_amount': position_info.get('risk_amount', 0),
+                'risk_percentage': position_info.get('risk_percentage', 0),
+                'rr_tp1': round(rr_tp1, 2),
+                'rr_tp2': round(rr_tp2, 2),
+                'rr_tp3': round(rr_tp3, 2),
+                'enhanced_analysis': {
+                    'fallback_mode': True,
+                    'system_version': 'Fallback_System_v1.0'
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Fallback analysis error: {str(e)}")
+            return {
+                'signal': 'NONE', 'strength': 0, 'entry_quality': 'POOR',
+                'entry_score': 0, 'optimal_entry': current_price,
+                'stop_loss': current_price, 'take_profit_1': current_price,
+                'lot_size': self.default_lot_size, 'risk_amount': 0,
+                'risk_percentage': 0, 'rr_tp1': 0, 'rr_tp2': 0, 'rr_tp3': 0,
+                'enhanced_analysis': {
+                    'error': str(e),
+                    'fallback_mode': True,
+                    'system_version': 'Fallback_System_v1.0'
+                }
+            }    
+            
     def get_symbol_data(self, symbol: str) -> Optional[Dict]:
         """Get enhanced symbol data"""
         try:
