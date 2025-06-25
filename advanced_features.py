@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
+from mt5_forex_connector import clean_data_for_json
 from enum import Enum
 
 # ============================================================================
@@ -503,6 +504,34 @@ class AdvancedTradingIntegrator:
             })
             
             return enhanced_result
+            
+            # CRITICAL FIX: Ensure all data is JSON serializable
+            enhanced_result = clean_data_for_json(enhanced_result)
+            
+            # Handle specific enum conversions
+            if 'market_regime' in enhanced_result:
+                if hasattr(enhanced_result['market_regime'], 'value'):
+                    enhanced_result['market_regime'] = enhanced_result['market_regime'].value
+            
+            # Handle enhancement_details
+            if 'enhancement_details' in enhanced_result:
+                enhanced_result['enhancement_details'] = clean_data_for_json(
+                    enhanced_result['enhancement_details']
+                )
+            
+            # CRITICAL FIX: Ensure all data is JSON serializable
+            enhanced_result = clean_data_for_json(enhanced_result)
+            
+            # Handle specific enum conversions
+            if 'market_regime' in enhanced_result:
+                if hasattr(enhanced_result['market_regime'], 'value'):
+                    enhanced_result['market_regime'] = enhanced_result['market_regime'].value
+            
+            # Handle enhancement_details
+            if 'enhancement_details' in enhanced_result:
+                enhanced_result['enhancement_details'] = clean_data_for_json(
+                    enhanced_result['enhancement_details']
+                )
             
         except Exception as e:
             print(f"Enhancement error for {symbol}: {str(e)}")

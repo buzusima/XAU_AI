@@ -5,6 +5,7 @@ Professional Auto Trading with State Management & Data Recovery
 """
 
 from flask import Flask, jsonify, send_from_directory, request
+from enum import Enum
 from flask_cors import CORS
 import MetaTrader5 as mt5
 import pandas as pd
@@ -29,6 +30,113 @@ except ImportError as e:
     print(f"⚠️ Advanced features not available: {str(e)}")
     print("📋 Using standard trading system...")
     ADVANCED_FEATURES_AVAILABLE = False
+
+
+import json
+from datetime import datetime
+from enum import Enum
+import numpy as np
+import pandas as pd
+
+class EnhancedJSONEncoder(json.JSONEncoder):
+    """Custom JSON Encoder to handle special objects"""
+    
+    def default(self, obj):
+        try:
+            # Handle Enum objects (including MarketRegime)
+            if isinstance(obj, Enum):
+                return obj.value
+            
+            # Handle datetime objects
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            
+            # Handle numpy types
+            if hasattr(obj, 'tolist'):
+                return obj.tolist()
+            
+            # Handle pandas Series/DataFrame
+            if hasattr(obj, 'to_dict'):
+                return obj.to_dict()
+            
+            # Handle sets
+            if isinstance(obj, set):
+                return list(obj)
+            
+            # Handle any object with __dict__
+            if hasattr(obj, '__dict__'):
+                return obj.__dict__
+            
+            # Fallback to string representation
+            return str(obj)
+            
+        except Exception as e:
+            # Ultimate fallback
+            return f"<Unserializable: {type(obj).__name__}>"
+
+def safe_json_serialize(data):
+    """Safely serialize data to JSON, handling all Python objects"""
+    try:
+        return json.dumps(data, cls=EnhancedJSONEncoder, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"JSON serialization error: {str(e)}")
+        # Create a safe fallback version
+        safe_data = clean_data_for_json(data)
+        return json.dumps(safe_data, ensure_ascii=False, indent=2)
+
+def clean_data_for_json(obj):
+    """Recursively clean data for JSON serialization"""
+    try:
+        if obj is None:
+            return None
+        
+        # Handle basic types
+        if isinstance(obj, (str, int, float, bool)):
+            return obj
+        
+        # Handle Enum objects
+        if isinstance(obj, Enum):
+            return obj.value
+        
+        # Handle datetime
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        
+        # Handle lists
+        if isinstance(obj, (list, tuple)):
+            return [clean_data_for_json(item) for item in obj]
+        
+        # Handle dictionaries
+        if isinstance(obj, dict):
+            cleaned = {}
+            for key, value in obj.items():
+                # Ensure key is string
+                clean_key = str(key) if not isinstance(key, str) else key
+                cleaned[clean_key] = clean_data_for_json(value)
+            return cleaned
+        
+        # Handle sets
+        if isinstance(obj, set):
+            return [clean_data_for_json(item) for item in obj]
+        
+        # Handle numpy types
+        if hasattr(obj, 'tolist'):
+            return obj.tolist()
+        
+        # Handle pandas objects
+        if hasattr(obj, 'to_dict'):
+            return clean_data_for_json(obj.to_dict())
+        
+        # Handle objects with __dict__
+        if hasattr(obj, '__dict__'):
+            return clean_data_for_json(obj.__dict__)
+        
+        # Fallback to string
+        return str(obj)
+        
+    except Exception as e:
+        return f"<Error: {str(e)}>"
+
 
 class DataPersistenceManager:
     """จัดการการบันทึกและโหลดข้อมูลระบบ"""
@@ -2241,6 +2349,9 @@ class EnhancedSmartAutoTradingDashboard:
                 self.logger.warning(f"Result validation error for {symbol}: {str(e)}")
             
             return result
+            # CRITICAL FIX: Clean result for JSON serialization
+            if result:
+                result = clean_data_for_json(result)
             
         except Exception as e:
             self.logger.error(f"Critical error getting data for {symbol}: {str(e)}")
@@ -2324,40 +2435,75 @@ class EnhancedSmartAutoTradingDashboard:
 <br><a href="/api/system-status" style="color:#00ccff;">System Status</a>
 </body></html>'''
         
-        @self.app.route('/api/market-data')
+                @self.app.route('/api/market-data')
         def get_market_data():
-            """Get market data with auto trading status"""
+            """Get market data with auto trading status - FIXED JSON SERIALIZATION"""
             try:
                 formatted_data = {}
+                
+                # Clean and prepare market data
                 for symbol, data in self.live_data.items():
                     if data:
-                        formatted_data[symbol] = data
+                        # Clean the data before adding to response
+                        cleaned_data = clean_data_for_json(data)
+                        formatted_data[symbol] = cleaned_data
                 
-                # Auto trading status
+                # Clean auto trading status
                 auto_trading_status = {
                     'enabled': self.auto_trading_enabled,
                     'emergency_stop': self.emergency_stop,
                     'active_pairs': list(self.auto_trading_pairs),
                     'total_trades': len([pos for positions in self.active_trades_per_pair.values() for pos in positions]),
-                    'daily_stats': self.daily_stats,
-                    'current_exposure': self.calculate_current_exposure() * 100,
-                    'max_exposure': self.max_total_exposure * 100,
-                    'risk_profile': self.current_risk_profile,
-                    'custom_risk': self.custom_risk_per_trade
+                    'daily_stats': clean_data_for_json(self.daily_stats),
+                    'current_exposure': float(self.calculate_current_exposure() * 100),
+                    'max_exposure': float(self.max_total_exposure * 100),
+                    'risk_profile': str(self.current_risk_profile),
+                    'custom_risk': float(self.custom_risk_per_trade)
                 }
                 
-                return jsonify({
+                # Clean account info
+                account_info_cleaned = clean_data_for_json(self.account_info)
+                
+                # Prepare response
+                response_data = {
                     'success': True,
                     'data': formatted_data,
-                    'account': self.account_info,
+                    'account': account_info_cleaned,
                     'auto_trading': auto_trading_status,
                     'risk_settings': {
-                        'max_risk_per_trade': self.max_risk_per_trade * 100,
-                        'max_total_exposure': self.max_total_exposure * 100,
-                        'max_daily_loss': self.max_daily_loss * 100,
-                        'account_balance': self.account_balance
+                        'max_risk_per_trade': float(self.max_risk_per_trade * 100),
+                        'max_total_exposure': float(self.max_total_exposure * 100),
+                        'max_daily_loss': float(self.max_daily_loss * 100),
+                        'account_balance': float(self.account_balance)
                     },
                     'timestamp': datetime.now().isoformat(),
+                    'mt5_connected': bool(self.mt5_connected),
+                    'persistence_active': True,
+                    'enhanced_features': {
+                        'signal_engine_active': hasattr(self, 'signal_engine') and self.signal_engine is not None,
+                        'advanced_features_available': getattr(self, 'use_advanced_features', False),
+                        'multi_timeframe_analysis': True,
+                        'confluence_system': True
+                    }
+                }
+                
+                # Final cleaning and return
+                return jsonify(clean_data_for_json(response_data))
+                
+            except Exception as e:
+                self.logger.error(f"Critical error in market-data API: {str(e)}")
+                
+                # Return safe error response
+                error_response = {
+                    'success': False,
+                    'error': str(e),
+                    'data': {},
+                    'mt5_connected': bool(getattr(self, 'mt5_connected', False)),
+                    'timestamp': datetime.now().isoformat(),
+                    'fallback_mode': True
+                }
+                
+                return jsonify(error_response).isoformat(),
                     'mt5_connected': self.mt5_connected,
                     'persistence_active': True
                 })
