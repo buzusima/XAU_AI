@@ -401,20 +401,20 @@ class MultiTimeframeSignalEngine:
             return self.get_default_indicators()
     
     def calculate_trend_strength(self, close: pd.Series, ema_9: pd.Series, ema_21: pd.Series, ema_50: pd.Series) -> float:
-        """Calculate trend strength (0-1) with enhanced error handling - COMPLETELY FIXED"""
+        """Calculate trend strength (0-1) with ZERO DIVISION PROTECTION - COMPLETELY FIXED"""
         try:
             if len(close) == 0:
                 return 0.0
                 
             current_price = close.iloc[-1] if len(close) > 0 else 1.0
             
-            # FIXED: Ultra-safe EMA value extraction
+            # CRITICAL FIX 1: Ultra-safe EMA value extraction with zero protection
             def ultra_safe_ema_val(ema_series, default=None):
                 try:
                     if len(ema_series) == 0:
                         return default or current_price
                     val = ema_series.iloc[-1]
-                    if pd.isna(val) or val == np.inf or val == -np.inf:
+                    if pd.isna(val) or val == np.inf or val == -np.inf or val <= 0:
                         return default or current_price
                     return float(val)
                 except:
@@ -424,38 +424,439 @@ class MultiTimeframeSignalEngine:
             e21 = ultra_safe_ema_val(ema_21)
             e50 = ultra_safe_ema_val(ema_50)
             
-            # FIXED: Add minimum price difference threshold to avoid noise
-            min_diff_threshold = current_price * 0.0001  # 0.01% minimum difference
-            
-            # EMA Alignment Score with noise filtering
-            bullish_conditions = []
-            bearish_conditions = []
-            
-            if abs(current_price - e9) > min_diff_threshold:
-                bullish_conditions.append(current_price > e9)
-                bearish_conditions.append(current_price < e9)
-            
-            if abs(e9 - e21) > min_diff_threshold:
-                bullish_conditions.append(e9 > e21)
-                bearish_conditions.append(e9 < e21)
-            
-            if abs(e21 - e50) > min_diff_threshold:
-                bullish_conditions.append(e21 > e50)
-                bearish_conditions.append(e21 < e50)
-            
-            if len(bullish_conditions) == 0:
+            # CRITICAL FIX 2: Ensure all values are positive and valid
+            if any(val <= 0 for val in [current_price, e9, e21, e50]):
+                self.logger.warning(f"Invalid price values detected: price={current_price}, e9={e9}, e21={e21}, e50={e50}")
                 return 0.0
             
-            # FIXED: Use .any() or .all() instead of direct boolean evaluation
-            uptrend_score = sum(bullish_conditions) / len(bullish_conditions)
-            downtrend_score = sum(bearish_conditions) / len(bearish_conditions)
+            # CRITICAL FIX 3: Calculate minimum meaningful difference threshold
+            # Use the largest value as reference to avoid division by zero
+            max_price = max(current_price, e9, e21, e50)
+            min_diff_threshold = max_price * 0.0001  # 0.01% minimum difference
             
-            return max(uptrend_score, downtrend_score)
+            # CRITICAL FIX 4: Safe difference calculations with threshold
+            def safe_compare(val1, val2, threshold):
+                """Safely compare two values with minimum threshold"""
+                try:
+                    diff = abs(val1 - val2)
+                    if diff < threshold:
+                        return 0  # No meaningful difference
+                    return 1 if val1 > val2 else -1
+                except:
+                    return 0
             
+            # EMA Alignment Score with noise filtering and zero division protection
+            alignment_checks = []
+            
+            # Check 1: Current price vs EMA9
+            price_vs_ema9 = safe_compare(current_price, e9, min_diff_threshold)
+            if price_vs_ema9 != 0:
+                alignment_checks.append(price_vs_ema9 > 0)
+            
+            # Check 2: EMA9 vs EMA21  
+            ema9_vs_ema21 = safe_compare(e9, e21, min_diff_threshold)
+            if ema9_vs_ema21 != 0:
+                alignment_checks.append(ema9_vs_ema21 > 0)
+            
+            # Check 3: EMA21 vs EMA50
+            ema21_vs_ema50 = safe_compare(e21, e50, min_diff_threshold)
+            if ema21_vs_ema50 != 0:
+                alignment_checks.append(ema21_vs_ema50 > 0)
+            
+            # CRITICAL FIX 5: Handle case where no meaningful differences exist
+            if len(alignment_checks) == 0:
+                return 0.0  # No trend can be determined
+            
+            # CRITICAL FIX 6: Calculate trend strength with division protection
+            try:
+                # Count bullish and bearish alignments
+                bullish_count = sum(1 for check in alignment_checks if check)
+                bearish_count = sum(1 for check in alignment_checks if not check)
+                total_checks = len(alignment_checks)
+                
+                # Ensure we don't divide by zero
+                if total_checks == 0:
+                    return 0.0
+                
+                # Calculate strength as the maximum alignment percentage
+                bullish_strength = bullish_count / total_checks
+                bearish_strength = bearish_count / total_checks
+                
+                # Return the stronger trend direction strength
+                trend_strength = max(bullish_strength, bearish_strength)
+                
+                # CRITICAL FIX 7: Validate result
+                if not np.isfinite(trend_strength) or trend_strength < 0 or trend_strength > 1:
+                    return 0.0
+                    
+                return float(trend_strength)
+                
+            except ZeroDivisionError:
+                self.logger.error(f"ZeroDivisionError in trend strength calculation")
+                return 0.0
+            except Exception as calc_error:
+                self.logger.error(f"Calculation error in trend strength: {str(calc_error)}")
+                return 0.0
+                
         except Exception as e:
             self.logger.error(f"Trend strength calculation error: {str(e)}")
             return 0.0
-    
+
+    def calculate_atr(self, high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+        """Calculate Average True Range with ZERO DIVISION PROTECTION - COMPLETELY FIXED"""
+        try:
+            if len(close) < period or period <= 0:
+                # Return safe default ATR series
+                default_atr_value = 0.001
+                if len(high) > 0 and len(low) > 0:
+                    try:
+                        price_range = (high - low).mean()
+                        if pd.notna(price_range) and price_range > 0:
+                            default_atr_value = float(price_range)
+                    except:
+                        pass
+                return pd.Series([default_atr_value] * len(close), index=close.index)
+            
+            # CRITICAL FIX 1: Validate input series
+            if high.isna().all() or low.isna().all() or close.isna().all():
+                return pd.Series([0.001] * len(close), index=close.index)
+            
+            # CRITICAL FIX 2: Calculate True Range with zero protection
+            try:
+                tr1 = high - low
+                tr2 = abs(high - close.shift())
+                tr3 = abs(low - close.shift())
+                
+                # Replace any NaN or infinite values
+                tr1 = tr1.fillna(0).replace([np.inf, -np.inf], 0)
+                tr2 = tr2.fillna(0).replace([np.inf, -np.inf], 0) 
+                tr3 = tr3.fillna(0).replace([np.inf, -np.inf], 0)
+                
+                # Calculate true range as maximum of the three
+                tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+                
+                # CRITICAL FIX 3: Ensure no zero or negative values in TR
+                tr = tr.where(tr > 0.000001, 0.001)  # Minimum TR value
+                
+            except Exception as tr_error:
+                self.logger.error(f"True Range calculation error: {str(tr_error)}")
+                # Fallback to simple high-low range
+                tr = (high - low).fillna(0.001).where(lambda x: x > 0, 0.001)
+            
+            # CRITICAL FIX 4: Calculate ATR with Wilder's smoothing and protection
+            try:
+                # Use exponential weighted moving average (Wilder's method)
+                alpha = 1.0 / period
+                atr = tr.ewm(alpha=alpha, adjust=False).mean()
+                
+                # CRITICAL FIX 5: Handle any remaining NaN or invalid values
+                atr = atr.fillna(method='bfill').fillna(method='ffill').fillna(0.001)
+                
+                # CRITICAL FIX 6: Ensure minimum ATR value to prevent division by zero
+                atr = atr.where(atr > 0.000001, 0.001)
+                
+                # CRITICAL FIX 7: Replace any infinite values
+                atr = atr.replace([np.inf, -np.inf], 0.001)
+                
+                return atr
+                
+            except Exception as atr_error:
+                self.logger.error(f"ATR smoothing calculation error: {str(atr_error)}")
+                # Ultra-safe fallback
+                return pd.Series([0.001] * len(close), index=close.index)
+                
+        except Exception as e:
+            self.logger.error(f"ATR calculation error: {str(e)}")
+            # Emergency fallback
+            return pd.Series([0.001] * len(close), index=close.index)
+
+    def calculate_rsi(self, close: pd.Series, period: int = 14) -> pd.Series:
+        """Calculate RSI with ZERO DIVISION PROTECTION - COMPLETELY FIXED"""
+        try:
+            if len(close) < period or period <= 0:
+                return pd.Series([50.0] * len(close), index=close.index)
+            
+            # CRITICAL FIX 1: Validate input data
+            if close.isna().all() or len(close.dropna()) < 2:
+                return pd.Series([50.0] * len(close), index=close.index)
+                
+            # CRITICAL FIX 2: Calculate price changes with protection
+            try:
+                delta = close.diff()
+                # Replace first NaN with 0
+                delta.iloc[0] = 0
+                
+                gain = delta.where(delta > 0, 0)
+                loss = -delta.where(delta < 0, 0)
+                
+            except Exception as delta_error:
+                self.logger.error(f"RSI delta calculation error: {str(delta_error)}")
+                return pd.Series([50.0] * len(close), index=close.index)
+            
+            # CRITICAL FIX 3: Calculate smoothed averages with Wilder's method and zero protection
+            try:
+                alpha = 1.0 / period
+                avg_gain = gain.ewm(alpha=alpha, adjust=False).mean()
+                avg_loss = loss.ewm(alpha=alpha, adjust=False).mean()
+                
+                # CRITICAL FIX 4: Handle zero division in RS calculation
+                # Replace zero avg_loss with very small value to prevent division by zero
+                avg_loss_protected = avg_loss.where(avg_loss > 0.000001, 0.000001)
+                
+                rs = avg_gain / avg_loss_protected
+                
+                # CRITICAL FIX 5: Calculate RSI with protection against invalid values
+                rsi = 100 - (100 / (1 + rs))
+                
+                # CRITICAL FIX 6: Handle any NaN, infinite, or out-of-range values
+                rsi = rsi.fillna(50.0)  # Fill NaN with neutral RSI
+                rsi = rsi.replace([np.inf, -np.inf], 50.0)  # Replace infinite with neutral
+                rsi = rsi.clip(0, 100)  # Ensure RSI is within valid range
+                
+                # CRITICAL FIX 7: Final validation
+                if rsi.isna().any() or (rsi < 0).any() or (rsi > 100).any():
+                    self.logger.warning("Invalid RSI values detected, using fallback")
+                    return pd.Series([50.0] * len(close), index=close.index)
+                
+                return rsi
+                
+            except ZeroDivisionError as zde:
+                self.logger.error(f"RSI ZeroDivisionError: {str(zde)}")
+                return pd.Series([50.0] * len(close), index=close.index)
+            except Exception as rsi_error:
+                self.logger.error(f"RSI calculation error: {str(rsi_error)}")
+                return pd.Series([50.0] * len(close), index=close.index)
+                
+        except Exception as e:
+            self.logger.error(f"RSI calculation error: {str(e)}")
+            return pd.Series([50.0] * len(close), index=close.index)
+
+    def calculate_advanced_indicators(self, df: pd.DataFrame) -> Dict:
+        """Calculate comprehensive technical indicators with ZERO DIVISION PROTECTION - COMPLETELY FIXED"""
+        try:
+            if len(df) < 5:  # Minimum data requirement
+                return self.get_default_indicators()
+                
+            close = df['close']
+            high = df['high']
+            low = df['low']
+            volume = df.get('tick_volume', pd.Series(1, index=df.index))
+            
+            # CRITICAL FIX 1: Validate all input series
+            if any(series.isna().all() for series in [close, high, low]):
+                self.logger.error("All price data is NaN")
+                return self.get_default_indicators()
+            
+            if len(close.dropna()) < 3:
+                self.logger.error("Insufficient valid price data")
+                return self.get_default_indicators()
+            
+            # CRITICAL FIX 2: Adaptive periods based on available data with minimums
+            data_len = len(close.dropna())
+            ema_9_period = max(3, min(9, data_len // 3))
+            ema_21_period = max(5, min(21, data_len // 2))
+            ema_50_period = max(10, min(50, data_len - 1))
+            ema_200_period = max(20, min(200, data_len - 1))
+            
+            # EMA SYSTEM with adaptive periods and zero protection
+            try:
+                ema_9 = close.ewm(span=ema_9_period, adjust=False).mean()
+                ema_21 = close.ewm(span=ema_21_period, adjust=False).mean()
+                ema_50 = close.ewm(span=ema_50_period, adjust=False).mean()
+                ema_200 = close.ewm(span=ema_200_period, adjust=False).mean()
+                
+                # Fill any NaN values with current price
+                current_price = close.iloc[-1] if len(close) > 0 else 1.0
+                ema_9 = ema_9.fillna(current_price)
+                ema_21 = ema_21.fillna(current_price)
+                ema_50 = ema_50.fillna(current_price)
+                ema_200 = ema_200.fillna(current_price)
+                
+            except Exception as ema_error:
+                self.logger.error(f"EMA calculation error: {str(ema_error)}")
+                current_price = close.iloc[-1] if len(close) > 0 else 1.0
+                ema_9 = ema_21 = ema_50 = ema_200 = pd.Series([current_price] * len(close), index=close.index)
+            
+            # RSI MULTI-PERIOD with zero protection
+            try:
+                rsi_14_period = max(3, min(14, data_len // 2))
+                rsi_21_period = max(5, min(21, data_len - 1))
+                rsi_14 = self.calculate_rsi(close, rsi_14_period)
+                rsi_21 = self.calculate_rsi(close, rsi_21_period)
+            except Exception as rsi_error:
+                self.logger.error(f"RSI calculation error: {str(rsi_error)}")
+                rsi_14 = rsi_21 = pd.Series([50.0] * len(close), index=close.index)
+            
+            # ATR & VOLATILITY with zero protection
+            try:
+                atr_14_period = max(3, min(14, data_len // 2))
+                atr_21_period = max(5, min(21, data_len - 1))
+                atr_14 = self.calculate_atr(high, low, close, atr_14_period)
+                atr_21 = self.calculate_atr(high, low, close, atr_21_period)
+            except Exception as atr_error:
+                self.logger.error(f"ATR calculation error: {str(atr_error)}")
+                default_atr = (close.iloc[-1] if len(close) > 0 else 1.0) * 0.001
+                atr_14 = atr_21 = pd.Series([default_atr] * len(close), index=close.index)
+            
+            # MACD SYSTEM with zero protection
+            try:
+                macd_line, macd_signal, macd_histogram = self.calculate_macd(close)
+            except Exception as macd_error:
+                self.logger.error(f"MACD calculation error: {str(macd_error)}")
+                default_series = pd.Series([0.0] * len(close), index=close.index)
+                macd_line = macd_signal = macd_histogram = default_series
+            
+            # VOLUME ANALYSIS with zero protection
+            try:
+                volume_periods = max(3, min(20, data_len - 1))
+                volume_sma = volume.rolling(window=volume_periods, min_periods=1).mean()
+                
+                # CRITICAL FIX: Protect against zero division in volume ratio
+                volume_sma_protected = volume_sma.where(volume_sma > 0.001, 1.0)
+                volume_ratio = volume / volume_sma_protected
+                
+            except Exception as volume_error:
+                self.logger.error(f"Volume calculation error: {str(volume_error)}")
+                volume_ratio = pd.Series([1.0] * len(close), index=close.index)
+            
+            # TREND ANALYSIS with zero protection
+            try:
+                trend_strength = self.calculate_trend_strength(close, ema_9, ema_21, ema_50)
+                trend_direction = self.get_trend_direction(ema_9, ema_21, ema_50, ema_200)
+            except Exception as trend_error:
+                self.logger.error(f"Trend calculation error: {str(trend_error)}")
+                trend_strength = 0.0
+                trend_direction = 'UNKNOWN'
+            
+            # MOMENTUM with variable periods and zero protection
+            try:
+                momentum_10_period = max(1, min(10, data_len - 2))
+                momentum_20_period = max(2, min(20, data_len - 2))
+                
+                if momentum_10_period > 0:
+                    momentum_base_10 = close.shift(momentum_10_period)
+                    momentum_base_10_protected = momentum_base_10.where(momentum_base_10 > 0.001, close)
+                    momentum_10 = close / momentum_base_10_protected - 1
+                else:
+                    momentum_10 = pd.Series([0] * len(close), index=close.index)
+                
+                if momentum_20_period > 0:
+                    momentum_base_20 = close.shift(momentum_20_period)
+                    momentum_base_20_protected = momentum_base_20.where(momentum_base_20 > 0.001, close)
+                    momentum_20 = close / momentum_base_20_protected - 1
+                else:
+                    momentum_20 = momentum_10
+                    
+            except Exception as momentum_error:
+                self.logger.error(f"Momentum calculation error: {str(momentum_error)}")
+                momentum_10 = momentum_20 = pd.Series([0] * len(close), index=close.index)
+            
+            # CRITICAL FIX 3: Ultra-safe value extraction with comprehensive protection
+            def ultra_safe_get_last(series, default=0, series_name="unknown"):
+                try:
+                    if len(series) == 0:
+                        return float(default)
+                    val = series.iloc[-1]
+                    if pd.isna(val) or val == np.inf or val == -np.inf:
+                        return float(default)
+                    result = float(val)
+                    # Additional validation for specific series
+                    if series_name == "rsi" and (result < 0 or result > 100):
+                        return 50.0
+                    if series_name == "price" and result <= 0:
+                        return 1.0
+                    return result
+                except Exception as e:
+                    self.logger.error(f"Error extracting value from {series_name}: {str(e)}")
+                    return float(default)
+            
+            current_price = ultra_safe_get_last(close, 1.0, "price")
+            
+            # CRITICAL FIX 4: Calculate dynamic defaults based on current price with protection
+            try:
+                default_atr = max(current_price * 0.001, 0.00001) if current_price > 0 else 0.001
+            except:
+                default_atr = 0.001
+            
+            # CRITICAL FIX 5: Build result with comprehensive validation
+            try:
+                result = {
+                    # EMAs with validation
+                    'ema_9': ultra_safe_get_last(ema_9, current_price, "ema_9"),
+                    'ema_21': ultra_safe_get_last(ema_21, current_price, "ema_21"),
+                    'ema_50': ultra_safe_get_last(ema_50, current_price, "ema_50"),
+                    'ema_200': ultra_safe_get_last(ema_200, current_price, "ema_200"),
+                    
+                    # RSI with validation
+                    'rsi_14': ultra_safe_get_last(rsi_14, 50.0, "rsi"),
+                    'rsi_21': ultra_safe_get_last(rsi_21, 50.0, "rsi"),
+                    
+                    # ATR & Volatility with validation
+                    'atr_14': max(ultra_safe_get_last(atr_14, default_atr, "atr"), 0.00001),
+                    'atr_21': max(ultra_safe_get_last(atr_21, default_atr, "atr"), 0.00001),
+                    
+                    # MACD with validation
+                    'macd_line': ultra_safe_get_last(macd_line, 0.0, "macd"),
+                    'macd_signal': ultra_safe_get_last(macd_signal, 0.0, "macd"),
+                    'macd_histogram': ultra_safe_get_last(macd_histogram, 0.0, "macd"),
+                    
+                    # Volume with validation
+                    'volume_ratio': max(ultra_safe_get_last(volume_ratio, 1.0, "volume"), 0.1),
+                    
+                    # Trend with validation
+                    'trend_strength': max(0.0, min(1.0, float(trend_strength))),
+                    'trend_direction': str(trend_direction),
+                    
+                    # Momentum with validation
+                    'momentum_10': ultra_safe_get_last(momentum_10, 0.0, "momentum"),
+                    'momentum_20': ultra_safe_get_last(momentum_20, 0.0, "momentum"),
+                    
+                    # Current Price with validation
+                    'current_price': max(current_price, 0.00001),
+                    
+                    # Data quality metrics
+                    'data_quality': {
+                        'data_points': data_len,
+                        'ema_periods_used': {
+                            'ema_9': ema_9_period,
+                            'ema_21': ema_21_period,
+                            'ema_50': ema_50_period
+                        },
+                        'indicators_calculated': True,
+                        'zero_division_protected': True
+                    }
+                }
+                
+                # Calculate ATR percentage with protection
+                if result['current_price'] > 0 and result['atr_14'] > 0:
+                    result['atr_percent'] = (result['atr_14'] / result['current_price']) * 100
+                else:
+                    result['atr_percent'] = 0.1
+                
+                # CRITICAL FIX 6: Final validation of all values
+                for key, value in result.items():
+                    if key != 'data_quality' and key != 'trend_direction':
+                        if not isinstance(value, (int, float)) or not np.isfinite(value):
+                            self.logger.warning(f"Invalid value for {key}: {value}, using default")
+                            if 'rsi' in key:
+                                result[key] = 50.0
+                            elif 'atr' in key:
+                                result[key] = default_atr
+                            elif 'price' in key or 'ema' in key:
+                                result[key] = current_price
+                            else:
+                                result[key] = 0.0
+                
+                return result
+                
+            except Exception as result_error:
+                self.logger.error(f"Error building indicator result: {str(result_error)}")
+                return self.get_default_indicators()
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating advanced indicators: {str(e)}")
+            return self.get_default_indicators()
+        
     def get_trend_direction(self, ema_9: pd.Series, ema_21: pd.Series, ema_50: pd.Series, ema_200: pd.Series) -> str:
         """Get overall trend direction with enhanced error handling - FIXED"""
         try:

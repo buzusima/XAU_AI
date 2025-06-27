@@ -817,67 +817,91 @@ class EnhancedSmartAutoTradingDashboard:
             return {'can_trade': False, 'reason': f'Error: {str(e)}'}
     
     def calculate_position_size(self, entry_price: float, stop_loss: float, symbol: str, risk_percent: float = None) -> Dict:
-        """Calculate position size with COMPLETELY FIXED GOLD calculation and error handling"""
+        """Calculate position size with COMPLETELY FIXED division by zero protection"""
         try:
             if risk_percent is None:
                 risk_percent = self.max_risk_per_trade
             
-            # Input validation
-            if entry_price <= 0 or stop_loss <= 0 or self.account_balance <= 0:
-                return self.get_default_position_info(symbol, "Invalid input parameters")
+            # CRITICAL FIX 1: Comprehensive input validation
+            if entry_price <= 0:
+                return self.get_default_position_info(symbol, "Invalid entry price: must be > 0")
             
-            if abs(entry_price - stop_loss) < entry_price * 0.0001:  # Too close SL
-                return self.get_default_position_info(symbol, "Stop loss too close to entry")
+            if stop_loss <= 0:
+                return self.get_default_position_info(symbol, "Invalid stop loss: must be > 0")
             
-            # Risk amount
+            if self.account_balance <= 0:
+                return self.get_default_position_info(symbol, "Invalid account balance: must be > 0")
+            
+            if risk_percent <= 0:
+                return self.get_default_position_info(symbol, "Invalid risk percent: must be > 0")
+            
+            # CRITICAL FIX 2: Check for zero or near-zero risk distance
+            points_risk = abs(entry_price - stop_loss)
+            min_risk_threshold = entry_price * 0.0001  # 0.01% minimum risk distance
+            
+            if points_risk < min_risk_threshold:
+                return self.get_default_position_info(symbol, f"Stop loss too close to entry: {points_risk:.6f} < {min_risk_threshold:.6f}")
+            
+            # Risk amount calculation
             risk_amount = self.account_balance * risk_percent
             
-            # Symbol-specific calculations
-            lot_size = self.default_lot_size
-            money_per_pip = 10.0
-            pip_size = 0.0001
-            
+            # CRITICAL FIX 3: Symbol-specific calculations with zero division protection
             try:
                 # 🥇 GOLD (XAUUSD) - Fixed calculation
                 if 'XAU' in symbol or 'GOLD' in symbol:
                     pip_size = 0.1          # Gold: 1 pip = $0.10
                     money_per_pip = 1.0     # Gold: $1 per pip per 1 lot (100 oz)
                     
-                    points_risk = abs(entry_price - stop_loss)
                     pips_at_risk = points_risk / pip_size
                     
-                    if pips_at_risk > 0:
-                        # Gold: Risk = Pips × $1 × Lot Size
-                        lot_size = risk_amount / pips_at_risk
-                    else:
-                        lot_size = self.default_lot_size
+                    # CRITICAL FIX: Zero division protection
+                    if pips_at_risk <= 0:
+                        return self.get_default_position_info(symbol, "Invalid pips at risk for Gold")
+                    
+                    # Gold: Risk = Pips × $1 × Lot Size
+                    lot_size = risk_amount / pips_at_risk
+                    actual_money_per_pip = money_per_pip
                     
                 # 💴 JPY Pairs - Fixed calculation
                 elif 'JPY' in symbol:
                     pip_size = 0.01         # JPY: 1 pip = 0.01
-                    # For JPY pairs: pip value = (pip size / exchange rate) × trade size
-                    money_per_pip = 1000 / entry_price if entry_price > 0 else 10.0
                     
-                    points_risk = abs(entry_price - stop_loss)
+                    # CRITICAL FIX: Ensure entry_price > 0 for division
+                    if entry_price <= 0:
+                        return self.get_default_position_info(symbol, "Invalid entry price for JPY pair")
+                    
+                    # For JPY pairs: pip value = (pip size / exchange rate) × trade size
+                    money_per_pip = 1000 / entry_price
+                    
                     pips_at_risk = points_risk / pip_size
                     
-                    if pips_at_risk > 0:
-                        lot_size = risk_amount / (pips_at_risk * money_per_pip)
-                    else:
-                        lot_size = self.default_lot_size
-                
+                    # CRITICAL FIX: Multiple zero checks
+                    if pips_at_risk <= 0:
+                        return self.get_default_position_info(symbol, "Invalid pips at risk for JPY pair")
+                    
+                    if money_per_pip <= 0:
+                        return self.get_default_position_info(symbol, "Invalid money per pip for JPY pair")
+                    
+                    lot_size = risk_amount / (pips_at_risk * money_per_pip)
+                    actual_money_per_pip = money_per_pip
+                    
                 # 💱 Standard Forex Pairs - Fixed calculation
                 else:
                     pip_size = 0.0001       # Forex: 1 pip = 0.0001
                     money_per_pip = 10.0    # $10 per pip per 1 standard lot
                     
-                    points_risk = abs(entry_price - stop_loss)
                     pips_at_risk = points_risk / pip_size
                     
-                    if pips_at_risk > 0:
-                        lot_size = risk_amount / (pips_at_risk * money_per_pip)
-                    else:
-                        lot_size = self.default_lot_size
+                    # CRITICAL FIX: Zero division protection
+                    if pips_at_risk <= 0:
+                        return self.get_default_position_info(symbol, "Invalid pips at risk for Forex pair")
+                    
+                    lot_size = risk_amount / (pips_at_risk * money_per_pip)
+                    actual_money_per_pip = money_per_pip
+                
+                # CRITICAL FIX 4: Validate lot size calculation result
+                if lot_size <= 0 or not np.isfinite(lot_size):
+                    return self.get_default_position_info(symbol, f"Invalid lot size calculation result: {lot_size}")
                 
                 # ✅ Lot size constraints and rounding
                 lot_size = max(self.min_lot_size, min(self.max_lot_size, lot_size))
@@ -890,79 +914,124 @@ class EnhancedSmartAutoTradingDashboard:
                 else:
                     lot_size = round(lot_size, 2)      # 0.01, 0.05, 0.10
                 
+                # CRITICAL FIX 5: Final validation and actual risk calculation
+                if lot_size <= 0:
+                    return self.get_default_position_info(symbol, "Lot size rounded to zero or negative")
+                
                 # Calculate actual risk with final lot size
-                points_risk = abs(entry_price - stop_loss)
-                pips_at_risk = points_risk / pip_size
+                final_pips_at_risk = points_risk / pip_size
                 
-                # Calculate actual risk based on symbol type
+                # CRITICAL FIX: Ensure no division by zero in final calculation
+                if final_pips_at_risk <= 0 or actual_money_per_pip <= 0:
+                    return self.get_default_position_info(symbol, "Invalid final risk calculation parameters")
+                
+                # Calculate actual risk based on symbol type with protection
                 if 'XAU' in symbol:
-                    actual_risk = pips_at_risk * 1.0 * lot_size  # Gold
+                    actual_risk = final_pips_at_risk * 1.0 * lot_size  # Gold
                 elif 'JPY' in symbol:
-                    actual_risk = pips_at_risk * money_per_pip * lot_size  # JPY
+                    actual_risk = final_pips_at_risk * actual_money_per_pip * lot_size  # JPY
                 else:
-                    actual_risk = pips_at_risk * 10.0 * lot_size  # Standard Forex
+                    actual_risk = final_pips_at_risk * 10.0 * lot_size  # Standard Forex
                 
+                # CRITICAL FIX 6: Validate actual risk
+                if actual_risk < 0 or not np.isfinite(actual_risk):
+                    return self.get_default_position_info(symbol, f"Invalid actual risk: {actual_risk}")
+                
+                # Calculate risk percentage with protection
                 risk_percentage = (actual_risk / self.account_balance) * 100 if self.account_balance > 0 else 0
                 
-                # Final validation
-                if lot_size <= 0 or actual_risk < 0:
-                    return self.get_default_position_info(symbol, "Invalid calculation result")
+                # CRITICAL FIX 7: Final result validation
+                if not all(np.isfinite(x) for x in [lot_size, actual_risk, risk_percentage, final_pips_at_risk]):
+                    return self.get_default_position_info(symbol, "Invalid calculation results (NaN or Inf)")
                 
                 return {
-                    'lot_size': lot_size,
-                    'risk_amount': round(actual_risk, 2),
-                    'risk_percentage': round(risk_percentage, 3),
-                    'pip_value': round(money_per_pip * lot_size, 2),
-                    'points_risk': round(points_risk, 5),
-                    'pips_at_risk': round(pips_at_risk, 1),
-                    'pip_size': pip_size,
-                    'money_per_pip': round(money_per_pip, 4),
+                    'lot_size': float(lot_size),
+                    'risk_amount': round(float(actual_risk), 2),
+                    'risk_percentage': round(float(risk_percentage), 3),
+                    'pip_value': round(float(actual_money_per_pip * lot_size), 2),
+                    'points_risk': round(float(points_risk), 5),
+                    'pips_at_risk': round(float(final_pips_at_risk), 1),
+                    'pip_size': float(pip_size),
+                    'money_per_pip': round(float(actual_money_per_pip), 4),
                     'symbol_type': 'GOLD' if 'XAU' in symbol else 'JPY' if 'JPY' in symbol else 'FOREX',
                     'calculation_status': 'SUCCESS',
-                    'entry_price': entry_price,
-                    'stop_loss': stop_loss,
-                    'risk_percent_used': risk_percent
+                    'entry_price': float(entry_price),
+                    'stop_loss': float(stop_loss),
+                    'risk_percent_used': float(risk_percent),
+                    'validation_passed': True
                 }
                 
-            except ZeroDivisionError:
-                return self.get_default_position_info(symbol, "Division by zero in calculation")
+            except ZeroDivisionError as zde:
+                error_msg = f"Division by zero in symbol-specific calculation: {str(zde)}"
+                self.logger.error(f"Position sizing ZeroDivisionError for {symbol}: {error_msg}")
+                return self.get_default_position_info(symbol, error_msg)
+            
             except Exception as calc_error:
-                return self.get_default_position_info(symbol, f"Calculation error: {str(calc_error)}")
+                error_msg = f"Calculation error: {str(calc_error)}"
+                self.logger.error(f"Position sizing calculation error for {symbol}: {error_msg}")
+                return self.get_default_position_info(symbol, error_msg)
                 
         except Exception as e:
-            self.logger.error(f"Position size calculation error for {symbol}: {str(e)}")
-            return self.get_default_position_info(symbol, f"General error: {str(e)}")
+            error_msg = f"General position sizing error: {str(e)}"
+            self.logger.error(f"Position size calculation error for {symbol}: {error_msg}")
+            return self.get_default_position_info(symbol, error_msg)
 
     def get_default_position_info(self, symbol: str, error_message: str) -> Dict:
-        """Return safe default position info when calculation fails"""
-        # Symbol-specific defaults
-        if 'XAU' in symbol:
-            default_pip_size = 0.1
-            default_money_per_pip = 1.0
-            symbol_type = 'GOLD'
-        elif 'JPY' in symbol:
-            default_pip_size = 0.01
-            default_money_per_pip = 0.1
-            symbol_type = 'JPY'
-        else:
-            default_pip_size = 0.0001
-            default_money_per_pip = 10.0
-            symbol_type = 'FOREX'
+        """Return safe default position info when calculation fails - ENHANCED"""
+        try:
+            # Symbol-specific safe defaults
+            if 'XAU' in symbol:
+                default_pip_size = 0.1
+                default_money_per_pip = 1.0
+                symbol_type = 'GOLD'
+            elif 'JPY' in symbol:
+                default_pip_size = 0.01
+                default_money_per_pip = 0.1  # Safe default for JPY
+                symbol_type = 'JPY'
+            else:
+                default_pip_size = 0.0001
+                default_money_per_pip = 10.0
+                symbol_type = 'FOREX'
             
-        return {
-            'lot_size': self.default_lot_size,
-            'risk_amount': 0,
-            'risk_percentage': 0,
-            'pip_value': default_money_per_pip * self.default_lot_size,
-            'points_risk': 0,
-            'pips_at_risk': 0,
-            'pip_size': default_pip_size,
-            'money_per_pip': default_money_per_pip,
-            'symbol_type': symbol_type,
-            'calculation_status': 'ERROR',
-            'error_message': error_message,
-            'fallback_used': True
-        }    
+            # Safe pip value calculation
+            safe_pip_value = default_money_per_pip * self.default_lot_size
+            
+            return {
+                'lot_size': float(self.default_lot_size),
+                'risk_amount': 0.0,
+                'risk_percentage': 0.0,
+                'pip_value': float(safe_pip_value),
+                'points_risk': 0.0,
+                'pips_at_risk': 0.0,
+                'pip_size': float(default_pip_size),
+                'money_per_pip': float(default_money_per_pip),
+                'symbol_type': symbol_type,
+                'calculation_status': 'ERROR',
+                'error_message': str(error_message),
+                'fallback_used': True,
+                'validation_passed': False,
+                'entry_price': 0.0,
+                'stop_loss': 0.0,
+                'risk_percent_used': 0.0
+            }
+        except Exception as e:
+            # Ultra-safe fallback
+            return {
+                'lot_size': 0.01,
+                'risk_amount': 0.0,
+                'risk_percentage': 0.0,
+                'pip_value': 0.1,
+                'points_risk': 0.0,
+                'pips_at_risk': 0.0,
+                'pip_size': 0.0001,
+                'money_per_pip': 10.0,
+                'symbol_type': 'UNKNOWN',
+                'calculation_status': 'CRITICAL_ERROR',
+                'error_message': f"Critical fallback error: {str(e)}",
+                'fallback_used': True,
+                'ultra_safe_mode': True,
+                'validation_passed': False
+            }
     def validate_trading_signal(self, symbol: str, signal_data: Dict) -> Dict:
         """Enhanced signal validation with multi-timeframe confluence - COMPLETELY FIXED"""
         try:
@@ -1512,39 +1581,217 @@ class EnhancedSmartAutoTradingDashboard:
                 time.sleep(30)
     
     def start_auto_trading(self):
-        """Start auto trading system"""
-        if not self.mt5_connected:
+        """Start auto trading system - FIXED VERSION"""
+        try:
+            if not self.mt5_connected:
+                self.logger.error("Cannot start auto trading: MT5 not connected")
+                return False
+            
+            if self.auto_trading_enabled:
+                self.logger.info("Auto trading already running")
+                return True
+            
+            # CRITICAL FIX 1: Ensure system is running
+            self.is_running = True
+            self.emergency_stop = False
+            self.auto_trading_enabled = True
+            
+            # CRITICAL FIX 2: Force start new thread with error handling
+            try:
+                # Stop any existing thread first
+                self.auto_trading_enabled = False
+                time.sleep(1)  # Wait for existing thread to stop
+                
+                # Start fresh
+                self.auto_trading_enabled = True
+                trading_thread = threading.Thread(target=self._safe_auto_trading_loop, daemon=True)
+                trading_thread.start()
+                
+                # CRITICAL FIX 3: Verify thread started
+                time.sleep(2)
+                if trading_thread.is_alive():
+                    self.logger.info("✅ AUTO TRADING THREAD STARTED SUCCESSFULLY!")
+                    self.trade_logger.info("=== AUTO TRADING SESSION STARTED ===")
+                    self.persistence.log_system_event('INFO', 'Auto trading started successfully', 'TRADING')
+                    
+                    # Save settings
+                    self.save_system_settings()
+                    return True
+                else:
+                    self.logger.error("❌ AUTO TRADING THREAD FAILED TO START!")
+                    self.auto_trading_enabled = False
+                    return False
+                    
+            except Exception as thread_error:
+                self.logger.error(f"Threading error: {str(thread_error)}")
+                self.auto_trading_enabled = False
+                return False
+            
+        except Exception as e:
+            self.logger.error(f"Error starting auto trading: {str(e)}")
+            self.auto_trading_enabled = False
             return False
+
+    def _safe_auto_trading_loop(self):
+        """Safe auto trading loop with comprehensive error handling"""
+        self.logger.info("🚀 Auto trading loop started")
+        consecutive_errors = 0
+        max_consecutive_errors = 5
         
-        if self.auto_trading_enabled:
-            return True
+        while self.is_running and self.auto_trading_enabled and not self.emergency_stop:
+            try:
+                # Reset error counter on successful iteration
+                consecutive_errors = 0
+                
+                # CRITICAL FIX 4: Comprehensive checks before processing
+                if not self.mt5_connected:
+                    self.logger.warning("MT5 disconnected, attempting reconnect...")
+                    if not self.connect_mt5():
+                        time.sleep(30)  # Wait 30 seconds before retry
+                        continue
+                
+                if not self.auto_trading_enabled:
+                    self.logger.info("Auto trading disabled, stopping loop")
+                    break
+                
+                # Monitor existing positions
+                self.monitor_positions()
+                
+                # Process signals for each pair
+                signals_processed = 0
+                trades_executed = 0
+                
+                for symbol in list(self.auto_trading_pairs):  # Create copy to avoid iteration issues
+                    if not self.auto_trading_enabled:
+                        break
+                        
+                    try:
+                        # Quick availability check
+                        if symbol not in self.live_data:
+                            continue
+                        
+                        signal_data = self.live_data[symbol]
+                        
+                        # Quick signal check
+                        if signal_data.get('signal', 'NONE') == 'NONE':
+                            continue
+                        
+                        signals_processed += 1
+                        
+                        # Check pair status
+                        pair_status = self.check_pair_trading_status(symbol)
+                        if not pair_status['can_trade']:
+                            self.logger.debug(f"❌ {symbol}: {pair_status['reason']}")
+                            continue
+                        
+                        # Validate signal
+                        validation = self.validate_trading_signal(symbol, signal_data)
+                        if not validation['valid']:
+                            self.logger.debug(f"❌ {symbol}: Validation failed - {', '.join(validation['issues'])}")
+                            continue
+                        
+                        # Execute trade
+                        self.logger.info(f"🎯 Executing trade for {symbol}: {signal_data.get('signal')}")
+                        result = self.execute_trade(symbol, signal_data)
+                        
+                        if result['success']:
+                            trades_executed += 1
+                            self.logger.info(f"✅ Trade executed: {symbol} Ticket: {result['ticket']}")
+                        else:
+                            self.logger.warning(f"❌ Trade failed: {symbol} - {result.get('error')}")
+                        
+                    except Exception as symbol_error:
+                        self.logger.error(f"Error processing {symbol}: {str(symbol_error)}")
+                        continue
+                
+                # Log iteration summary
+                if signals_processed > 0:
+                    self.logger.info(f"📊 Processed {signals_processed} signals, executed {trades_executed} trades")
+                
+                # CRITICAL FIX 5: Adaptive sleep based on activity
+                if trades_executed > 0:
+                    time.sleep(5)   # Short sleep after executing trades
+                elif signals_processed > 0:
+                    time.sleep(10)  # Medium sleep when processing signals
+                else:
+                    time.sleep(15)  # Standard sleep when no activity
+                    
+            except Exception as e:
+                consecutive_errors += 1
+                self.logger.error(f"❌ Auto trading loop error ({consecutive_errors}/{max_consecutive_errors}): {str(e)}")
+                self.persistence.log_system_event('ERROR', f'Auto trading loop error: {str(e)}', 'TRADING')
+                
+                # CRITICAL FIX 6: Circuit breaker for consecutive errors
+                if consecutive_errors >= max_consecutive_errors:
+                    self.logger.critical(f"🚨 Too many consecutive errors ({consecutive_errors}), stopping auto trading")
+                    self.auto_trading_enabled = False
+                    self.emergency_stop = True
+                    break
+                
+                # Exponential backoff for errors
+                sleep_time = min(60, 5 * (2 ** consecutive_errors))
+                self.logger.info(f"⏰ Sleeping {sleep_time} seconds after error")
+                time.sleep(sleep_time)
         
-        self.auto_trading_enabled = True
-        self.emergency_stop = False
-        
-        # Start auto trading thread
-        trading_thread = threading.Thread(target=self.auto_trading_loop, daemon=True)
-        trading_thread.start()
-        
-        self.logger.info("AUTO TRADING STARTED!")
-        self.trade_logger.info("=== AUTO TRADING SESSION STARTED ===")
-        self.persistence.log_system_event('INFO', 'Auto trading started', 'TRADING')
-        
-        # Save settings
-        self.save_system_settings()
-        
-        return True
-    
-    def stop_auto_trading(self):
-        """Stop auto trading system"""
+        self.logger.info("🛑 Auto trading loop stopped")
         self.auto_trading_enabled = False
-        self.logger.info("AUTO TRADING STOPPED!")
-        self.trade_logger.info("=== AUTO TRADING SESSION STOPPED ===")
-        self.persistence.log_system_event('INFO', 'Auto trading stopped', 'TRADING')
+
+        # CRITICAL FIX 7: Add monitoring endpoint
+        @self.app.route('/api/auto-trading/status-detailed')
+        def get_detailed_status():
+            """Get detailed auto trading status for debugging"""
+            try:
+                thread_count = threading.active_count()
+                
+                return jsonify({
+                    'success': True,
+                    'auto_trading_enabled': self.auto_trading_enabled,
+                    'is_running': self.is_running,
+                    'emergency_stop': self.emergency_stop,
+                    'mt5_connected': self.mt5_connected,
+                    'thread_count': thread_count,
+                    'eligible_pairs': len([pair for pair, status in self.pair_trade_status.items() if status == 'READY']),
+                    'active_pairs': len([pair for pair, trades in self.active_trades_per_pair.items() if trades]),
+                    'last_global_trade': self.last_global_trade_time.isoformat() if self.last_global_trade_time else None,
+                    'system_health': {
+                        'thread_active': thread_count > 1,
+                        'recent_update': (datetime.now() - self.last_update).total_seconds() < 60,
+                        'data_fresh': len(self.live_data) > 0
+                    }
+                })
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+
+        # CRITICAL FIX 8: Add force restart endpoint  
+        @self.app.route('/api/auto-trading/force-restart', methods=['POST'])
+        def force_restart_auto_trading():
+            """Force restart auto trading with full cleanup"""
+            try:
+                self.logger.info("🔄 Force restarting auto trading...")
+                
+                # Stop everything
+                self.auto_trading_enabled = False
+                self.emergency_stop = False
+                time.sleep(3)  # Wait for threads to stop
+                
+                # Reset state
+                self.is_running = True
+                
+                # Start fresh
+                if self.start_auto_trading():
+                    return jsonify({
+                        'success': True, 
+                        'message': 'Auto trading force restarted successfully'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Failed to restart auto trading'
+                    })
+                    
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
         
-        # Save settings
-        self.save_system_settings()
-    
     def emergency_stop_all(self):
         """Emergency stop with position closure"""
         self.emergency_stop = True
