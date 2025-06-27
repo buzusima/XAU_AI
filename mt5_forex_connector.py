@@ -1632,6 +1632,33 @@ class EnhancedSmartAutoTradingDashboard:
             self.auto_trading_enabled = False
             return False
 
+    def stop_auto_trading(self):
+        """Stop auto trading system - FIXED VERSION"""
+        try:
+            self.logger.info("🛑 Stopping auto trading...")
+            
+            # Set flags in correct order
+            self.auto_trading_enabled = False
+            
+            # Give time for threads to respond
+            time.sleep(2)
+            
+            # Log the stop action
+            self.trade_logger.info("=== AUTO TRADING STOPPED BY USER ===")
+            self.persistence.log_system_event('INFO', 'Auto trading stopped by user', 'TRADING')
+            
+            # Save settings immediately
+            self.save_system_settings()
+            
+            # Update UI status
+            self.logger.info("✅ Auto trading stopped successfully")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error stopping auto trading: {str(e)}")
+            return False
+
     def _safe_auto_trading_loop(self):
         """Safe auto trading loop with comprehensive error handling"""
         self.logger.info("🚀 Auto trading loop started")
