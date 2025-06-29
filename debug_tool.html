@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Auto Trading Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', monospace;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 1rem;
+            line-height: 1.6;
+        }
+
+        .debug-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: #2a1a1a;
+            border: 2px solid #ff6600;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #ff6600;
+            font-size: 24px;
+            margin-bottom: 0.5rem;
+        }
+
+        .debug-section {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #333;
+            padding: 1rem;
+            font-weight: bold;
+            color: #00ccff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header:hover {
+            background: #444;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+            display: none;
+        }
+
+        .section-content.active {
+            display: block;
+        }
+
+        .check-item {
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .check-title {
+            color: #ffaa00;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .check-result {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 3px;
+            padding: 0.8rem;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 0.5rem 0.5rem 0 0;
+            transition: background 0.2s;
+        }
+
+        .btn-check {
+            background: #003366;
+            color: #00ccff;
+        }
+
+        .btn-check:hover {
+            background: #004488;
+        }
+
+        .btn-fix {
+            background: #660000;
+            color: #ff4444;
+        }
+
+        .btn-fix:hover {
+            background: #880000;
+        }
+
+        .status-ok {
+            color: #00ff00;
+        }
+
+        .status-error {
+            color: #ff4444;
+        }
+
+        .status-warning {
+            color: #ffaa00;
+        }
+
+        .debug-steps {
+            background: #0a2a0a;
+            border: 1px solid #00aa00;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .debug-steps h3 {
+            color: #00ff00;
+            margin-bottom: 1rem;
+        }
+
+        .step {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            border-left: 3px solid #00aa00;
+        }
+
+        .toggle-arrow {
+            transition: transform 0.3s;
+        }
+
+        .toggle-arrow.active {
+            transform: rotate(90deg);
+        }
+
+        .critical-issue {
+            background: #3a0a0a;
+            border: 2px solid #ff3333;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .critical-issue h3 {
+            color: #ff3333;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔍 AUTO TRADING DEBUG TOOL</h1>
+            <p>ตรวจหาสาเหตุที่ Auto Trading ไม่เทรดแม้มี Signal</p>
+        </div>
+
+        <!-- Critical Issues Check -->
+        <div class="critical-issue">
+            <h3>🚨 CRITICAL ISSUES CHECK</h3>
+            <div id="criticalResults">🔄 Loading system diagnosis...</div>
+            <button class="btn btn-check" onclick="checkCriticalIssues()">🔍 Recheck Issues</button>
+            <button class="btn btn-fix" onclick="restartThread()">🔄 Restart Thread</button>
+            <button class="btn btn-fix" onclick="quickFix()">⚡ Quick Fix All</button>
+        </div>
+
+        <!-- Debug Steps -->
+        <div class="debug-steps">
+            <h3>🎯 DEBUGGING STEPS</h3>
+            <div class="step">
+                <strong>Step 1:</strong> ตรวจสอบ Auto Trading Thread Status
+            </div>
+            <div class="step">
+                <strong>Step 2:</strong> ตรวจสอบ Signal Validation Process
+            </div>
+            <div class="step">
+                <strong>Step 3:</strong> ตรวจสอบ Position Sizing & Risk Management
+            </div>
+            <div class="step">
+                <strong>Step 4:</strong> ตรวจสอบ MT5 Trading Permissions
+            </div>
+            <div class="step">
+                <strong>Step 5:</strong> ตรวจสอบ Trading Session & Market Hours
+            </div>
+        </div>
+
+        <!-- Detailed Checks -->
+        
+        <!-- 1. Thread Status -->
+        <div class="debug-section">
+            <div class="section-header" onclick="toggleSection('thread')">
+                <span>🧵 AUTO TRADING THREAD STATUS</span>
+                <span class="toggle-arrow" id="thread-arrow">▶</span>
+            </div>
+            <div class="section-content" id="thread-content">
+                <div class="check-item">
+                    <div class="check-title">Thread Health Check</div>
+                    <div class="check-result" id="threadResult">Click "Check Thread" to analyze...</div>
+                    <button class="btn btn-check" onclick="checkThread()">Check Thread</button>
+                    <button class="btn btn-fix" onclick="restartThread()">Restart Thread</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Signal Validation -->
+        <div class="debug-section">
+            <div class="section-header" onclick="toggleSection('validation')">
+                <span>🎯 SIGNAL VALIDATION PROCESS</span>
+                <span class="toggle-arrow" id="validation-arrow">▶</span>
+            </div>
+            <div class="section-content" id="validation-content">
+                <div class="check-item">
+                    <div class="check-title">Signal Validation for GBPCHF & CHFJPY</div>
+                    <div class="check-result" id="validationResult">Click "Test Validation" to check why signals aren't being traded...</div>
+                    <button class="btn btn-check" onclick="testValidation()">Test Validation</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Position Sizing -->
+        <div class="debug-section">
+            <div class="section-header" onclick="toggleSection('sizing')">
+                <span>💰 POSITION SIZING & RISK</span>
+                <span class="toggle-arrow" id="sizing-arrow">▶</span>
+            </div>
+            <div class="section-content" id="sizing-content">
+                <div class="check-item">
+                    <div class="check-title">Risk Management Calculation</div>
+                    <div class="check-result" id="sizingResult">Click "Check Sizing" to verify position size calculations...</div>
+                    <button class="btn btn-check" onclick="checkSizing()">Check Sizing</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. MT5 Permissions -->
+        <div class="debug-section">
+            <div class="section-header" onclick="toggleSection('permissions')">
+                <span>🔐 MT5 TRADING PERMISSIONS</span>
+                <span class="toggle-arrow" id="permissions-arrow">▶</span>
+            </div>
+            <div class="section-content" id="permissions-content">
+                <div class="check-item">
+                    <div class="check-title">MT5 Expert Advisor Settings</div>
+                    <div class="check-result" id="permissionsResult">Click "Check Permissions" to verify MT5 trading settings...</div>
+                    <button class="btn btn-check" onclick="checkPermissions()">Check Permissions</button>
+                    <button class="btn btn-fix" onclick="showMT5Fix()">Show MT5 Fix</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Market Session -->
+        <div class="debug-section">
+            <div class="section-header" onclick="toggleSection('session')">
+                <span>🕐 TRADING SESSION & TIMING</span>
+                <span class="toggle-arrow" id="session-arrow">▶</span>
+            </div>
+            <div class="section-content" id="session-content">
+                <div class="check-item">
+                    <div class="check-title">Market Hours & Trading Session</div>
+                    <div class="check-result" id="sessionResult">Click "Check Session" to verify trading hours...</div>
+                    <button class="btn btn-check" onclick="checkSession()">Check Session</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Diagnosis -->
+        <div class="debug-section">
+            <div class="section-header" onclick="toggleSection('diagnosis')">
+                <span>📋 FINAL DIAGNOSIS & SOLUTION</span>
+                <span class="toggle-arrow" id="diagnosis-arrow">▶</span>
+            </div>
+            <div class="section-content" id="diagnosis-content">
+                <div class="check-item">
+                    <div class="check-title">Complete System Analysis</div>
+                    <div class="check-result" id="diagnosisResult">Click "Run Full Diagnosis" for complete analysis...</div>
+                    <button class="btn btn-check" onclick="runFullDiagnosis()">Run Full Diagnosis</button>
+                    <button class="btn btn-fix" onclick="applySolution()">Apply Solution</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for debug results
+        let debugData = {
+            thread: null,
+            validation: null,
+            sizing: null,
+            permissions: null,
+            session: null
+        };
+
+        // Auto-start check when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🔧 Debug Tool Loaded - Auto-checking critical issues...');
+                checkCriticalIssues();
+            }, 1000);
+        });
+
+        function toggleSection(sectionId) {
+            const content = document.getElementById(`${sectionId}-content`);
+            const arrow = document.getElementById(`${sectionId}-arrow`);
+            
+            const isActive = content.classList.contains('active');
+            
+            if (isActive) {
+                content.classList.remove('active');
+                arrow.classList.remove('active');
+            } else {
+                content.classList.add('active');
+                arrow.classList.add('active');
+            }
+        }
+
+        async function checkCriticalIssues() {
+            const resultDiv = document.getElementById('criticalResults');
+            resultDiv.innerHTML = '🔍 Checking critical issues...\n\n';
+
+            try {
+                // Test connection first
+                resultDiv.innerHTML += '1. Testing connection to trading system...\n';
+                
+                // Check if auto trading is actually enabled
+                const marketResponse = await fetch('/api/market-data');
+                
+                if (!marketResponse.ok) {
+                    throw new Error(`HTTP ${marketResponse.status}: ${marketResponse.statusText}`);
+                }
+                
+                const marketData = await marketResponse.json();
+                
+                resultDiv.innerHTML += '✅ Successfully connected to trading system!\n\n';
+                
+                if (marketData.success && marketData.auto_trading) {
+                    const autoTrading = marketData.auto_trading;
+                    
+                    resultDiv.innerHTML += `2. AUTO TRADING STATUS:\n`;
+                    resultDiv.innerHTML += `   - Enabled: ${autoTrading.enabled ? '✅ YES' : '❌ NO'}\n`;
+                    resultDiv.innerHTML += `   - Emergency Stop: ${autoTrading.emergency_stop ? '❌ YES' : '✅ NO'}\n`;
+                    resultDiv.innerHTML += `   - Active Trades: ${autoTrading.total_trades || 0}\n`;
+                    resultDiv.innerHTML += `   - Enhanced Signals: ${autoTrading.enhanced_signals || 0}\n\n`;
+                    
+                    // Check thread status
+                    resultDiv.innerHTML += '3. Checking thread status...\n';
+                    
+                    try {
+                        const threadResponse = await fetch('/api/auto-trading/status-detailed');
+                        const threadData = await threadResponse.json();
+                        
+                        if (threadData.success) {
+                            resultDiv.innerHTML += `   - System Running: ${threadData.is_running ? '✅ YES' : '❌ NO'}\n`;
+                            resultDiv.innerHTML += `   - Auto Trading Thread: ${threadData.auto_trading_enabled ? '✅ ACTIVE' : '❌ INACTIVE'}\n`;
+                            resultDiv.innerHTML += `   - Thread Count: ${threadData.thread_count}\n`;
+                            resultDiv.innerHTML += `   - Eligible Pairs: ${threadData.eligible_pairs}\n\n`;
+                            
+                            // Diagnosis
+                            resultDiv.innerHTML += '4. DIAGNOSIS:\n';
+                            
+                            if (!autoTrading.enabled) {
+                                resultDiv.innerHTML += `🚨 CRITICAL ISSUE: Auto Trading is DISABLED\n`;
+                                resultDiv.innerHTML += `📋 SOLUTION: Click "Restart Thread" below\n\n`;
+                            } else if (autoTrading.emergency_stop) {
+                                resultDiv.innerHTML += `🚨 CRITICAL ISSUE: Emergency Stop is ACTIVE\n`;
+                                resultDiv.innerHTML += `📋 SOLUTION: Disable emergency stop in dashboard\n\n`;
+                            } else if (!threadData.is_running || !threadData.auto_trading_enabled) {
+                                resultDiv.innerHTML += `🚨 CRITICAL ISSUE: Auto trading thread is NOT RUNNING\n`;
+                                resultDiv.innerHTML += `📋 SOLUTION: Click "Restart Thread" below\n\n`;
+                            } else if (threadData.eligible_pairs === 0) {
+                                resultDiv.innerHTML += `🚨 CRITICAL ISSUE: No eligible pairs for trading\n`;
+                                resultDiv.innerHTML += `📋 SOLUTION: Check signal validation rules (lower thresholds)\n\n`;
+                            } else {
+                                resultDiv.innerHTML += `✅ Auto Trading appears healthy\n`;
+                                resultDiv.innerHTML += `❓ Issue might be in signal validation or MT5 permissions\n`;
+                                resultDiv.innerHTML += `📋 SOLUTION: Check individual sections below\n\n`;
+                            }
+                            
+                            // Quick fix buttons
+                            resultDiv.innerHTML += '5. QUICK FIXES:\n';
+                            
+                        } else {
+                            resultDiv.innerHTML += `❌ Failed to get thread status: ${threadData.error}\n\n`;
+                        }
+                    } catch (threadError) {
+                        resultDiv.innerHTML += `❌ Thread check failed: ${threadError.message}\n\n`;
+                    }
+                    
+                } else {
+                    resultDiv.innerHTML += `❌ Invalid response from trading system\n`;
+                    resultDiv.innerHTML += `📋 Raw response: ${JSON.stringify(marketData, null, 2)}\n\n`;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML += `❌ CRITICAL ERROR: Cannot connect to trading system!\n\n`;
+                resultDiv.innerHTML += `Error Details: ${error.message}\n\n`;
+                resultDiv.innerHTML += `POSSIBLE CAUSES:\n`;
+                resultDiv.innerHTML += `1. Trading system is not running (python mt5_forex_connector.py)\n`;
+                resultDiv.innerHTML += `2. System crashed or stopped\n`;
+                resultDiv.innerHTML += `3. Port 5000 is blocked or used by another program\n`;
+                resultDiv.innerHTML += `4. MT5 connection issues\n\n`;
+                resultDiv.innerHTML += `SOLUTIONS:\n`;
+                resultDiv.innerHTML += `1. Check Terminal/Command Prompt where you ran Python\n`;
+                resultDiv.innerHTML += `2. Look for error messages in Terminal\n`;
+                resultDiv.innerHTML += `3. Restart: python mt5_forex_connector.py\n`;
+                resultDiv.innerHTML += `4. Check MT5 Terminal is open and logged in\n\n`;
+            }
+        }
+
+        async function checkThread() {
+            const resultDiv = document.getElementById('threadResult');
+            resultDiv.textContent = 'Checking auto trading thread...\n';
+
+            try {
+                const response = await fetch('/api/auto-trading/status-detailed');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.textContent = `THREAD ANALYSIS:\n\n`;
+                    resultDiv.textContent += `Auto Trading Enabled: ${data.auto_trading_enabled}\n`;
+                    resultDiv.textContent += `System Running: ${data.is_running}\n`;
+                    resultDiv.textContent += `Emergency Stop: ${data.emergency_stop}\n`;
+                    resultDiv.textContent += `Thread Count: ${data.thread_count}\n`;
+                    resultDiv.textContent += `Eligible Pairs: ${data.eligible_pairs}\n`;
+                    resultDiv.textContent += `Active Pairs: ${data.active_pairs}\n\n`;
+                    
+                    resultDiv.textContent += `THREAD HEALTH CHECK:\n`;
+                    if (data.auto_trading_enabled && data.is_running && !data.emergency_stop) {
+                        resultDiv.textContent += `✅ Thread appears healthy\n`;
+                        if (data.eligible_pairs > 0) {
+                            resultDiv.textContent += `✅ Has eligible pairs to trade\n`;
+                            resultDiv.textContent += `❓ Issue might be in signal validation or execution\n`;
+                        } else {
+                            resultDiv.textContent += `❌ No eligible pairs - signal validation problem\n`;
+                        }
+                    } else {
+                        resultDiv.textContent += `❌ Thread has issues:\n`;
+                        if (!data.auto_trading_enabled) resultDiv.textContent += `  - Auto trading disabled\n`;
+                        if (!data.is_running) resultDiv.textContent += `  - System not running\n`;
+                        if (data.emergency_stop) resultDiv.textContent += `  - Emergency stop active\n`;
+                    }
+                    
+                    debugData.thread = data;
+                } else {
+                    resultDiv.textContent += `❌ Failed to get thread status: ${data.error}\n`;
+                }
+
+            } catch (error) {
+                resultDiv.textContent += `❌ Thread check error: ${error.message}\n`;
+            }
+        }
+
+        async function testValidation() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.textContent = 'Testing signal validation for eligible signals...\n\n';
+
+            try {
+                // This would test the validation process for specific signals
+                // Since we can't directly access the validation function, we'll simulate
+                const marketResponse = await fetch('/api/market-data');
+                const marketData = await marketResponse.json();
+                
+                if (marketData.success && marketData.data) {
+                    const eligibleSignals = [];
+                    
+                    Object.entries(marketData.data).forEach(([symbol, data]) => {
+                        if (data.signal && data.signal !== 'NONE' && data.can_trade) {
+                            eligibleSignals.push({
+                                symbol: symbol,
+                                signal: data.signal,
+                                strength: data.strength,
+                                quality: data.entry_quality,
+                                canTrade: data.can_trade
+                            });
+                        }
+                    });
+                    
+                    resultDiv.textContent += `ELIGIBLE SIGNALS FOUND: ${eligibleSignals.length}\n\n`;
+                    
+                    eligibleSignals.forEach(signal => {
+                        resultDiv.textContent += `${signal.symbol}:\n`;
+                        resultDiv.textContent += `  Signal: ${signal.signal}\n`;
+                        resultDiv.textContent += `  Strength: ${signal.strength}/10\n`;
+                        resultDiv.textContent += `  Quality: ${signal.quality}\n`;
+                        resultDiv.textContent += `  Can Trade: ${signal.canTrade}\n\n`;
+                    });
+                    
+                    if (eligibleSignals.length > 0) {
+                        resultDiv.textContent += `✅ Signals are eligible for trading\n`;
+                        resultDiv.textContent += `❓ Problem might be in:\n`;
+                        resultDiv.textContent += `  - Position sizing calculation\n`;
+                        resultDiv.textContent += `  - MT5 order execution\n`;
+                        resultDiv.textContent += `  - Risk management limits\n`;
+                    } else {
+                        resultDiv.textContent += `❌ No eligible signals found\n`;
+                        resultDiv.textContent += `📋 Check signal strength and quality thresholds\n`;
+                    }
+                }
+
+            } catch (error) {
+                resultDiv.textContent += `❌ Validation test error: ${error.message}\n`;
+            }
+        }
+
+        async function checkSizing() {
+            const resultDiv = document.getElementById('sizingResult');
+            resultDiv.textContent = 'Checking position sizing and risk management...\n\n';
+
+            try {
+                const response = await fetch('/api/market-data');
+                const data = await response.json();
+                
+                if (data.success && data.risk_settings) {
+                    const risk = data.risk_settings;
+                    const account = data.account;
+                    
+                    resultDiv.textContent += `RISK SETTINGS:\n`;
+                    resultDiv.textContent += `Account Balance: $${account.balance}\n`;
+                    resultDiv.textContent += `Max Risk Per Trade: ${risk.max_risk_per_trade}%\n`;
+                    resultDiv.textContent += `Max Total Exposure: ${risk.max_total_exposure}%\n`;
+                    resultDiv.textContent += `Max Daily Loss: ${risk.max_daily_loss}%\n\n`;
+                    
+                    // Check if balance is sufficient
+                    const minTradeSize = account.balance * (risk.max_risk_per_trade / 100);
+                    resultDiv.textContent += `POSITION SIZING:\n`;
+                    resultDiv.textContent += `Min Trade Risk Amount: $${minTradeSize.toFixed(2)}\n`;
+                    
+                    if (minTradeSize < 1) {
+                        resultDiv.textContent += `❌ ISSUE: Risk amount too small for trading\n`;
+                        resultDiv.textContent += `📋 SOLUTION: Increase risk percentage or account balance\n`;
+                    } else {
+                        resultDiv.textContent += `✅ Risk amount sufficient for trading\n`;
+                    }
+                } else {
+                    resultDiv.textContent += `❌ Failed to get risk settings\n`;
+                }
+
+            } catch (error) {
+                resultDiv.textContent += `❌ Position sizing check error: ${error.message}\n`;
+            }
+        }
+
+        async function checkPermissions() {
+            const resultDiv = document.getElementById('permissionsResult');
+            resultDiv.textContent = 'Checking MT5 trading permissions...\n\n';
+
+            try {
+                const response = await fetch('/api/market-data');
+                const data = await response.json();
+                
+                if (data.success && data.account) {
+                    const account = data.account;
+                    
+                    resultDiv.textContent += `MT5 ACCOUNT INFO:\n`;
+                    resultDiv.textContent += `Login: ${account.login}\n`;
+                    resultDiv.textContent += `Server: ${account.server}\n`;
+                    resultDiv.textContent += `Trade Allowed: ${account.trade_allowed ? '✅ YES' : '❌ NO'}\n`;
+                    resultDiv.textContent += `Balance: $${account.balance}\n`;
+                    resultDiv.textContent += `Free Margin: $${account.free_margin}\n\n`;
+                    
+                    if (!account.trade_allowed) {
+                        resultDiv.textContent += `🚨 CRITICAL ISSUE: Trading not allowed on this account\n`;
+                        resultDiv.textContent += `📋 SOLUTIONS:\n`;
+                        resultDiv.textContent += `1. Check MT5 Expert Advisor settings\n`;
+                        resultDiv.textContent += `2. Enable algorithmic trading in MT5\n`;
+                        resultDiv.textContent += `3. Check account trading permissions\n`;
+                    } else if (account.free_margin < 100) {
+                        resultDiv.textContent += `⚠️ WARNING: Low free margin for trading\n`;
+                    } else {
+                        resultDiv.textContent += `✅ MT5 permissions look good\n`;
+                    }
+                } else {
+                    resultDiv.textContent += `❌ Failed to get account info\n`;
+                }
+
+            } catch (error) {
+                resultDiv.textContent += `❌ Permissions check error: ${error.message}\n`;
+            }
+        }
+
+        async function checkSession() {
+            const resultDiv = document.getElementById('sessionResult');
+            resultDiv.textContent = 'Checking trading session and market hours...\n\n';
+
+            const now = new Date();
+            const utcHour = now.getUTCHours();
+            const utcMinute = now.getUTCMinutes();
+            
+            resultDiv.textContent += `CURRENT TIME:\n`;
+            resultDiv.textContent += `UTC: ${now.toUTCString()}\n`;
+            resultDiv.textContent += `Local: ${now.toLocaleString()}\n`;
+            resultDiv.textContent += `UTC Hour: ${utcHour}\n\n`;
+            
+            resultDiv.textContent += `TRADING SESSIONS:\n`;
+            
+            // Check trading sessions
+            const sessions = {
+                'Asian': { start: 0, end: 9 },
+                'London': { start: 8, end: 17 },
+                'New York': { start: 13, end: 22 },
+                'Overlap': { start: 13, end: 17 }
+            };
+            
+            let activeSession = 'Closed';
+            Object.entries(sessions).forEach(([name, session]) => {
+                const isActive = utcHour >= session.start && utcHour <= session.end;
+                resultDiv.textContent += `${name}: ${session.start}:00-${session.end}:00 UTC ${isActive ? '✅ ACTIVE' : '❌ Closed'}\n`;
+                if (isActive) activeSession = name;
+            });
+            
+            resultDiv.textContent += `\nCurrent Session: ${activeSession}\n\n`;
+            
+            if (activeSession === 'Closed') {
+                resultDiv.textContent += `❌ ISSUE: Market session is closed\n`;
+                resultDiv.textContent += `📋 SOLUTION: Wait for market to open\n`;
+            } else {
+                resultDiv.textContent += `✅ Market session is active\n`;
+            }
+        }
+
+        async function runFullDiagnosis() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.textContent = 'Running complete system diagnosis...\n\n';
+
+            // Run all checks
+            await checkCriticalIssues();
+            await checkThread();
+            await testValidation();
+            await checkSizing();
+            await checkPermissions();
+            await checkSession();
+
+            resultDiv.textContent += 'Full diagnosis complete. Check individual sections for details.\n\n';
+            
+            // Provide final recommendation
+            resultDiv.textContent += 'FINAL DIAGNOSIS:\n';
+            resultDiv.textContent += 'Based on the checks above, the most likely issues are:\n';
+            resultDiv.textContent += '1. Auto trading thread not actually running\n';
+            resultDiv.textContent += '2. Signal validation too strict\n';
+            resultDiv.textContent += '3. MT5 trading permissions\n';
+            resultDiv.textContent += '4. Position sizing calculation errors\n\n';
+            resultDiv.textContent += 'Click "Apply Solution" for automated fixes.\n';
+        }
+
+        async function restartThread() {
+            const resultDiv = document.getElementById('criticalResults');
+            resultDiv.innerHTML += '\n🔄 Attempting to restart auto trading thread...\n\n';
+            
+            try {
+                const response = await fetch('/api/auto-trading/force-restart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML += '✅ Auto trading thread restart command sent successfully!\n';
+                    resultDiv.innerHTML += '⏳ Waiting 5 seconds for system to stabilize...\n\n';
+                    
+                    // Wait and recheck
+                    setTimeout(async () => {
+                        resultDiv.innerHTML += '🔍 Rechecking system status...\n';
+                        await checkCriticalIssues();
+                    }, 5000);
+                    
+                } else {
+                    resultDiv.innerHTML += `❌ Failed to restart thread: ${result.error}\n`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `❌ Error restarting thread: ${error.message}\n`;
+                resultDiv.innerHTML += `📋 Try manual restart: Stop Python → Restart → python mt5_forex_connector.py\n`;
+            }
+        }
+
+        function showMT5Fix() {
+            alert(`MT5 EXPERT ADVISOR SETTINGS:
+
+1. Open MT5 Terminal
+2. Go to Tools → Options
+3. Click "Expert Advisors" tab
+4. Check these boxes:
+   ✅ Allow algorithmic trading
+   ✅ Allow DLL imports
+   ✅ Allow imports of external experts
+5. Click OK
+6. Restart MT5 Terminal
+7. Try auto trading again`);
+        }
+
+        async function quickFix() {
+            const resultDiv = document.getElementById('criticalResults');
+            resultDiv.innerHTML += '\n🚀 Running Quick Fix Sequence...\n\n';
+            
+            try {
+                // Step 1: Stop auto trading
+                resultDiv.innerHTML += '1. Stopping auto trading...\n';
+                await fetch('/api/auto-trading/stop', { method: 'POST' });
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Step 2: Restart auto trading
+                resultDiv.innerHTML += '2. Restarting auto trading...\n';
+                const restartResponse = await fetch('/api/auto-trading/force-restart', { method: 'POST' });
+                const restartResult = await restartResponse.json();
+                
+                if (restartResult.success) {
+                    resultDiv.innerHTML += '3. Waiting for system stabilization...\n';
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    // Step 3: Check status
+                    resultDiv.innerHTML += '4. Verifying fix...\n';
+                    await checkCriticalIssues();
+                    
+                } else {
+                    resultDiv.innerHTML += `❌ Quick fix failed: ${restartResult.error}\n`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += `❌ Quick fix error: ${error.message}\n`;
+            }
+        }
+    </script>
+</body>
+</html>

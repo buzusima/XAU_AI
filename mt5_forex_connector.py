@@ -21,6 +21,15 @@ from typing import Dict, List, Optional, Tuple
 import warnings
 from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
+
+try:
+    from correlation_hedging_system import HedgeSystemIntegrator, AdvancedCorrelationHedging
+    HEDGING_SYSTEM_AVAILABLE = True
+    print("✅ Correlation Hedging System Loaded Successfully!")
+except ImportError as e:
+    print(f"⚠️ Hedging system not available: {str(e)}")
+    HEDGING_SYSTEM_AVAILABLE = False
+
 # CRITICAL FIX: Add clean_data_for_json function
 def clean_data_for_json(data):
     """Clean data for JSON serialization - COMPLETELY FIXED"""
@@ -358,7 +367,7 @@ class EnhancedSmartAutoTradingDashboard:
             'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c', 'GBPCAD.c',
             'AUDCHF.c', 'AUDJPY.c', 'AUDNZD.c', 'AUDCAD.c',
             'NZDJPY.c', 'NZDCHF.c', 'NZDCAD.c',
-            'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
+            'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c',
         ]
         
         # Load saved settings or use defaults
@@ -440,8 +449,22 @@ class EnhancedSmartAutoTradingDashboard:
             self.use_advanced_features = False
             print("📋 Using standard trading features")
 
+        # 🎯 Initialize Hedging System
+        if HEDGING_SYSTEM_AVAILABLE:
+            try:
+                self.hedge_integrator = HedgeSystemIntegrator(self)
+                self.hedging_enabled = True
+                print("🎯 Correlation Hedging System Activated!")
+                print("💱 Cross-Pair Risk Management Ready")
+            except Exception as e:
+                print(f"❌ Error initializing hedging system: {str(e)}")
+                self.hedging_enabled = False
+        else:
+            self.hedging_enabled = False
+            print("📋 Running without hedging features")
+
         self.setup_routes()
-        
+
         # Auto-save timer
         self.setup_auto_save()
 
@@ -473,6 +496,13 @@ class EnhancedSmartAutoTradingDashboard:
                 self.min_entry_quality = settings.get('min_entry_quality', 'GOOD')
                 self.max_simultaneous_trades = settings.get('max_simultaneous_trades', 8)
                 
+                # Load hedging settings
+                self.hedging_enabled = settings.get('hedging_enabled', False)
+                self.hedge_min_correlation = settings.get('hedge_min_correlation', 0.6)
+                self.hedge_max_ratio = settings.get('hedge_max_ratio', 0.6)
+                self.hedge_risk_target = settings.get('hedge_risk_target', 0.3)
+                self.hedge_auto_execute = settings.get('hedge_auto_execute', False)
+            
                 # Signal filtering
                 self.required_confirmations = settings.get('required_confirmations', {
                     'trend_alignment': True,
@@ -509,6 +539,13 @@ class EnhancedSmartAutoTradingDashboard:
         self.min_signal_strength = 6.0
         self.min_entry_quality = 'GOOD'
         self.max_simultaneous_trades = 8
+
+        # Hedging defaults
+        self.hedging_enabled = False
+        self.hedge_min_correlation = 0.6
+        self.hedge_max_ratio = 0.6
+        self.hedge_risk_target = 0.3
+        self.hedge_auto_execute = False
         
         self.required_confirmations = {
             'trend_alignment': True,
@@ -538,12 +575,17 @@ class EnhancedSmartAutoTradingDashboard:
                 'required_confirmations': self.required_confirmations,
                 'min_rr_ratio': getattr(self, 'min_rr_ratio', 1.5),
                 'account_balance': self.account_balance,
+                'hedging_enabled': getattr(self, 'hedging_enabled', False),
+                'hedge_min_correlation': getattr(self, 'hedge_min_correlation', 0.6),
+                'hedge_max_ratio': getattr(self, 'hedge_max_ratio', 0.6),
+                'hedge_risk_target': getattr(self, 'hedge_risk_target', 0.3),
+                'hedge_auto_execute': getattr(self, 'hedge_auto_execute', False),
                 
                 'last_saved': datetime.now().isoformat()
             }
             
             if self.persistence.save_settings(settings):
-                print("💾 Settings saved successfully")
+                print("💾 Settings config saved successfully")
                 return True
             return False
             
@@ -2042,12 +2084,12 @@ class EnhancedSmartAutoTradingDashboard:
                 }
                 
                 #  Log enhanced signal info
-                if result['signal'] != 'NONE':
-                    self.logger.info(f" ENHANCED SIGNAL: {symbol}")
-                    self.logger.info(f"   Signal: {result['signal']} | Strength: {result['strength']}/10")
-                    self.logger.info(f"   Quality: {result['entry_quality']} | Confluence: {confluence_result.get('confluence_score', 0)}")
-                    self.logger.info(f"   Timeframes: {len(confluence_result.get('timeframe_analysis', {}))}")
-                    self.logger.info(f"   Risk Factors: {len(risk_factors)}")
+                # if result['signal'] != 'NONE':
+                    # self.logger.info(f" ENHANCED SIGNAL: {symbol}")
+                    # self.logger.info(f"   Signal: {result['signal']} | Strength: {result['strength']}/10")
+                    # self.logger.info(f"   Quality: {result['entry_quality']} | Confluence: {confluence_result.get('confluence_score', 0)}")
+                    # self.logger.info(f"   Timeframes: {len(confluence_result.get('timeframe_analysis', {}))}")
+                    # self.logger.info(f"   Risk Factors: {len(risk_factors)}")
                 
                 return result
                 
@@ -2413,9 +2455,9 @@ class EnhancedSmartAutoTradingDashboard:
                     entry_exit_analysis = enhanced_analysis
                     analysis_method = 'enhanced_advanced'
                     
-                    self.logger.info(f" Enhanced Analysis for {symbol}: "
-                                f"Signal: {enhanced_analysis.get('signal', 'NONE')} -> "
-                                f"Enhanced Strength: {enhanced_analysis.get('enhanced_strength', 0)}")
+                    # self.logger.info(f" Enhanced Analysis for {symbol}: "
+                    #             f"Signal: {enhanced_analysis.get('signal', 'NONE')} -> "
+                    #             f"Enhanced Strength: {enhanced_analysis.get('enhanced_strength', 0)}")
                     
                 except Exception as e:
                     self.logger.warning(f"⚠️ Enhanced analysis failed for {symbol}: {str(e)}")
@@ -3037,6 +3079,200 @@ class EnhancedSmartAutoTradingDashboard:
                     'success': False,
                     'error': str(e)
                 })
+        
+        @self.app.route('/hedging')
+        def hedging_dashboard():
+            """Serve hedging dashboard"""
+            try:
+                return send_from_directory('.', 'hedging_dashboard.html')
+            except Exception as e:
+                return f'''<!DOCTYPE html>
+    <html><head><title>Hedging Dashboard Error</title></head>
+    <body style="background:#000;color:#fff;font-family:monospace;padding:2rem;">
+    <h1 style="color:#ff4444;">🎯 Hedging Dashboard</h1>
+    <p style="color:#ffaa00;">Please save the hedging dashboard HTML as 'hedging_dashboard.html'</p>
+    <p style="color:#888;">Error: {str(e)}</p>
+    <a href="/" style="color:#00ccff;">← Back to Main Dashboard</a>
+    </body></html>'''
+        
+        # 🎯 HEDGING SYSTEM ROUTES
+        if hasattr(self, 'hedging_enabled') and self.hedging_enabled:
+            self.setup_hedging_routes()
+        
+        print("✅ All routes setup completed")
+
+    def setup_hedging_routes(self):
+        """Setup hedging system routes"""
+        try:
+            # เพิ่ม hedging routes
+            self.hedge_integrator.setup_hedge_routes(self.app)
+            
+            print("setup_hedging_routes")
+
+            @self.app.route('/api/hedge/status')
+            def hedge_status():
+                """Get hedging system status"""
+                return jsonify({
+                    'success': True,
+                    'hedging_enabled': self.hedging_enabled,
+                    'system_status': 'ACTIVE',
+                    'features': [
+                        'Real-time Correlation Analysis',
+                        'Smart Hedge Recommendations', 
+                        'Portfolio Risk Matrix',
+                        'Dynamic Hedge Ratios'
+                    ]
+                })
+            
+            @self.app.route('/api/hedge/test')
+            def test_hedging():
+                """Test hedging system"""
+                try:
+                    # ทดสอบการทำงานของระบบ
+                    test_correlation = self.hedge_integrator.hedge_system.calculate_live_correlation(
+                        'EURUSD.c', 'USDCHF.c'
+                    )
+                    
+                    return jsonify({
+                        'success': True,
+                        'test_correlation': round(test_correlation, 3),
+                        'test_pair': 'EURUSD vs USDCHF',
+                        'system_working': True,
+                        'message': 'Hedging system test completed successfully'
+                    })
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': str(e)
+                    })
+            
+            @self.app.route('/api/hedge/enable', methods=['POST'])
+            def enable_hedging():
+                """Enable hedging system"""
+                try:
+                    self.hedging_enabled = True
+                    self.save_system_settings()  # Save to persistence
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Hedging system enabled',
+                        'status': 'ACTIVE'
+                    })
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': str(e)
+                    })
+            
+            @self.app.route('/api/hedge/disable', methods=['POST'])
+            def disable_hedging():
+                """Disable hedging system"""
+                try:
+                    self.hedging_enabled = False
+                    self.save_system_settings()  # Save to persistence
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Hedging system disabled',
+                        'status': 'INACTIVE'
+                    })
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': str(e)
+                    })
+            
+            @self.app.route('/api/hedge/settings', methods=['GET', 'POST'])
+            def hedge_settings():
+                """Get or update hedge settings"""
+                try:
+                    if request.method == 'GET':
+                        # Return current settings
+                        return jsonify({
+                            'success': True,
+                            'settings': {
+                                'min_correlation': getattr(self, 'hedge_min_correlation', 0.6),
+                                'max_hedge_ratio': getattr(self, 'hedge_max_ratio', 0.6),
+                                'risk_reduction_target': getattr(self, 'hedge_risk_target', 0.3),
+                                'auto_execute': getattr(self, 'hedge_auto_execute', False)
+                            }
+                        })
+                    
+                    elif request.method == 'POST':
+                        # Update settings
+                        data = request.get_json()
+                        
+                        if 'min_correlation' in data:
+                            self.hedge_min_correlation = float(data['min_correlation'])
+                        if 'max_hedge_ratio' in data:
+                            self.hedge_max_ratio = float(data['max_hedge_ratio'])
+                        if 'risk_reduction_target' in data:
+                            self.hedge_risk_target = float(data['risk_reduction_target'])
+                        if 'auto_execute' in data:
+                            self.hedge_auto_execute = bool(data['auto_execute'])
+                        
+                        # Save settings
+                        self.save_system_settings()
+                        
+                        return jsonify({
+                            'success': True,
+                            'message': 'Hedge settings updated',
+                            'settings': data
+                        })
+                        
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': str(e)
+                    })
+            
+            @self.app.route('/api/hedge/debug')
+            def hedge_debug():
+                """Debug hedging system"""
+                try:
+                    debug_info = {
+                        'mt5_connected': mt5.terminal_info() is not None,
+                        'account_info': mt5.account_info() is not None if mt5.terminal_info() else False,
+                        'positions_raw': [],
+                        'symbols_in_system': []
+                    }
+                    
+                    # Get raw positions
+                    positions = mt5.positions_get()
+                    if positions:
+                        for pos in positions:
+                            debug_info['positions_raw'].append({
+                                'symbol': pos.symbol,
+                                'type': pos.type,
+                                'volume': pos.volume,
+                                'ticket': pos.ticket
+                            })
+                    
+                    # Get symbols from trading system
+                    if hasattr(self, 'forex_pairs'):
+                        debug_info['symbols_in_system'] = self.forex_pairs[:10]  # First 10
+                    
+                    # Get live data symbols
+                    if hasattr(self, 'live_data'):
+                        debug_info['live_data_symbols'] = list(self.live_data.keys())[:10]
+                    
+                    return jsonify({
+                        'success': True,
+                        'debug_info': debug_info,
+                        'hedging_available': hasattr(self, 'hedge_integrator') and self.hedge_integrator is not None
+                    })
+                    
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': str(e)
+                    })
+
+            print("🎯 Hedging API routes added successfully!")
+            
+        except Exception as e:
+            print(f"❌ Error setting up hedging routes: {str(e)}")
+            self.hedging_enabled = False
 
     def start_data_updates(self):
         """Start automatic data updates"""
@@ -3126,24 +3362,10 @@ class EnhancedSmartAutoTradingDashboard:
 
 def main():
     """Main execution"""
-    print("Enhanced Smart Auto Trading Dashboard")
-    print("====================================")
-    print("🔄 WITH DATA PERSISTENCE & RECOVERY")
-    print("====================================")
-    print("Features:")
-    print("✅ Auto Trading with Signal Validation")
-    print("✅ One Trade Per Pair Control")
-    print("✅ Portfolio Risk Profiles")
-    print("✅ Real-time Position Management")
-    print("✅ Emergency Stop Controls")
-    print("💾 Data Persistence & Auto-Save")
-    print("🔄 State Management & Recovery")
-    print(" Trade History Database")
-    print("🛡️ System Logs & Monitoring")
-    print()
     
     dashboard = EnhancedSmartAutoTradingDashboard()
     dashboard.run()
+    print("Running")
 
 if __name__ == "__main__":
     main()

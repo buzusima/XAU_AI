@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -388,23 +389,28 @@
         }
 
         /* Column Groups */
-        .price-columns { 
-            background: rgba(0, 123, 255, 0.1); 
+        .price-columns {
+            background: rgba(0, 123, 255, 0.1);
         }
-        .indicator-columns { 
-            background: rgba(255, 193, 7, 0.1); 
+
+        .indicator-columns {
+            background: rgba(255, 193, 7, 0.1);
         }
-        .risk-columns { 
-            background: rgba(255, 69, 87, 0.1); 
+
+        .risk-columns {
+            background: rgba(255, 69, 87, 0.1);
         }
-        .entry-columns { 
-            background: rgba(76, 175, 80, 0.1); 
+
+        .entry-columns {
+            background: rgba(76, 175, 80, 0.1);
         }
-        .trading-columns { 
-            background: rgba(138, 43, 226, 0.1); 
+
+        .trading-columns {
+            background: rgba(138, 43, 226, 0.1);
         }
-        .enhanced-columns { 
-            background: rgba(255, 102, 204, 0.1); 
+
+        .enhanced-columns {
+            background: rgba(255, 102, 204, 0.1);
         }
 
         /* Data Rows */
@@ -488,28 +494,35 @@
         }
 
         /* Technical Indicators */
-        .rsi-cell { font-weight: bold; }
-        .rsi-oversold { 
-            background: #003300; 
-            color: #00ff88; 
-        }
-        .rsi-overbought { 
-            background: #330000; 
-            color: #ff4444; 
-        }
-        .rsi-normal { 
-            background: #222; 
-            color: #fff; 
+        .rsi-cell {
+            font-weight: bold;
         }
 
-        .macd-bullish { 
-            color: #00ff88; 
+        .rsi-oversold {
+            background: #003300;
+            color: #00ff88;
         }
-        .macd-bearish { 
-            color: #ff4444; 
+
+        .rsi-overbought {
+            background: #330000;
+            color: #ff4444;
         }
-        .macd-neutral { 
-            color: #ffff88; 
+
+        .rsi-normal {
+            background: #222;
+            color: #fff;
+        }
+
+        .macd-bullish {
+            color: #00ff88;
+        }
+
+        .macd-bearish {
+            color: #ff4444;
+        }
+
+        .macd-neutral {
+            color: #ffff88;
         }
 
         /* Trading Status */
@@ -548,55 +561,64 @@
             font-size: 8px;
         }
 
-        .quality-excellent { 
-            background: #006600; 
-            color: #00ff00; 
+        .quality-excellent {
+            background: #006600;
+            color: #00ff00;
         }
-        .quality-good { 
-            background: #004400; 
-            color: #00cc00; 
+
+        .quality-good {
+            background: #004400;
+            color: #00cc00;
         }
-        .quality-fair { 
-            background: #444400; 
-            color: #ffff00; 
+
+        .quality-fair {
+            background: #444400;
+            color: #ffff00;
         }
-        .quality-poor { 
-            background: #440000; 
-            color: #ff4444; 
+
+        .quality-poor {
+            background: #440000;
+            color: #ff4444;
         }
 
         /* Risk and R/R */
-        .risk-cell { 
-            font-weight: bold; 
-            color: #ff6666; 
-        }
-        .risk-low { 
-            color: #00ff88; 
-        }
-        .risk-medium { 
-            color: #ffff00; 
-        }
-        .risk-high { 
-            color: #ff4444; 
+        .risk-cell {
+            font-weight: bold;
+            color: #ff6666;
         }
 
-        .lot-cell { 
-            font-weight: bold; 
-            color: #88ccff; 
+        .risk-low {
+            color: #00ff88;
         }
 
-        .rr-cell { 
-            font-weight: bold; 
-            color: #ffaa00; 
+        .risk-medium {
+            color: #ffff00;
         }
-        .rr-excellent { 
-            color: #00ff00; 
+
+        .risk-high {
+            color: #ff4444;
         }
-        .rr-good { 
-            color: #88ff00; 
+
+        .lot-cell {
+            font-weight: bold;
+            color: #88ccff;
         }
-        .rr-poor { 
-            color: #ff8800; 
+
+        .rr-cell {
+            font-weight: bold;
+            color: #ffaa00;
+        }
+
+        .rr-excellent {
+            color: #00ff00;
+        }
+
+        .rr-good {
+            color: #88ff00;
+        }
+
+        .rr-poor {
+            color: #ff8800;
         }
 
         /* Price Direction */
@@ -619,7 +641,7 @@
         }
 
         /* Strength */
-        .strength-high { 
+        .strength-high {
             background: #003300;
             color: #00ff00;
         }
@@ -723,9 +745,20 @@
         }
 
         @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%,
+            100% {
+                content: '...';
+            }
         }
 
         /* Connection Status */
@@ -786,6 +819,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Header -->
@@ -846,19 +880,43 @@
             </div>
         </div>
 
+        <!-- Hedging Dashboard Link -->
+        <div class="auto-trading-panel" style="background: #1a0033; border-color: #6600cc;">
+            <div class="trading-status">
+                <div class="status-indicator" style="background: #6600cc;"></div>
+                <div>
+                    <div style="color: #cc66ff; font-weight: bold; font-size: 13px;">🎯 HEDGING SYSTEM</div>
+                    <div style="color: #aaa; font-size: 10px;">Advanced Correlation-Based Risk Management</div>
+                </div>
+            </div>
+            <div class="trading-controls">
+                <button class="control-btn" onclick="openHedgingDashboard()"
+                    style="background: #663399; color: #cc99ff;">
+                    🎯 OPEN HEDGING DASHBOARD
+                </button>
+                <button class="control-btn" onclick="testHedgingQuick()" style="background: #663399; color: #cc99ff;">
+                    🧪 QUICK TEST
+                </button>
+            </div>
+        </div>
+
         <!-- Advanced Features Panel -->
         <div class="auto-trading-panel" style="background: #330066; border-color: #9966cc;">
             <div class="trading-status">
                 <div class="status-indicator" id="advancedIndicator" style="background: #cc66ff;"></div>
                 <div>
                     <div style="color: #cc99ff; font-weight: bold; font-size: 13px;">⚡ ADVANCED FEATURES</div>
-                    <div style="color: #aaa; font-size: 10px;" id="advancedStatus">Market Regime Detection • Enhanced Scoring • Dynamic Sizing</div>
+                    <div style="color: #aaa; font-size: 10px;" id="advancedStatus">Market Regime Detection • Enhanced
+                        Scoring • Dynamic Sizing</div>
                 </div>
             </div>
             <div class="trading-controls">
-                <button class="control-btn" style="background: #663399; color: #cc99ff;" onclick="testEnhancedSignals()">TEST SIGNALS</button>
-                <button class="control-btn" style="background: #663399; color: #cc99ff;" onclick="toggleAdvancedFeatures()">TOGGLE ADVANCED</button>
-                <button class="control-btn" style="background: #663399; color: #cc99ff;" onclick="showMarketRegime()">MARKET REGIME</button>
+                <button class="control-btn" style="background: #663399; color: #cc99ff;"
+                    onclick="testEnhancedSignals()">TEST SIGNALS</button>
+                <button class="control-btn" style="background: #663399; color: #cc99ff;"
+                    onclick="toggleAdvancedFeatures()">TOGGLE ADVANCED</button>
+                <button class="control-btn" style="background: #663399; color: #cc99ff;"
+                    onclick="showMarketRegime()">MARKET REGIME</button>
             </div>
         </div>
 
@@ -873,7 +931,8 @@
                 <div style="margin-left: 1.5rem;">
                     <div style="color: #ffaa00; font-size: 10px;">Active Trades: <span id="activeTrades">0</span></div>
                     <div style="color: #ffaa00; font-size: 10px;">Daily P&L: <span id="dailyPnL">$0.00</span></div>
-                    <div style="color: #ffaa00; font-size: 10px;">Enhanced Signals: <span id="enhancedSignals">0</span></div>
+                    <div style="color: #ffaa00; font-size: 10px;">Enhanced Signals: <span id="enhancedSignals">0</span>
+                    </div>
                 </div>
             </div>
             <div class="trading-controls">
@@ -887,7 +946,8 @@
         <div class="auto-trading-panel" style="background: #332200; border-color: #ffcc00;">
             <div class="trading-status">
                 <div style="color: #ffcc00; font-weight: bold; font-size: 13px;">📊 SIGNAL SETTINGS</div>
-                <button class="control-btn" onclick="toggleSignalSettings()" id="toggleSignalBtn" style="background: #444; color: #ffcc00;">SHOW SETTINGS</button>
+                <button class="control-btn" onclick="toggleSignalSettings()" id="toggleSignalBtn"
+                    style="background: #444; color: #ffcc00;">SHOW SETTINGS</button>
             </div>
         </div>
 
@@ -896,7 +956,8 @@
             <div class="settings-grid">
                 <div class="setting-item">
                     <label class="setting-label">🎯 Min Signal Strength:</label>
-                    <input type="range" id="minSignalStrength" min="1" max="10" step="0.5" value="6" onchange="updateSignalSettings()" class="setting-input">
+                    <input type="range" id="minSignalStrength" min="1" max="10" step="0.5" value="6"
+                        onchange="updateSignalSettings()" class="setting-input">
                     <span class="setting-value"><span id="signalStrengthValue">6.0</span>/10</span>
                 </div>
                 <div class="setting-item">
@@ -910,12 +971,14 @@
                 </div>
                 <div class="setting-item">
                     <label class="setting-label">💎 Min R/R Ratio:</label>
-                    <input type="range" id="minRRRatio" min="1" max="5" step="0.1" value="1.5" onchange="updateSignalSettings()" class="setting-input">
+                    <input type="range" id="minRRRatio" min="1" max="5" step="0.1" value="1.5"
+                        onchange="updateSignalSettings()" class="setting-input">
                     <span class="setting-value">1:<span id="rrRatioValue">1.5</span></span>
                 </div>
                 <div class="setting-item">
                     <label class="setting-label">🔥 Min Confluence Score:</label>
-                    <input type="range" id="minConfluenceScore" min="2" max="10" step="0.5" value="4" onchange="updateSignalSettings()" class="setting-input">
+                    <input type="range" id="minConfluenceScore" min="2" max="10" step="0.5" value="4"
+                        onchange="updateSignalSettings()" class="setting-input">
                     <span class="setting-value"><span id="confluenceScoreValue">4.0</span>/10</span>
                 </div>
             </div>
@@ -961,7 +1024,8 @@
                 </div>
                 <div class="risk-selector" id="customRiskDiv" style="display: none;">
                     <label style="color: #ffaaaa;">Custom %:</label>
-                    <input type="number" class="custom-risk-input" id="customRisk" min="0.1" max="10" step="0.1" value="1.5">
+                    <input type="number" class="custom-risk-input" id="customRisk" min="0.1" max="10" step="0.1"
+                        value="1.5">
                     <button class="control-btn" style="padding: 0.2rem 0.4rem;" onclick="setCustomRisk()">SET</button>
                 </div>
             </div>
@@ -1139,9 +1203,9 @@
         function toggleSignalSettings() {
             const content = document.getElementById('signalSettingsContent');
             const btn = document.getElementById('toggleSignalBtn');
-            
+
             signalSettingsVisible = !signalSettingsVisible;
-            
+
             if (signalSettingsVisible) {
                 content.style.display = 'block';
                 btn.textContent = 'HIDE SETTINGS';
@@ -1156,23 +1220,23 @@
             try {
                 const response = await fetch('/api/auto-trading/current-settings');
                 const result = await response.json();
-                
+
                 if (result.success) {
                     const settings = result.settings;
-                    
+
                     document.getElementById('minSignalStrength').value = settings.min_signal_strength || 6;
                     document.getElementById('signalStrengthValue').textContent = (settings.min_signal_strength || 6).toFixed(1);
-                    
+
                     document.getElementById('minEntryQuality').value = settings.min_entry_quality || 'GOOD';
-                    
+
                     document.getElementById('minRRRatio').value = settings.min_rr_ratio || 1.5;
                     document.getElementById('rrRatioValue').textContent = (settings.min_rr_ratio || 1.5).toFixed(1);
-                    
+
                     if (document.getElementById('minConfluenceScore')) {
                         document.getElementById('minConfluenceScore').value = settings.min_confluence_score || 4;
                         document.getElementById('confluenceScoreValue').textContent = (settings.min_confluence_score || 4).toFixed(1);
                     }
-                    
+
                     const confirmations = settings.confirmations || {};
                     document.getElementById('requireTrend').checked = confirmations.trend_alignment !== false;
                     document.getElementById('requireVolume').checked = confirmations.volume_confirmation !== false;
@@ -1184,13 +1248,40 @@
             }
         }
 
+        function openHedgingDashboard() {
+            // เปิดใน tab ใหม่
+            window.open('/hedging', '_blank');
+
+            // หรือเปิดใน tab เดียวกัน
+            // window.location.href = '/hedging';
+
+            showNotification('🎯 Opening Hedging Dashboard...', 'info');
+        }
+
+        async function testHedgingQuick() {
+            try {
+                showNotification('🧪 Testing hedging system...', 'info');
+
+                const response = await fetch('/api/hedge/test');
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(`✅ Hedging test passed! Correlation: ${result.test_correlation}`, 'success');
+                } else {
+                    showNotification('❌ Hedging test failed', 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Hedging system error', 'error');
+            }
+        }
+
         function updateSignalSettings() {
             const signalStrength = document.getElementById('minSignalStrength').value;
             document.getElementById('signalStrengthValue').textContent = parseFloat(signalStrength).toFixed(1);
-            
+
             const rrRatio = document.getElementById('minRRRatio').value;
             document.getElementById('rrRatioValue').textContent = parseFloat(rrRatio).toFixed(1);
-            
+
             if (document.getElementById('minConfluenceScore')) {
                 const confluenceScore = document.getElementById('minConfluenceScore').value;
                 document.getElementById('confluenceScoreValue').textContent = parseFloat(confluenceScore).toFixed(1);
@@ -1198,7 +1289,7 @@
         }
 
         function setPreset(presetName) {
-            switch(presetName) {
+            switch (presetName) {
                 case 'EASY':
                     document.getElementById('minSignalStrength').value = 3.0;
                     document.getElementById('minEntryQuality').value = 'POOR';
@@ -1211,7 +1302,7 @@
                     document.getElementById('requireRSI').checked = false;
                     document.getElementById('requireMultiTF').checked = false;
                     break;
-                    
+
                 case 'NORMAL':
                     document.getElementById('minSignalStrength').value = 5.0;
                     document.getElementById('minEntryQuality').value = 'FAIR';
@@ -1224,7 +1315,7 @@
                     document.getElementById('requireRSI').checked = true;
                     document.getElementById('requireMultiTF').checked = true;
                     break;
-                    
+
                 case 'STRICT':
                     document.getElementById('minSignalStrength').value = 7.0;
                     document.getElementById('minEntryQuality').value = 'GOOD';
@@ -1238,7 +1329,7 @@
                     document.getElementById('requireMultiTF').checked = true;
                     break;
             }
-            
+
             updateSignalSettings();
         }
 
@@ -1248,22 +1339,22 @@
                     min_signal_strength: parseFloat(document.getElementById('minSignalStrength').value),
                     min_entry_quality: document.getElementById('minEntryQuality').value,
                     min_rr_ratio: parseFloat(document.getElementById('minRRRatio').value),
-                    min_confluence_score: document.getElementById('minConfluenceScore') ? 
+                    min_confluence_score: document.getElementById('minConfluenceScore') ?
                         parseFloat(document.getElementById('minConfluenceScore').value) : 4.0,
                     require_trend_alignment: document.getElementById('requireTrend').checked,
                     require_volume_confirmation: document.getElementById('requireVolume').checked,
                     require_rsi_filter: document.getElementById('requireRSI').checked,
                     require_multiple_timeframe: document.getElementById('requireMultiTF').checked
                 };
-                
+
                 const response = await fetch('/api/auto-trading/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settings)
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     console.log('Enhanced signal settings updated successfully');
                     showNotification('🎯 Signal Settings Updated!', 'success');
@@ -1282,17 +1373,17 @@
         async function testEnhancedSignals() {
             try {
                 showNotification('🔄 Testing Enhanced Signal System...', 'info');
-                
+
                 const response = await fetch('/api/test-enhanced-signals');
                 const result = await response.json();
-                
+
                 if (result.success) {
                     console.log('Enhanced signals test completed:', result);
                     showNotification('✅ Enhanced Signal Test Completed!', 'success');
-                    
+
                     const testResults = result.test_results || {};
                     let message = '🔥 Enhanced Signal Test Results:\n';
-                    
+
                     Object.keys(testResults).forEach(symbol => {
                         const data = testResults[symbol];
                         if (data.error) {
@@ -1301,7 +1392,7 @@
                             message += `${symbol}: ${data.signal} (${data.strength}/10) - ${data.quality}\n`;
                         }
                     });
-                    
+
                     console.log(message);
                 } else {
                     showNotification('❌ Enhanced signals test failed: ' + result.error, 'error');
@@ -1319,11 +1410,11 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     advancedFeaturesEnabled = result.advanced_features_active;
                     updateAdvancedFeaturesUI(advancedFeaturesEnabled);
-                    
+
                     const status = advancedFeaturesEnabled ? 'ENABLED' : 'DISABLED';
                     showNotification(`⚡ Advanced Features ${status}`, 'info');
                 } else {
@@ -1339,12 +1430,12 @@
             try {
                 const testPairs = ['EURUSD.c', 'GBPUSD.c', 'USDJPY.c'];
                 let message = '📊 Current Market Regimes:\n\n';
-                
+
                 for (const symbol of testPairs) {
                     try {
                         const response = await fetch(`/api/market-regime/${symbol}`);
                         const result = await response.json();
-                        
+
                         if (result.success) {
                             message += `${symbol.replace('.c', '')}: ${result.market_regime}\n`;
                             message += `  Confidence: ${(result.regime_confidence * 100).toFixed(1)}%\n\n`;
@@ -1353,7 +1444,7 @@
                         message += `${symbol.replace('.c', '')}: Error getting data\n\n`;
                     }
                 }
-                
+
                 alert(message);
             } catch (error) {
                 console.error('Error showing market regime:', error);
@@ -1365,7 +1456,7 @@
             const indicator = document.getElementById('advancedIndicator');
             const status = document.getElementById('advancedStatus');
             const advancedValue = document.getElementById('advancedFeatures');
-            
+
             if (enabled) {
                 indicator.style.background = '#cc66ff';
                 status.textContent = 'Market Regime Detection • Enhanced Scoring • Dynamic Sizing - ACTIVE';
@@ -1386,7 +1477,7 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     console.log('Auto trading started successfully');
                     updateAutoTradingUI(true);
@@ -1408,7 +1499,7 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     console.log('Auto trading stopped successfully');
                     updateAutoTradingUI(false);
@@ -1432,7 +1523,7 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     console.log('Emergency stop activated');
                     updateAutoTradingUI(false);
@@ -1449,7 +1540,7 @@
         function updateRiskProfile() {
             const riskProfile = document.getElementById('riskProfile').value;
             const customRiskDiv = document.getElementById('customRiskDiv');
-            
+
             if (riskProfile === 'CUSTOM') {
                 customRiskDiv.style.display = 'flex';
             } else {
@@ -1464,14 +1555,14 @@
                 showNotification('❌ Custom risk must be between 0.1% and 10%', 'error');
                 return;
             }
-            
+
             try {
                 const response = await fetch('/api/auto-trading/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ custom_risk: customRisk })
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                     console.log('Custom risk updated:', customRisk);
@@ -1494,7 +1585,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ risk_profile: profileName })
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                     console.log('Risk profile updated:', profileName);
@@ -1514,26 +1605,26 @@
             try {
                 const response = await fetch('/api/market-data');
                 const result = await response.json();
-                
+
                 if (result.success) {
                     marketData = result.data;
                     autoTradingData = result.auto_trading;
-                    
+
                     if (result.account) {
                         document.getElementById('accountInfo').textContent = result.account.login || 'Connected';
                         document.getElementById('serverInfo').textContent = result.account.server || 'MT5';
-                        document.getElementById('balanceInfo').textContent = result.account.balance ? 
+                        document.getElementById('balanceInfo').textContent = result.account.balance ?
                             `${result.account.balance.toLocaleString()}` : 'N/A';
-                        document.getElementById('equityInfo').textContent = result.account.equity ? 
+                        document.getElementById('equityInfo').textContent = result.account.equity ?
                             `${result.account.equity.toLocaleString()}` : 'N/A';
                     }
-                    
+
                     if (autoTradingData) {
                         isAutoTradingEnabled = autoTradingData.enabled;
                         updateAutoTradingUI(autoTradingData.enabled);
                         updateAutoTradingStats(autoTradingData);
                     }
-                    
+
                     updateConnectionStatus(result.mt5_connected);
                     return true;
                 } else {
@@ -1550,7 +1641,7 @@
             try {
                 const response = await fetch('/api/positions');
                 const result = await response.json();
-                
+
                 if (result.success) {
                     currentPositions = result.positions;
                     updatePositionsDisplay();
@@ -1565,7 +1656,7 @@
             const indicator = document.getElementById('autoTradingIndicator');
             const status = document.getElementById('autoTradingStatus');
             const statusBar = document.getElementById('autoTradingStatusBar');
-            
+
             if (enabled) {
                 indicator.className = 'status-indicator status-active';
                 status.textContent = 'ENABLED - Enhanced Signals Active';
@@ -1581,25 +1672,25 @@
 
         function updateAutoTradingStats(autoData) {
             if (!autoData) return;
-            
+
             document.getElementById('activeTrades').textContent = autoData.total_trades || 0;
             document.getElementById('currentExposure').textContent = `${(autoData.current_exposure || 0).toFixed(1)}%`;
             document.getElementById('maxExposure').textContent = `${(autoData.max_exposure || 0).toFixed(1)}%`;
-            
+
             document.getElementById('enhancedSignals').textContent = autoData.enhanced_signals || 0;
-            
+
             if (autoData.daily_stats) {
                 const stats = autoData.daily_stats;
                 document.getElementById('dailyPnL').textContent = `${(stats.total_pnl || 0).toFixed(2)}`;
                 document.getElementById('totalTrades').textContent = stats.trades_executed || 0;
                 document.getElementById('profitTrades').textContent = stats.wins || 0;
                 document.getElementById('lossTrades').textContent = stats.losses || 0;
-                
-                const winRate = stats.trades_executed > 0 ? 
+
+                const winRate = stats.trades_executed > 0 ?
                     ((stats.wins || 0) / stats.trades_executed * 100).toFixed(1) : 0;
                 document.getElementById('winRate').textContent = `${winRate}%`;
             }
-            
+
             document.getElementById('currentRiskProfile').textContent = autoData.risk_profile || 'BALANCED';
             document.getElementById('riskPerTrade').textContent = `${(autoData.custom_risk || 1.5).toFixed(1)}%`;
         }
@@ -1607,7 +1698,7 @@
         function updateConnectionStatus(connected) {
             const statusElement = document.getElementById('connectionStatus');
             const dotElement = document.getElementById('statusDot');
-            
+
             if (connected) {
                 statusElement.textContent = 'LIVE MT5';
                 statusElement.style.color = '#00ff00';
@@ -1625,12 +1716,12 @@
 
         function updatePositionsDisplay() {
             const positionsList = document.getElementById('positionsList');
-            
+
             if (currentPositions.length === 0) {
                 positionsList.innerHTML = '<div style="color: #888; font-style: italic;">No open positions</div>';
                 return;
             }
-            
+
             let html = '';
             currentPositions.forEach(pos => {
                 const profitClass = pos.profit >= 0 ? 'profit-positive' : 'profit-negative';
@@ -1646,7 +1737,7 @@
                     </div>
                 `;
             });
-            
+
             positionsList.innerHTML = html;
         }
 
@@ -1679,7 +1770,7 @@
         }
 
         function getSignalClass(signal) {
-            switch(signal) {
+            switch (signal) {
                 case 'STRONG_BUY': return 'signal-strong-buy';
                 case 'BUY': return 'signal-buy';
                 case 'SELL': return 'signal-sell';
@@ -1705,7 +1796,7 @@
         }
 
         function getPairStatusClass(status) {
-            switch(status.toUpperCase()) {
+            switch (status.toUpperCase()) {
                 case 'READY': return 'status-ready';
                 case 'TRADING': return 'status-trading';
                 case 'COOLDOWN': return 'status-cooldown';
@@ -1730,8 +1821,8 @@
                 font-size: 11px;
                 border: 1px solid;
             `;
-            
-            switch(type) {
+
+            switch (type) {
                 case 'success':
                     notification.style.background = '#006600';
                     notification.style.borderColor = '#00ff00';
@@ -1748,16 +1839,16 @@
                     notification.style.background = '#003366';
                     notification.style.borderColor = '#0099cc';
             }
-            
+
             notification.textContent = message;
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
             }, 4000);
-            
+
             const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
             console.log(`${emoji} ${message}`);
         }
@@ -1765,7 +1856,7 @@
         // Table Creation
         function createDataTable() {
             const tbody = document.getElementById('dataBody');
-            
+
             const fragment = document.createDocumentFragment();
 
             let readyPairs = 0;
@@ -1777,16 +1868,16 @@
             forexPairs.forEach(pair => {
                 const data = marketData[pair];
                 if (!data) return;
-                
+
                 const displayPair = pair.replace('.c', '');
                 const row = document.createElement('tr');
                 row.className = 'grid-row';
-                
+
                 const h4 = data.h4 || data.current_price || 0;
                 const h1 = data.h1 || data.current_price || 0;
                 const m15 = data.m15 || data.current_price || 0;
                 const m5 = data.m5 || data.current_price || 0;
-                
+
                 const rsi = data.rsi || 50;
                 const macd = data.macd || 0;
                 const atrPercent = data.atrPercent || data.atr_percent || 0.1;
@@ -1794,39 +1885,39 @@
                 const volumeRatio = data.volumeRatio || data.volume_ratio || 1;
                 const signal = data.signal || 'NONE';
                 const strength = data.strength || 0;
-                
+
                 const confluenceScore = data.enhanced_analysis?.confluence_score || 0;
                 const marketRegime = data.market_regime || 'UNKNOWN';
-                
+
                 const pairStatus = data.pair_status || { can_trade: false, reason: 'Unknown' };
-                const statusText = pairStatus.can_trade ? 'READY' : 
+                const statusText = pairStatus.can_trade ? 'READY' :
                     (data.active_trades > 0 ? 'TRADING' : 'COOLDOWN');
                 const activeTrades = data.active_trades || 0;
-                
-                const isEligible = pairStatus.can_trade && 
-                    signal !== 'NONE' && 
-                    strength >= 6.0 && 
+
+                const isEligible = pairStatus.can_trade &&
+                    signal !== 'NONE' &&
+                    strength >= 6.0 &&
                     ['GOOD', 'EXCELLENT'].includes(data.entry_quality || 'POOR') &&
                     Math.abs(confluenceScore) >= 4.0;
-                
+
                 if (statusText === 'READY') readyPairs++;
                 if (statusText === 'TRADING') tradingPairs++;
                 if (signal === 'STRONG_BUY' || signal === 'STRONG_SELL') strongSignals++;
                 if (isEligible) eligibleSignals++;
                 if (Math.abs(confluenceScore) >= 6) confluenceSignals++;
-                
+
                 const lotSize = data.lot_size || 0.01;
                 const riskAmount = data.risk_amount || 0;
                 const riskPercent = data.risk_percentage || data.risk_percent || 0;
-                
+
                 const entryQuality = data.entry_quality || 'POOR';
                 const entryScore = data.entry_score || 0;
                 const rrTp1 = data.rr_tp1 || 0;
                 const stopLoss = data.stop_loss || 0;
                 const tp1 = data.take_profit_1 || 0;
-                
+
                 const directionClass = data.price_direction === 'up' || data.priceDirection === 'up' ? 'price-up' : 'price-down';
-                
+
                 row.innerHTML = `
                     <td class="grid-cell pair-cell">${displayPair}</td>
                     
@@ -1862,13 +1953,13 @@
                     <td class="grid-cell risk-cell ${getRiskClass(riskPercent)}">${riskPercent.toFixed(1)}%</td>
                     
                     <!-- Entry/Exit Columns -->
-                    <td class="grid-cell entry-quality-cell ${getEntryQualityClass(entryQuality)}">${entryQuality.substr(0,3)}</td>
+                    <td class="grid-cell entry-quality-cell ${getEntryQualityClass(entryQuality)}">${entryQuality.substr(0, 3)}</td>
                     <td class="grid-cell indicator-cell">${entryScore}/10</td>
                     <td class="grid-cell rr-cell ${getRRClass(rrTp1)}">1:${rrTp1.toFixed(1)}</td>
                     <td class="grid-cell indicator-cell">${formatPrice(stopLoss, pair)}</td>
                     <td class="grid-cell indicator-cell">${formatPrice(tp1, pair)}</td>
                 `;
-                
+
                 fragment.appendChild(row);
             });
 
@@ -1889,11 +1980,11 @@
             if (success) {
                 createDataTable();
                 await fetchPositions();
-                
+
                 document.getElementById('loadingIndicator').style.display = 'none';
                 document.getElementById('dataTable').style.display = 'table';
             }
-            
+
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
 
@@ -1901,15 +1992,15 @@
         async function manualRefresh() {
             console.log('🔄 Manual refresh initiated...');
             document.getElementById('lastUpdate').textContent = 'Refreshing...';
-            
+
             try {
                 showNotification('🔄 Refreshing data...', 'info');
-                
+
                 const response = await fetch('/api/refresh');
                 if (response.ok) {
                     console.log('✅ Backend refresh completed');
                 }
-                
+
                 await updateData();
                 console.log('✅ Manual refresh completed');
                 showNotification('✅ Data refreshed!', 'success');
@@ -1926,15 +2017,15 @@
         // Initialization
         function init() {
             console.log('🚀 Initializing Professional Auto Trading Dashboard');
-            
+
             updateTime();
             updateData();
-            
+
             setInterval(updateData, 15000);
             setInterval(updateTime, 1000);
-            
+
             console.log('✅ Dashboard initialized successfully');
-            
+
             setTimeout(() => {
                 showNotification('🚀 Professional Dashboard Ready!', 'success');
             }, 2000);
@@ -1943,9 +2034,9 @@
         // Event Listeners
         document.addEventListener('DOMContentLoaded', init);
 
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
-                switch(e.key.toLowerCase()) {
+                switch (e.key.toLowerCase()) {
                     case 'r':
                         e.preventDefault();
                         manualRefresh();
@@ -1966,7 +2057,7 @@
             }
         });
 
-        document.addEventListener('visibilitychange', function() {
+        document.addEventListener('visibilitychange', function () {
             if (!document.hidden) {
                 console.log('🔄 Tab visible - refreshing data');
                 updateData();
@@ -1977,4 +2068,5 @@
         console.log('🚀 All features operational and ready for trading!');
     </script>
 </body>
+
 </html>
