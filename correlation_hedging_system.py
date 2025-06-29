@@ -15,7 +15,71 @@ from enum import Enum
 import json
 import logging
 from flask import jsonify, request
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
+def debug_mt5_connection():
+    """ตรวจสอบการเชื่อมต่อ MT5 อย่างละเอียด"""
+    print("=" * 50)
+    print("🔍 MT5 CONNECTION DEBUG")
+    print("=" * 50)
+    
+    # 1. ตรวจสอบ MT5 initialization
+    init_result = mt5.initialize()
+    print(f"MT5 Initialize: {init_result}")
+    if not init_result:
+        print(f"MT5 Error: {mt5.last_error()}")
+        return False
+    
+    # 2. ตรวจสอบ terminal info
+    terminal_info = mt5.terminal_info()
+    if terminal_info:
+        print(f"✅ Terminal Connected: {terminal_info.name}")
+        print(f"   Company: {terminal_info.company}")
+        print(f"   Connected: {terminal_info.connected}")
+    else:
+        print("❌ Terminal Info: None")
+        return False
+    
+    # 3. ตรวจสอบ account
+    account_info = mt5.account_info()
+    if account_info:
+        print(f"✅ Account: {account_info.login}")
+        print(f"   Balance: ${account_info.balance:,.2f}")
+        print(f"   Server: {account_info.server}")
+    else:
+        print("❌ Account Info: None")
+        return False
+    
+    # 4. ตรวจสอบ positions
+    positions = mt5.positions_get()
+    print(f"📊 Positions Found: {len(positions) if positions else 0}")
+    
+    if positions:
+        for i, pos in enumerate(positions):
+            print(f"   {i+1}. {pos.symbol}: {pos.volume} lots, "
+                  f"{'BUY' if pos.type == 0 else 'SELL'}, "
+                  f"Ticket: {pos.ticket}")
+    else:
+        print("   No positions detected")
+        
+        # ลองหาแบบ specific symbols
+        test_symbols = ['NZDJPY.c', 'NZDJPY', 'EURUSD.c', 'EURUSD']
+        for symbol in test_symbols:
+            try:
+                symbol_pos = mt5.positions_get(symbol=symbol)
+                if symbol_pos:
+                    print(f"   ✅ Found via {symbol}: {len(symbol_pos)} positions")
+                    for pos in symbol_pos:
+                        print(f"      - {pos.symbol}: {pos.volume} lots")
+            except Exception as e:
+                print(f"   ❌ Error checking {symbol}: {e}")
+    
+    # 5. ตรวจสอบ symbols
+    symbols_info = mt5.symbols_get()
+    print(f"📈 Available Symbols: {len(symbols_info) if symbols_info else 0}")
+    
+    return True
 class HedgeAction(Enum):
     NO_HEDGE = "NO_HEDGE"
     PARTIAL_HEDGE = "PARTIAL_HEDGE"
@@ -45,7 +109,7 @@ class HedgeOpportunity:
 
 class AdvancedCorrelationHedging:
     """
-    🎯 Advanced Correlation-Based Hedging System
+    [TARGET] Advanced Correlation-Based Hedging System
     ==========================================
     Smart cross-pair hedging using real-time correlation analysis
     """
@@ -56,7 +120,7 @@ class AdvancedCorrelationHedging:
         
         # 📊 ENHANCED CORRELATION MATRIX
         self.correlation_pairs = {
-            # 💰 USD STRENGTH BASKET
+            # [MONEY] USD STRENGTH BASKET
             'EURUSD.c': {
                 'negative_corr': ['USDCHF.c', 'USDJPY.c', 'USDCAD.c'],
                 'positive_corr': ['GBPUSD.c', 'AUDUSD.c', 'NZDUSD.c'],
@@ -327,7 +391,7 @@ class AdvancedCorrelationHedging:
                 }
             }
         }        
-        # 🎯 HEDGING PARAMETERS
+        # [TARGET] HEDGING PARAMETERS
         self.hedge_thresholds = {
             'min_correlation': 0.60,      # ความสัมพันธ์ขั้นต่ำ
             'max_hedge_ratio': 0.80,      # อัตราส่วน hedge สูงสุด
@@ -339,7 +403,7 @@ class AdvancedCorrelationHedging:
         self.live_correlations = {}
         self.correlation_history = {}
         
-        print("🎯 Advanced Correlation Hedging System Initialized!")
+        print("[TARGET] Advanced Correlation Hedging System Initialized!")
         print("💱 Smart Cross-Pair Risk Management Active")
         print("🛡️ Dynamic Hedge Ratio Calculation Ready")
     
@@ -465,7 +529,7 @@ class AdvancedCorrelationHedging:
     
     def analyze_hedging_opportunities(self, current_positions: List[Dict]) -> List[HedgeOpportunity]:
         """
-        🎯 วิเคราะห์โอกาสในการ hedge
+        [TARGET] วิเคราะห์โอกาสในการ hedge
         """
         opportunities = []
         
@@ -716,7 +780,7 @@ class AdvancedCorrelationHedging:
     
     def execute_hedge_strategy(self, opportunity: HedgeOpportunity) -> Dict:
         """
-        🎯 ดำเนินการ hedge strategy
+        [TARGET] ดำเนินการ hedge strategy
         """
         try:
             if opportunity.hedge_action == HedgeAction.NO_HEDGE:
@@ -796,7 +860,7 @@ class AdvancedCorrelationHedging:
             }
             
             # Log successful hedge
-            self.logger.info(f"🎯 HEDGE EXECUTED: {opportunity.primary_symbol} -> {opportunity.hedge_symbol}")
+            self.logger.info(f"[TARGET] HEDGE EXECUTED: {opportunity.primary_symbol} -> {opportunity.hedge_symbol}")
             self.logger.info(f"   Correlation: {opportunity.correlation_coefficient:.3f}")
             self.logger.info(f"   Hedge Ratio: {opportunity.hedge_ratio:.2f}")
             self.logger.info(f"   Risk Reduction: {opportunity.expected_risk_reduction:.1%}")
@@ -817,7 +881,7 @@ class AdvancedCorrelationHedging:
     
     def get_portfolio_correlation_matrix(self, positions: List[Dict]) -> Dict:
         """
-        🎯 สร้าง correlation matrix ของ portfolio
+        [TARGET] สร้าง correlation matrix ของ portfolio
         """
         try:
             if len(positions) < 2:
@@ -878,88 +942,104 @@ class AdvancedCorrelationHedging:
             }
     
     def get_hedge_recommendations(self) -> Dict:
-        """Get hedge recommendations with symbol format fix"""
+        """Get hedge recommendations - SYNTAX FIXED VERSION"""
         try:
             # ดึง positions ปัจจุบัน
             positions = mt5.positions_get()
+            
             if not positions:
                 return {
-                    'success': True,
-                    'message': 'No positions to hedge',
+                    'success': False,
+                    'error': 'NO_POSITIONS_DETECTED',
+                    'error_message': 'Unable to detect any positions from MT5',
                     'opportunities': [],
                     'portfolio_analysis': {
                         'matrix': {},
-                        'overall_risk': 'LOW',
-                        'symbols_analyzed': []
+                        'overall_risk': 'NO_DATA',
+                        'error': 'No positions available for analysis'
                     },
-                    'debug_info': {
-                        'positions_found': 0,
-                        'mt5_connected': mt5.terminal_info() is not None,
-                        'account_info': mt5.account_info() is not None if mt5.terminal_info() else False
-                    }
+                    'total_positions': 0,
+                    'hedge_opportunities_found': 0,
+                    'analysis_timestamp': datetime.now().isoformat(),
+                    'system_status': 'ERROR'
                 }
             
-            # แปลง positions เป็น list of dict พร้อม normalize symbols
+            # แปลง positions เป็น list
             position_list = []
             for pos in positions:
                 try:
-                    # Normalize symbol format
                     normalized_symbol = self.normalize_symbol(pos.symbol)
                     
-                    position_list.append({
+                    position_data = {
                         'symbol': normalized_symbol,
-                        'original_symbol': pos.symbol,  # เก็บ original ไว้ด้วย
+                        'original_symbol': pos.symbol,
                         'type': 'BUY' if pos.type == 0 else 'SELL',
-                        'volume': pos.volume,
-                        'ticket': pos.ticket,
-                        'profit': pos.profit
-                    })
-                    
-                    self.logger.info(f"Position found: {pos.symbol} → {normalized_symbol}")
+                        'volume': float(pos.volume),
+                        'ticket': int(pos.ticket),
+                        'profit': float(pos.profit)
+                    }
+                    position_list.append(position_data)
                     
                 except Exception as pos_error:
-                    self.logger.error(f"Error processing position {pos.symbol}: {str(pos_error)}")
+                    self.logger.error(f"Error processing position: {str(pos_error)}")
                     continue
             
             if not position_list:
                 return {
-                    'success': True,
-                    'message': 'No valid positions found after normalization',
+                    'success': False,
+                    'error': 'POSITION_PROCESSING_FAILED',
+                    'error_message': 'Found positions but failed to process them',
                     'opportunities': [],
                     'portfolio_analysis': {
                         'matrix': {},
-                        'overall_risk': 'LOW',
-                        'symbols_analyzed': []
+                        'overall_risk': 'PROCESSING_ERROR',
+                        'error': 'Position data processing failed'
                     },
-                    'debug_info': {
-                        'raw_positions': len(positions),
-                        'processed_positions': 0,
-                        'normalization_failed': True
-                    }
+                    'total_positions': 0,
+                    'hedge_opportunities_found': 0,
+                    'analysis_timestamp': datetime.now().isoformat(),
+                    'system_status': 'ERROR'
                 }
             
             # วิเคราะห์โอกาส hedge
-            opportunities = self.analyze_hedging_opportunities(position_list)
+            try:
+                opportunities = self.analyze_hedging_opportunities(position_list)
+            except Exception as e:
+                opportunities = []
+                self.logger.error(f"Hedge analysis error: {str(e)}")
             
             # วิเคราะห์ portfolio correlation
-            portfolio_analysis = self.get_portfolio_correlation_matrix(position_list)
+            try:
+                portfolio_analysis = self.analyze_portfolio_correlation_matrix(position_list)
+            except Exception as e:
+                portfolio_analysis = {
+                    'matrix': {},
+                    'overall_risk': 'ANALYSIS_ERROR',
+                    'error': str(e)
+                }
+                self.logger.error(f"Portfolio analysis error: {str(e)}")
             
-            # สรุปคำแนะนำ
+            # สร้าง recommendations
             recommendations = []
             if opportunities:
-                for opp in opportunities[:3]:  # Top 3
-                    rec = {
-                        'primary_pair': opp.primary_symbol.replace('.c', ''),
-                        'recommended_hedge': opp.hedge_symbol.replace('.c', ''),
-                        'action': opp.hedge_action.value,
-                        'correlation': round(opp.correlation_coefficient, 3),
-                        'confidence': f"{opp.confidence_score:.1%}",
-                        'risk_reduction': f"{opp.expected_risk_reduction:.1%}",
-                        'priority': opp.execution_priority,
-                        'reasoning': opp.reasoning[:2]  # Top 2 reasons
-                    }
-                    recommendations.append(rec)
+                for opp in opportunities[:3]:
+                    try:
+                        rec = {
+                            'primary_pair': opp.primary_symbol.replace('.c', ''),
+                            'recommended_hedge': opp.hedge_symbol.replace('.c', ''),
+                            'action': opp.hedge_action.value,
+                            'correlation': round(opp.correlation_coefficient, 3),
+                            'confidence': f"{opp.confidence_score:.1%}",
+                            'risk_reduction': f"{opp.expected_risk_reduction:.1%}",
+                            'priority': opp.execution_priority,
+                            'reasoning': opp.reasoning[:2]
+                        }
+                        recommendations.append(rec)
+                    except Exception as rec_error:
+                        self.logger.error(f"Recommendation creation error: {str(rec_error)}")
+                        continue
             
+            # Return final result
             return {
                 'success': True,
                 'opportunities': recommendations,
@@ -967,34 +1047,101 @@ class AdvancedCorrelationHedging:
                 'total_positions': len(position_list),
                 'hedge_opportunities_found': len(opportunities),
                 'analysis_timestamp': datetime.now().isoformat(),
-                'system_status': 'ACTIVE',
-                'debug_info': {
-                    'raw_positions': len(positions),
-                    'processed_positions': len(position_list),
-                    'symbols_found': [pos['symbol'] for pos in position_list],
-                    'original_symbols': [pos['original_symbol'] for pos in position_list]
-                }
+                'system_status': 'ACTIVE'
             }
             
         except Exception as e:
-            self.logger.error(f"Hedge recommendations error: {str(e)}")
+            self.logger.error(f"Major error in get_hedge_recommendations: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'SYSTEM_ERROR',
+                'error_message': f'System error: {str(e)}',
                 'opportunities': [],
                 'portfolio_analysis': {
                     'matrix': {},
-                    'overall_risk': 'UNKNOWN',
+                    'overall_risk': 'SYSTEM_ERROR',
                     'error': str(e)
                 },
-                'debug_info': {
-                    'error_occurred': True,
-                    'error_type': type(e).__name__,
-                    'mt5_terminal_info': mt5.terminal_info() is not None
-                }
+                'total_positions': 0,
+                'hedge_opportunities_found': 0,
+                'analysis_timestamp': datetime.now().isoformat(),
+                'system_status': 'ERROR'
             }
-    
-# 🎯 INTEGRATION HELPER
+
+    def analyze_portfolio_correlation_matrix(self, positions: List[Dict]) -> Dict:
+        """Analyze portfolio correlation matrix - SYNTAX FIXED"""
+        try:
+            if not positions:
+                return {
+                    'matrix': {},
+                    'overall_risk': 'NO_DATA',
+                    'average_correlation': 0.0,
+                    'risk_comment': 'No positions to analyze',
+                    'symbols_analyzed': [],
+                    'analysis_timestamp': datetime.now().isoformat()
+                }
+            
+            symbols = [pos['symbol'] for pos in positions]
+            correlation_matrix = {}
+            
+            # คำนวณ correlation ระหว่างทุกคู่
+            for i, symbol1 in enumerate(symbols):
+                correlation_matrix[symbol1] = {}
+                for j, symbol2 in enumerate(symbols):
+                    if i == j:
+                        correlation_matrix[symbol1][symbol2] = 1.0
+                    elif symbol2 in correlation_matrix and symbol1 in correlation_matrix[symbol2]:
+                        correlation_matrix[symbol1][symbol2] = correlation_matrix[symbol2][symbol1]
+                    else:
+                        try:
+                            corr = self.calculate_live_correlation(symbol1, symbol2)
+                            correlation_matrix[symbol1][symbol2] = round(corr, 3)
+                        except Exception as corr_error:
+                            self.logger.error(f"Correlation calculation error: {str(corr_error)}")
+                            correlation_matrix[symbol1][symbol2] = 0.0
+            
+            # วิเคราะห์ portfolio risk
+            total_correlations = []
+            for symbol1 in symbols:
+                for symbol2 in symbols:
+                    if symbol1 != symbol2:
+                        total_correlations.append(abs(correlation_matrix[symbol1][symbol2]))
+            
+            avg_correlation = np.mean(total_correlations) if total_correlations else 0
+            
+            # กำหนด risk level
+            if avg_correlation >= 0.70:
+                overall_risk = 'HIGH'
+                risk_comment = 'Strong correlations detected - high portfolio risk'
+            elif avg_correlation >= 0.50:
+                overall_risk = 'MEDIUM'
+                risk_comment = 'Moderate correlations - balanced risk'
+            else:
+                overall_risk = 'LOW'
+                risk_comment = 'Low correlations - diversified portfolio'
+            
+            return {
+                'matrix': correlation_matrix,
+                'overall_risk': overall_risk,
+                'average_correlation': round(avg_correlation, 3),
+                'risk_comment': risk_comment,
+                'symbols_analyzed': symbols,
+                'analysis_timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Portfolio correlation analysis error: {str(e)}")
+            return {
+                'matrix': {},
+                'overall_risk': 'ERROR',
+                'average_correlation': 0.0,
+                'risk_comment': f'Analysis failed: {str(e)}',
+                'symbols_analyzed': [],
+                'analysis_timestamp': datetime.now().isoformat(),
+                'error': str(e)
+            }
+        
+# [TARGET] INTEGRATION HELPER
 class HedgeSystemIntegrator:
     """Helper class สำหรับ integrate กับระบบหลัก"""
     
@@ -1002,7 +1149,7 @@ class HedgeSystemIntegrator:
         self.trading_system = trading_system
         self.hedge_system = AdvancedCorrelationHedging(trading_system)
         
-        print("🎯 Correlation Hedging System Integrated!")
+        print("[TARGET] Correlation Hedging System Integrated!")
         print("💱 Cross-Pair Risk Management Ready")
     
     def setup_hedge_routes(self, app):
@@ -1066,7 +1213,7 @@ class HedgeSystemIntegrator:
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)})
         
-        print("🎯 Hedge API routes added successfully!")
+        print("[TARGET] Hedge API routes added successfully!")
 
 # Export classes
 __all__ = [
@@ -1077,7 +1224,7 @@ __all__ = [
     'CorrelationType'
 ]
 
-print("🎯 Advanced Correlation Hedging System Ready!")
+print("[TARGET] Advanced Correlation Hedging System Ready!")
 print("💱 Intelligent Cross-Pair Risk Management")
 print("🛡️ Dynamic Hedge Ratio Calculation")
 print("📊 Real-time Correlation Analysis")

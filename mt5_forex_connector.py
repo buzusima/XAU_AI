@@ -3123,7 +3123,29 @@ class EnhancedSmartAutoTradingDashboard:
                         'Dynamic Hedge Ratios'
                     ]
                 })
-            
+                       
+            @self.app.route('/api/hedge/recommendations')
+            def get_recommendations():
+                positions = mt5.positions_get()
+                if not positions:
+                    return jsonify({'success': True, 'opportunities': [], 'total_positions': 0})
+                
+                opportunities = []
+                for pos in positions:
+                    if 'NZDJPY' in pos.symbol:
+                        opportunities.append({
+                            'primary_pair': 'NZDJPY',
+                            'recommended_hedge': 'USDCHF',
+                            'action': 'SELL',
+                            'correlation': -0.60
+                        })
+                
+                return jsonify({
+                    'success': True, 
+                    'opportunities': opportunities,
+                    'total_positions': len(positions)
+                })
+           
             @self.app.route('/api/hedge/test')
             def test_hedging():
                 """Test hedging system"""
