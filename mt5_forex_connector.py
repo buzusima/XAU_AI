@@ -1733,7 +1733,7 @@ class EnhancedSmartAutoTradingDashboard:
                 
                 # Log iteration summary
                 if signals_processed > 0:
-                    self.logger.info(f"📊 Processed {signals_processed} signals, executed {trades_executed} trades")
+                    self.logger.info(f" Processed {signals_processed} signals, executed {trades_executed} trades")
                 
                 # CRITICAL FIX 5: Adaptive sleep based on activity
                 if trades_executed > 0:
@@ -2041,7 +2041,7 @@ class EnhancedSmartAutoTradingDashboard:
                     'system_version': 'Enhanced_MultiTimeframe_v2.0'
                 }
                 
-                # 📊 Log enhanced signal info
+                #  Log enhanced signal info
                 if result['signal'] != 'NONE':
                     self.logger.info(f" ENHANCED SIGNAL: {symbol}")
                     self.logger.info(f"   Signal: {result['signal']} | Strength: {result['strength']}/10")
@@ -3103,7 +3103,7 @@ class EnhancedSmartAutoTradingDashboard:
             print(f"✅ SUCCESS: Enhanced Auto Trading Dashboard Started!")
             print(f"🔄 FEATURES: Smart Auto Trading + Risk Management + Data Persistence")
             print(f"💾 PERSISTENCE: Settings, Positions & Stats Auto-Saved")
-            print(f"📊 DATABASE: Trade History & System Logs")
+            print(f" DATABASE: Trade History & System Logs")
             print(f"🛡️ RECOVERY: System state restored on restart")
             print(f"🌐 DASHBOARD: http://{host}:{port}")
             print(f"🔗 API: http://{host}:{port}/api/market-data")
@@ -3138,7 +3138,7 @@ def main():
     print("✅ Emergency Stop Controls")
     print("💾 Data Persistence & Auto-Save")
     print("🔄 State Management & Recovery")
-    print("📊 Trade History Database")
+    print(" Trade History Database")
     print("🛡️ System Logs & Monitoring")
     print()
     
