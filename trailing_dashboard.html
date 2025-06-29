@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Trailing Stop Dashboard</title>
+    <style>
+        /* 🎯 Dashboard Base - ใช้โทนเดียวกับระบบเดิม */
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 1rem;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Trailing Stop Panel - สไตล์เดียวกับ auto-trading-panel */
+        .trailing-dashboard {
+            background: #002a00;
+            border: 2px solid #00ff00;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            padding: 1rem;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        
+        .trailing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #00ff00;
+        }
+        
+        .trailing-title {
+            color: #00ff00;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .trailing-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 11px;
+        }
+        
+        /* Status Indicator - เดียวกับระบบเดิม */
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-active {
+            background: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+        
+        .status-inactive {
+            background: #666;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Control Grid - แบบ auto-trading-panel */
+        .trailing-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-group {
+            background: #111;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            padding: 0.8rem;
+        }
+        
+        .control-label {
+            color: #00ff00;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            display: block;
+            text-transform: uppercase;
+        }
+        
+        .control-input, select.control-input {
+            width: 100%;
+            background: #000;
+            border: 1px solid #00ff00;
+            border-radius: 3px;
+            padding: 0.4rem;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+        }
+        
+        .control-input option {
+            background: #000;
+            color: #00ff00;
+        }
+        
+        /* Control Buttons - เดียวกับระบบเดิม */
+        .control-button {
+            background: #00ff00;
+            border: none;
+            border-radius: 3px;
+            color: #000;
+            padding: 0.5rem 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        
+        .control-button:hover {
+            background: #00cc00;
+            transform: translateY(-1px);
+        }
+        
+        .control-button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .control-button.danger {
+            background: #ff4444;
+            color: #fff;
+        }
+        
+        .control-button.danger:hover {
+            background: #ff3333;
+        }
+        
+        .control-button.warning {
+            background: #ffaa00;
+            color: #000;
+        }
+        
+        /* Statistics Grid - สไตล์เดียวกับระบบเดิม */
+        .trailing-stats {
+            background: #111;
+            border: 1px solid #ffff00;
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.8rem;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 0.5rem;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 3px;
+        }
+        
+        .stat-value {
+            color: #ffff00;
+            font-size: 16px;
+            font-weight: bold;
+            display: block;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 8px;
+            margin-top: 0.3rem;
+            text-transform: uppercase;
+        }
+        
+        /* Positions Table - สไตล์เดียวกับ main grid */
+        .positions-table {
+            background: #111;
+            border: 1px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .positions-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+        
+        .positions-table th {
+            background: #222;
+            color: #ffff00;
+            padding: 0.6rem 0.3rem;
+            font-size: 8px;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            border-right: 1px solid #444;
+        }
+        
+        .positions-table td {
+            padding: 0.5rem 0.3rem;
+            text-align: center;
+            font-size: 9px;
+            border-bottom: 1px solid #333;
+            border-right: 1px solid #333;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .positions-table tr:hover {
+            background: #1a1a1a;
+        }
+        
+        /* Profile Selector - เดียวกับระบบเดิม */
+        .profile-selector {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
+        }
+        
+        .profile-btn {
+            flex: 1;
+            padding: 0.4rem;
+            background: #333;
+            border: 1px solid #00ff00;
+            border-radius: 3px;
+            color: #00ff00;
+            font-size: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .profile-btn.active {
+            background: #00ff00;
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .profile-btn:hover {
+            background: #004400;
+        }
+        
+        /* Trail Status Cells - เดียวกับ signal cells */
+        .trail-status {
+            font-weight: bold;
+            padding: 0.2rem;
+            border-radius: 2px;
+            text-transform: uppercase;
+            font-size: 8px;
+        }
+        
+        .trail-protected {
+            background: #006600;
+            color: #00ff00;
+        }
+        
+        .trail-moving {
+            background: #333300;
+            color: #ffff00;
+        }
+        
+        .trail-active {
+            background: #000066;
+            color: #0088ff;
+        }
+        
+        .trail-none {
+            background: #222;
+            color: #888;
+        }
+        
+        /* Profit Colors - เดียวกับระบบเดิม */
+        .profit-positive {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        .profit-negative {
+            color: #ff4444;
+            font-weight: bold;
+        }
+        
+        /* Notifications - เดียวกับระบบเดิม */
+        .trail-notification {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 3px;
+            padding: 0.5rem;
+            margin: 0.3rem 0;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .notification-success {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+        
+        .notification-info {
+            border-color: #0088ff;
+            color: #0088ff;
+        }
+        
+        .notification-error {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+        
+        .notification-icon {
+            font-size: 12px;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- 🎯 Intelligent Trailing Stop Dashboard -->
+    <div class="trailing-dashboard">
+        <!-- Header -->
+        <div class="trailing-header">
+            <div class="trailing-title">
+                🎯 Intelligent Trailing Stop System
+            </div>
+            <div class="trailing-status">
+                <div class="status-indicator" id="trailingStatusIndicator"></div>
+                <span id="trailingStatusText">Loading...</span>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="trailing-controls">
+            <!-- Enable/Disable -->
+            <div class="control-group">
+                <label class="control-label">🔘 System Control</label>
+                <button class="control-button" id="toggleTrailingBtn" onclick="toggleTrailingStops()">
+                    Enable Trailing
+                </button>
+                <button class="control-button warning" onclick="manualTrailingUpdate()" style="margin-top: 0.5rem;">
+                    Manual Update
+                </button>
+            </div>
+            
+            <!-- Profile Selection -->
+            <div class="control-group">
+                <label class="control-label">⚙️ Trailing Profile</label>
+                <div class="profile-selector">
+                    <button class="profile-btn" onclick="setTrailingProfile('CONSERVATIVE')" data-profile="CONSERVATIVE">Safe</button>
+                    <button class="profile-btn active" onclick="setTrailingProfile('MODERATE')" data-profile="MODERATE">Moderate</button>
+                    <button class="profile-btn" onclick="setTrailingProfile('AGGRESSIVE')" data-profile="AGGRESSIVE">Aggressive</button>
+                </div>
+                <div style="color: #888; font-size: 9px; margin-top: 0.5rem;" id="profileDescription">
+                    Moderate trailing with balanced risk/reward
+                </div>
+            </div>
+            
+            <!-- Update Interval -->
+            <div class="control-group">
+                <label class="control-label">⏱️ Update Interval</label>
+                <select class="control-input" id="updateInterval" onchange="setUpdateInterval()">
+                    <option value="5">5 seconds</option>
+                    <option value="10" selected>10 seconds</option>
+                    <option value="15">15 seconds</option>
+                    <option value="30">30 seconds</option>
+                    <option value="60">1 minute</option>
+                </select>
+            </div>
+            
+            <!-- Settings -->
+            <div class="control-group">
+                <label class="control-label">🛡️ Protection Settings</label>
+                <label style="font-size: 9px; color: #888; display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0;">
+                    <input type="checkbox" id="breakevenProtection" checked onchange="updateSettings()">
+                    Breakeven Protection
+                </label>
+                <label style="font-size: 9px; color: #888; display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="supportResistanceAware" checked onchange="updateSettings()">
+                    S/R Aware Trailing
+                </label>
+            </div>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="trailing-stats">
+            <div class="stat-card">
+                <span class="stat-value" id="activePositions">0</span>
+                <div class="stat-label">Active Positions</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="breakevenProtected">0</span>
+                <div class="stat-label">Breakeven Protected</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="totalTrailMoves">0</span>
+                <div class="stat-label">Total Trail Moves</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="slUpdates">0</span>
+                <div class="stat-label">SL Updates Today</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="profitSecured">$0</span>
+                <div class="stat-label">Profit Secured</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="avgTrailsPerPosition">0</span>
+                <div class="stat-label">Avg Trails/Position</div>
+            </div>
+        </div>
+        
+        <!-- Positions Table -->
+        <div class="positions-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Entry</th>
+                        <th>Current SL</th>
+                        <th>Profit</th>
+                        <th>Trail Status</th>
+                        <th>Profit ATR</th>
+                        <th>Trail Distance</th>
+                        <th>Next Action</th>
+                    </tr>
+                </thead>
+                <tbody id="trailingPositionsBody">
+                    <tr>
+                        <td colspan="10" style="color: #888; font-style: italic;">Loading positions...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Notifications -->
+        <div id="trailingNotifications" style="max-height: 200px; overflow-y: auto; margin-top: 1rem;">
+            <!-- Notifications will be added here -->
+        </div>
+    </div>
+
+    <script>
+        // 🎯 Trailing Stop Dashboard JavaScript
+        let trailingEnabled = false;
+        let currentProfile = 'MODERATE';
+        let updateInterval = 10;
+        
+        const profileDescriptions = {
+            'CONSERVATIVE': 'Safe trailing with wide stops and slow movement',
+            'MODERATE': 'Balanced trailing with moderate risk/reward',
+            'AGGRESSIVE': 'Tight trailing for maximum profit capture'
+        };
+        
+        // Initialize dashboard
+        async function initTrailingDashboard() {
+            try {
+                await updateTrailingData();
+                setInterval(updateTrailingData, updateInterval * 1000);
+                console.log('🎯 Trailing Stop Dashboard Initialized');
+            } catch (error) {
+                console.error('Error initializing trailing dashboard:', error);
+            }
+        }
+        
+        // Update trailing stop data
+        async function updateTrailingData() {
+            try {
+                const response = await fetch('/api/trailing-stops/status');
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateTrailingUI(result.data);
+                } else {
+                    console.error('Failed to get trailing data:', result.error);
+                }
+            } catch (error) {
+                console.error('Error updating trailing data:', error);
+            }
+        }
+        
+        // Update UI with trailing data
+        function updateTrailingUI(data) {
+            // Update status
+            trailingEnabled = data.enabled;
+            currentProfile = data.profile;
+            
+            const statusIndicator = document.getElementById('trailingStatusIndicator');
+            const statusText = document.getElementById('trailingStatusText');
+            const toggleBtn = document.getElementById('toggleTrailingBtn');
+            
+            if (trailingEnabled) {
+                statusIndicator.className = 'status-indicator status-active';
+                statusText.textContent = `Active - ${currentProfile}`;
+                toggleBtn.textContent = 'Disable Trailing';
+                toggleBtn.className = 'control-button danger';
+            } else {
+                statusIndicator.className = 'status-indicator status-inactive';
+                statusText.textContent = 'Disabled';
+                toggleBtn.textContent = 'Enable Trailing';
+                toggleBtn.className = 'control-button';
+            }
+            
+            // Update profile buttons
+            document.querySelectorAll('.profile-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.profile === currentProfile) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update profile description
+            document.getElementById('profileDescription').textContent = profileDescriptions[currentProfile];
+            
+            // Update statistics
+            if (data.statistics) {
+                const stats = data.statistics;
+                document.getElementById('activePositions').textContent = stats.active_positions || 0;
+                document.getElementById('breakevenProtected').textContent = stats.breakeven_protected || 0;
+                document.getElementById('totalTrailMoves').textContent = stats.total_trail_moves || 0;
+                document.getElementById('avgTrailsPerPosition').textContent = stats.average_trails_per_position || 0;
+                
+                if (stats.system_stats) {
+                    document.getElementById('slUpdates').textContent = stats.system_stats.total_sl_updates || 0;
+                    document.getElementById('profitSecured').textContent = '$' + (stats.system_stats.profit_secured || 0).toFixed(2);
+                }
+            }
+            
+            // Update positions table
+            updatePositionsTable(data.positions || []);
+        }
+        
+        // Update positions table
+        function updatePositionsTable(positions) {
+            const tbody = document.getElementById('trailingPositionsBody');
+            
+            if (positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="color: #aaa; font-style: italic;">No open positions</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = positions.map(pos => {
+                const trailInfo = pos.trail_info || {};
+                const profitColor = pos.profit >= 0 ? 'profit-positive' : 'profit-negative';
+                
+                let statusClass = 'trail-none';
+                let statusText = 'None';
+                
+                if (trailInfo.breakeven_activated) {
+                    statusClass = 'trail-protected';
+                    statusText = 'Protected';
+                } else if (trailInfo.trail_reason === 'BREAKEVEN_PROTECTION') {
+                    statusClass = 'trail-moving';
+                    statusText = 'Moving to BE';
+                } else if (trailInfo.trail_reason && trailInfo.trail_reason.includes('TRAILING')) {
+                    statusClass = 'trail-active';
+                    statusText = 'Trailing';
+                }
+                
+                return `
+                    <tr>
+                        <td style="font-family: monospace; color: #ffff00;">#${pos.ticket}</td>
+                        <td style="color: #00ff00; font-weight: bold;">${pos.symbol}</td>
+                        <td style="color: ${pos.type === 'BUY' ? '#00ff00' : '#ff4444'};">${pos.type}</td>
+                        <td style="font-family: monospace;">${pos.entry_price.toFixed(5)}</td>
+                        <td style="font-family: monospace;">${pos.current_sl ? pos.current_sl.toFixed(5) : 'None'}</td>
+                        <td class="${profitColor}">${pos.profit.toFixed(2)}</td>
+                        <td><span class="trail-status ${statusClass}">${statusText}</span></td>
+                        <td style="font-family: monospace;">${trailInfo.profit_atr || '0.0'}</td>
+                        <td style="font-family: monospace;">${trailInfo.trail_distance_atr || '0.0'}</td>
+                        <td style="color: ${trailInfo.should_update ? '#ffff00' : '#666'}; font-size: 8px;">
+                            ${trailInfo.should_update ? trailInfo.trail_reason : 'None'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Toggle trailing stops
+        async function toggleTrailingStops() {
+            try {
+                const response = await fetch('/api/trailing-stops/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !trailingEnabled })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showTrailingNotification(
+                        trailingEnabled ? '⏹️' : '🚀',
+                        `Trailing Stops ${trailingEnabled ? 'DISABLED' : 'ENABLED'}`,
+                        'success'
+                    );
+                    await updateTrailingData();
+                } else {
+                    showTrailingNotification('❌', 'Failed to toggle trailing stops', 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling trailing stops:', error);
+                showTrailingNotification('❌', 'Error toggling trailing stops', 'error');
+            }
+        }
+        
+        // Set trailing profile
+        async function setTrailingProfile(profile) {
+            try {
+                const response = await fetch('/api/trailing-stops/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profile: profile })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showTrailingNotification('⚙️', `Profile changed to ${profile}`, 'info');
+                    await updateTrailingData();
+                } else {
+                    showTrailingNotification('❌', 'Failed to change profile', 'error');
+                }
+            } catch (error) {
+                console.error('Error setting profile:', error);
+            }
+        }
+        
+        // Manual trailing update
+        async function manualTrailingUpdate() {
+            try {
+                showTrailingNotification('🔄', 'Processing trailing stops...', 'info');
+                
+                const response = await fetch('/api/trailing-stops/manual-update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showTrailingNotification('✅', result.message, 'success');
+                    await updateTrailingData();
+                } else {
+                    showTrailingNotification('❌', result.message || 'Update failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error manual update:', error);
+                showTrailingNotification('❌', 'Manual update failed', 'error');
+            }
+        }
+        
+        // Show notification
+        function showTrailingNotification(icon, message, type) {
+            const notifications = document.getElementById('trailingNotifications');
+            const notification = document.createElement('div');
+            notification.className = `trail-notification notification-${type}`;
+            
+            notification.innerHTML = `
+                <span class="notification-icon">${icon}</span>
+                <span>${message}</span>
+                <span style="margin-left: auto; font-size: 8px; color: #666;">
+                    ${new Date().toLocaleTimeString()}
+                </span>
+            `;
+            
+            notifications.insertBefore(notification, notifications.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+            
+            // Keep only last 10 notifications
+            while (notifications.children.length > 10) {
+                notifications.removeChild(notifications.lastChild);
+            }
+        }
+        
+        // Set update interval
+        function setUpdateInterval() {
+            const interval = document.getElementById('updateInterval').value;
+            updateInterval = parseInt(interval);
+            showTrailingNotification('⏱️', `Update interval set to ${interval} seconds`, 'info');
+        }
+        
+        // Update settings
+        function updateSettings() {
+            const breakevenProtection = document.getElementById('breakevenProtection').checked;
+            const supportResistanceAware = document.getElementById('supportResistanceAware').checked;
+            
+            showTrailingNotification('⚙️', 'Settings updated', 'info');
+            // Here you would send the settings to the backend
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initTrailingDashboard);
+    </script>
+</body>
+</html>

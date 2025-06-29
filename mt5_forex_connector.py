@@ -21,7 +21,7 @@ from typing import Dict, List, Optional, Tuple
 import warnings
 from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
-
+from trading_integration import EnhancedTradingSystemWithTrailing, add_trailing_stop_routes
 try:
     from correlation_hedging_system import HedgeSystemIntegrator, AdvancedCorrelationHedging
     HEDGING_SYSTEM_AVAILABLE = True
@@ -475,6 +475,14 @@ class EnhancedSmartAutoTradingDashboard:
         except Exception as e:
             print(f"❌ Error initializing signal engine: {str(e)}")
             self.signal_engine = None
+
+        try:
+                self.enhanced_trading = EnhancedTradingSystemWithTrailing(self)
+                print("✅ Enhanced Trading System with Trailing Stops: ACTIVATED")
+                self.trailing_enabled = True
+        except Exception as e:
+                print(f"❌ Error initializing trailing system: {str(e)}")
+                self.trailing_enabled = False
 
     def load_system_settings(self):
         """โหลดการตั้งค่าระบบ"""
@@ -3095,11 +3103,28 @@ class EnhancedSmartAutoTradingDashboard:
     <a href="/" style="color:#00ccff;">← Back to Main Dashboard</a>
     </body></html>'''
         
+        @self.app.route('/trailing-dashboard')
+        def trailing_dashboard():
+            """Serve trailing stop dashboard"""
+            try:
+                return send_from_directory('.', 'trailing_dashboard.html')
+            except:
+                return '''
+                <h1>Trailing Stop Dashboard</h1>
+                <p>Please save the trailing_dashboard.html file in the same directory.</p>
+                <a href="/">← Back to Main Dashboard</a>
+                '''
         # 🎯 HEDGING SYSTEM ROUTES
+    
         if hasattr(self, 'hedging_enabled') and self.hedging_enabled:
             self.setup_hedging_routes()
         
         print("✅ All routes setup completed")
+
+        # 🎯 Add Trailing Stop Routes
+        if hasattr(self, 'enhanced_trading'):
+            add_trailing_stop_routes(self.app, self.enhanced_trading)
+            print("✅ Trailing Stop API Routes: ACTIVATED")
 
     def setup_hedging_routes(self):
         """Setup hedging system routes"""
@@ -3342,6 +3367,10 @@ class EnhancedSmartAutoTradingDashboard:
         except Exception as e:
             print(f"❌ Error during shutdown: {str(e)}")
     
+        if hasattr(self, 'enhanced_trading'):
+                self.enhanced_trading.stop_trailing_thread()
+                print("⏹️ Trailing Stop System: STOPPED")
+
     def run(self, host='0.0.0.0', port=5000):
         """Run the enhanced auto trading dashboard"""
         try:

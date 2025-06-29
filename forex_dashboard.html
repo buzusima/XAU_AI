@@ -942,6 +942,29 @@
             </div>
         </div>
 
+        <!-- Trailing Stop Panel -->
+        <div class="auto-trading-panel" style="background: #002a00; border-color: #4CAF50;">
+            <div class="trading-status">
+                <div class="status-indicator" id="trailingIndicator" style="background: #666;"></div>
+                <div>
+                    <div style="color: #4CAF50; font-weight: bold; font-size: 13px;">🎯 TRAILING STOPS</div>
+                    <div style="color: #aaa; font-size: 10px;" id="trailingStatus">DISABLED</div>
+                </div>
+                <div style="margin-left: 1.5rem;">
+                    <div style="color: #4CAF50; font-size: 10px;">Protected: <span id="protectedPositions">0</span></div>
+                    <div style="color: #4CAF50; font-size: 10px;">Trail Moves: <span id="trailMoves">0</span></div>
+                </div>
+            </div>
+            <div class="trading-controls">
+                <button class="control-btn" onclick="toggleTrailingSystem()" id="trailingToggleBtn"
+                    style="background: #4CAF50; color: black;">ENABLE TRAILING</button>
+                <button class="control-btn" onclick="openTrailingDashboard()"
+                    style="background: #2196F3; color: white;">OPEN DASHBOARD</button>
+                <button class="control-btn" onclick="setTrailingProfile('MODERATE')" id="profileBtn"
+                    style="background: #ff9800; color: black;">MODERATE</button>
+            </div>
+        </div>
+
         <!-- Signal Settings Panel -->
         <div class="auto-trading-panel" style="background: #332200; border-color: #ffcc00;">
             <div class="trading-status">
@@ -1199,6 +1222,114 @@
 
         // Enhanced Signal Settings Management
         let signalSettingsVisible = false;
+        // 🎯 Trailing Stop Functions
+        let trailingSystemEnabled = false;
+        let currentTrailingProfile = 'MODERATE';
+
+        async function updateTrailingStatus() {
+            try {
+                const response = await fetch('/api/trailing-stops/status');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    trailingSystemEnabled = data.enabled;
+                    currentTrailingProfile = data.profile;
+                    
+                    // Update UI
+                    const indicator = document.getElementById('trailingIndicator');
+                    const status = document.getElementById('trailingStatus');
+                    const toggleBtn = document.getElementById('trailingToggleBtn');
+                    const profileBtn = document.getElementById('profileBtn');
+                    
+                    if (trailingSystemEnabled) {
+                        indicator.style.background = '#4CAF50';
+                        indicator.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.5)';
+                        status.textContent = `ACTIVE - ${currentTrailingProfile}`;
+                        toggleBtn.textContent = 'DISABLE TRAILING';
+                        toggleBtn.style.background = '#f44336';
+                    } else {
+                        indicator.style.background = '#666';
+                        indicator.style.boxShadow = 'none';
+                        status.textContent = 'DISABLED';
+                        toggleBtn.textContent = 'ENABLE TRAILING';
+                        toggleBtn.style.background = '#4CAF50';
+                    }
+                    
+                    profileBtn.textContent = currentTrailingProfile;
+                    
+                    // Update statistics
+                    if (data.statistics) {
+                        document.getElementById('protectedPositions').textContent = 
+                            data.statistics.breakeven_protected || 0;
+                        document.getElementById('trailMoves').textContent = 
+                            data.statistics.total_trail_moves || 0;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating trailing status:', error);
+            }
+        }
+
+        async function toggleTrailingSystem() {
+            try {
+                const response = await fetch('/api/trailing-stops/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !trailingSystemEnabled })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(
+                        trailingSystemEnabled ? '⏹️ Trailing Stops Disabled' : '🚀 Trailing Stops Enabled',
+                        'success'
+                    );
+                    await updateTrailingStatus();
+                } else {
+                    showNotification('❌ Failed to toggle trailing system', 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling trailing system:', error);
+                showNotification('❌ Error toggling trailing system', 'error');
+            }
+        }
+
+        function openTrailingDashboard() {
+            // Open trailing dashboard in new window
+            window.open('/trailing-dashboard', 'TrailingDashboard', 
+                'width=1200,height=800,scrollbars=yes,resizable=yes');
+        }
+
+        async function setTrailingProfile(profile) {
+            try {
+                const response = await fetch('/api/trailing-stops/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profile: profile })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`⚙️ Trailing Profile: ${profile}`, 'info');
+                    await updateTrailingStatus();
+                }
+            } catch (error) {
+                console.error('Error setting trailing profile:', error);
+            }
+        }
+
+        // Add to existing updateData function
+        async function updateData() {
+            // ... existing code ...
+            
+            // Update trailing status
+            await updateTrailingStatus();
+            
+            // ... rest of existing code ...
+        }
 
         function toggleSignalSettings() {
             const content = document.getElementById('signalSettingsContent');
