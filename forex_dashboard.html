@@ -1234,15 +1234,9 @@
         let advancedFeaturesEnabled = false;
 
         // Forex pairs configuration
-        const forexPairs = [
-            'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
-            'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
-            'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c', 'GBPCAD.c',
-            'AUDCHF.c', 'AUDJPY.c', 'AUDNZD.c', 'AUDCAD.c',
-            'NZDJPY.c', 'NZDCHF.c', 'NZDCAD.c',
-            'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
-        ];
-
+        let forexPairs = [];
+        let symbolMapping = {};
+        let brokerInfo = {};
         // Enhanced Signal Settings Management
         let signalSettingsVisible = false;
         // 🎯 Trailing Stop Functions
@@ -2229,7 +2223,7 @@
                 const data = marketData[pair];
                 if (!data) return;
 
-                const displayPair = pair.replace('.c', '');
+                const displayPair = getDisplaySymbol(pair);
                 const row = document.createElement('tr');
                 row.className = 'grid-row';
 
@@ -2387,8 +2381,94 @@
                 showNotification('🚀 Professional Dashboard Ready!', 'success');
             }, 2000);
         }
+        
+        async function loadBrokerInfo() {
+            try {
+                const response = await fetch('/api/broker-info');
+                const result = await response.json();
+                
+                if (result.success) {
+                    brokerInfo = result.broker_info;
+                    symbolMapping = result.symbol_mapping.sample_mapping || {};
+                    
+                if (result.symbol_mapping.available_pairs) {
+                    forexPairs = result.symbol_mapping.available_pairs;
+                    console.log('✅ Loaded pairs:', forexPairs);
+                } else {
+                    console.log('⚠️ No available_pairs in response');
+                }                    
+                    console.log('✅ Loaded', forexPairs.length, 'pairs from broker');
+                    return true;
+                } else {
+                    console.warn('⚠️ Using fallback symbols');
+                    forexPairs = [
+                        'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
+                        'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
+                        'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c', 'GBPCAD.c',
+                        'AUDCHF.c', 'AUDJPY.c', 'AUDNZD.c', 'AUDCAD.c',
+                        'NZDJPY.c', 'NZDCHF.c', 'NZDCAD.c',
+                        'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
+                    ];
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error loading broker info:', error);
+                forexPairs = [
+                    'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
+                    'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
+                    'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c', 'GBPCAD.c',
+                    'AUDCHF.c', 'AUDJPY.c', 'AUDNZD.c', 'AUDCAD.c',
+                    'NZDJPY.c', 'NZDCHF.c', 'NZDCAD.c',
+                    'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
+                ];
+                return false;
+            }
+        }
 
-        document.addEventListener('DOMContentLoaded', init);
+        function getDisplaySymbol(symbol) {
+            // ลบ suffix ทั้งหมดเพื่อแสดงผลสวย
+            let displaySymbol = symbol;
+            
+            // ลบ suffix ที่พบบ่อย
+            const commonSuffixes = ['.c', '.raw', '.ecn', '.stp', '.pro', '.m'];
+            
+            for (const suffix of commonSuffixes) {
+                if (displaySymbol.endsWith(suffix)) {
+                    displaySymbol = displaySymbol.replace(suffix, '');
+                    break;
+                }
+            }
+            
+            return displaySymbol;
+        }
+        
+        function startUpdateLoop() {
+            // เพิ่มบรรทัดนี้ถ้ายังไม่มี
+            if (typeof startUpdateLoop === 'undefined') {
+                console.log('startUpdateLoop not defined, creating...');
+                startUpdateLoop = function() {
+                    setInterval(async () => {
+                        await fetchMarketData();
+                        await fetchPositions();
+                    }, 3000);
+                };
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Professional Auto Trading Dashboard Starting...');
+            
+            // โหลด broker info ก่อน
+            await loadBrokerInfo();
+            
+            // เริ่มโหลดข้อมูลตามปกติ
+            await fetchMarketData();
+            await fetchPositions();
+            
+            startUpdateLoop();
+            
+            console.log('📊 Dashboard initialized with', forexPairs.length, 'pairs');
+        });
 
         document.addEventListener('keydown', function (e) {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
