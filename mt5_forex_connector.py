@@ -19,6 +19,7 @@ import sqlite3
 import pickle
 from typing import Dict, List, Optional, Tuple
 import warnings
+from broker_symbol_adapter import BrokerSymbolAdapter
 from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
 from pullback_protection import PullbackProtectionPlugin, integrate_with_main_system
@@ -522,6 +523,22 @@ class EnhancedSmartAutoTradingDashboard:
         except Exception as e:
             print(f"❌ Error installing Pullback Protection: {str(e)}")
             self.pullback_protection = None
+
+        from broker_symbol_adapter import BrokerSymbolAdapter
+        self.symbol_adapter = BrokerSymbolAdapter()
+            
+        # Auto-detect และ map symbols
+        if self.symbol_adapter.detect_and_map_broker():
+            mapping_info = self.symbol_adapter.get_mapping_info()
+            self.logger.info(f"✅ Broker auto-detected!")
+            self.logger.info(f"🏦 Server: {mapping_info['server']}")
+            self.logger.info(f"📊 Mapped: {mapping_info['mapped_symbols']}/{mapping_info['total_system_symbols']} symbols")
+            self.logger.info(f"🔧 Success rate: {mapping_info['mapping_success_rate']}")
+            
+            # อัพเดต forex_pairs ให้ใช้ broker symbols
+            self.forex_pairs = self.symbol_adapter.get_mapped_symbols()
+        else:
+            self.logger.warning("⚠️ Symbol mapping failed, using default .c format")
 
     def load_system_settings(self):
         """โหลดการตั้งค่าระบบ"""
