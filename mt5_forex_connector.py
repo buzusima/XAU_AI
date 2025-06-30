@@ -361,7 +361,8 @@ class EnhancedSmartAutoTradingDashboard:
         
         # Data Persistence Manager
         self.persistence = DataPersistenceManager()
-        
+        self.symbol_adapter = BrokerSymbolAdapter()
+        self.broker_symbols_mapped = False
         # Forex pairs
         self.forex_pairs = [
             'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
@@ -762,7 +763,7 @@ class EnhancedSmartAutoTradingDashboard:
         self.trade_logger = trade_logger
     
     def connect_mt5(self) -> bool:
-        """Connect to MT5 with enhanced error handling"""
+        """Connect to MT5 with enhanced error handling and auto broker detection"""
         try:
             if not mt5.initialize():
                 self.logger.error(f"MT5 initialization failed: {mt5.last_error()}")
@@ -793,36 +794,94 @@ class EnhancedSmartAutoTradingDashboard:
                 self.logger.warning("Trading is not allowed on this account!")
                 self.auto_trading_enabled = False
             
-            # Test symbols and ensure they're visible
-            available_symbols = []
-            for symbol in self.forex_pairs:
-                symbol_info = mt5.symbol_info(symbol)
-                if symbol_info is not None:
-                    if not symbol_info.visible:
-                        mt5.symbol_select(symbol, True)
-                    available_symbols.append(symbol)
+            # 🆕 AUTO-DETECT BROKER และ MAP SYMBOLS
+            # ====================================================
+            self.logger.info("🔍 Auto-detecting broker and mapping symbols...")
             
-            self.forex_pairs = available_symbols
+            if self.symbol_adapter.detect_and_map_broker():
+                mapping_info = self.symbol_adapter.get_mapping_info()
+                self.logger.info(f"✅ Broker auto-detected successfully!")
+                self.logger.info(f"🏦 Server: {mapping_info['server']}")
+                self.logger.info(f"📊 Mapped: {mapping_info['mapped_symbols']}/{mapping_info['total_system_symbols']} symbols")
+                self.logger.info(f"🔧 Success rate: {mapping_info['mapping_success_rate']}")
+                self.logger.info(f"🎯 Detected suffixes: {mapping_info['detected_suffixes']}")
+                
+                # อัพเดต forex_pairs ให้ใช้ broker symbols
+                self.forex_pairs = self.symbol_adapter.get_mapped_symbols()
+                self.broker_symbols_mapped = True
+                
+                # แสดง sample mapping
+                if mapping_info['sample_mapping']:
+                    self.logger.info("📋 Sample Symbol Mapping:")
+                    for sys_sym, broker_sym in mapping_info['sample_mapping'].items():
+                        self.logger.info(f"   {sys_sym} → {broker_sym}")
+                
+                self.persistence.log_system_event(
+                    'INFO', 
+                    f'Broker auto-detected: {mapping_info["server"]} - Mapped {mapping_info["mapped_symbols"]} symbols', 
+                    'BROKER_DETECTION'
+                )
+                
+            else:
+                self.logger.warning("⚠️ Symbol mapping failed, using default .c format")
+                self.broker_symbols_mapped = False
+                
+                # ใช้วิธีเดิมถ้า mapping ไม่สำเร็จ
+                self.logger.info("🔄 Falling back to legacy symbol validation...")
+                available_symbols = []
+                for symbol in self.forex_pairs:
+                    symbol_info = mt5.symbol_info(symbol)
+                    if symbol_info is not None:
+                        if not symbol_info.visible:
+                            mt5.symbol_select(symbol, True)
+                        available_symbols.append(symbol)
+                    else:
+                        self.logger.warning(f"❌ Symbol not available: {symbol}")
+                
+                self.forex_pairs = available_symbols
+                
+                if len(available_symbols) < len(self.forex_pairs) * 0.5:  # ถ้าหาได้น้อยกว่า 50%
+                    self.logger.error("❌ Too few symbols available, connection may have issues")
+                
+                self.persistence.log_system_event(
+                    'WARNING', 
+                    f'Symbol mapping failed - Using legacy mode with {len(available_symbols)} symbols', 
+                    'BROKER_DETECTION'
+                )
+            # ====================================================
+            
             self.mt5_connected = True
             
             # Log connection success
-            self.logger.info(f"MT5 Connected Successfully!")
-            self.logger.info(f"Account: {account_info.login}")
-            self.logger.info(f"Balance: ${account_info.balance:,.2f}")
-            self.logger.info(f"Available Pairs: {len(self.forex_pairs)}")
+            self.logger.info(f"🎉 MT5 Connected Successfully!")
+            self.logger.info(f"👤 Account: {account_info.login}")
+            self.logger.info(f"🏦 Server: {account_info.server}")
+            self.logger.info(f"💰 Balance: ${account_info.balance:,.2f}")
+            self.logger.info(f"📊 Available Pairs: {len(self.forex_pairs)}")
+            self.logger.info(f"🔄 Symbol Mapping: {'Enabled' if self.broker_symbols_mapped else 'Disabled'}")
             
-            self.persistence.log_system_event('INFO', f'MT5 Connected - Account: {account_info.login}', 'CONNECTION')
+            # Log a few sample symbols
+            if self.forex_pairs:
+                sample_symbols = self.forex_pairs[:3]
+                self.logger.info(f"📋 Sample symbols: {', '.join(sample_symbols)}")
+            
+            self.persistence.log_system_event(
+                'INFO', 
+                f'MT5 Connected - Account: {account_info.login}, Server: {account_info.server}, Symbols: {len(self.forex_pairs)}', 
+                'CONNECTION'
+            )
             
             # Verify existing positions and update tracking
+            self.logger.info("🔍 Verifying existing positions...")
             self.verify_existing_positions()
             
             return True
             
         except Exception as e:
-            self.logger.error(f"MT5 connection error: {str(e)}")
+            self.logger.error(f"❌ MT5 connection error: {str(e)}")
             self.persistence.log_system_event('ERROR', f'MT5 connection failed: {str(e)}', 'CONNECTION')
             return False
-    
+        
     def verify_existing_positions(self):
         """ตรวจสอบและอัพเดทสถานะของ positions ที่มีอยู่"""
         try:
@@ -1423,10 +1482,33 @@ class EnhancedSmartAutoTradingDashboard:
                 }     
 
     def execute_trade(self, symbol: str, signal_data: Dict) -> Dict:
-        """Execute trade based on validated signal"""
+        """Execute trade based on validated signal - with multi-broker support"""
         try:
-            # Final validation
-            validation = self.validate_trading_signal(symbol, signal_data)
+            # 🔄 SYMBOL CONVERSION - ส่วนสำคัญที่สุด!
+            # ================================================
+            # Determine if we need symbol conversion
+            if hasattr(self, 'broker_symbols_mapped') and self.broker_symbols_mapped:
+                # symbol ที่ส่งเข้ามาคือ system symbol, ต้องแปลงเป็น broker symbol
+                system_symbol = symbol
+                broker_symbol = self.symbol_adapter.system_to_broker_symbol(symbol)
+                self.logger.debug(f"🔄 Symbol mapping: {system_symbol} → {broker_symbol}")
+            else:
+                # ไม่มี mapping, ใช้ symbol เดิม
+                system_symbol = symbol
+                broker_symbol = symbol
+            
+            # Verify broker symbol exists
+            if not self._verify_broker_symbol(broker_symbol):
+                return {
+                    'success': False, 
+                    'error': f'Symbol {broker_symbol} not available on this broker',
+                    'system_symbol': system_symbol,
+                    'broker_symbol': broker_symbol
+                }
+            # ================================================
+            
+            # Final validation (ใช้ system_symbol สำหรับ consistency)
+            validation = self.validate_trading_signal(system_symbol, signal_data)
             if not validation['valid']:
                 return {
                     'success': False,
@@ -1443,24 +1525,35 @@ class EnhancedSmartAutoTradingDashboard:
             if signal_direction == 'NONE' or entry_price == 0:
                 return {'success': False, 'error': 'Invalid signal data'}
             
-            # Calculate position size
-            position_info = self.calculate_position_size(entry_price, stop_loss, symbol)
+            # Calculate position size (ใช้ system_symbol สำหรับ consistency)
+            position_info = self.calculate_position_size(entry_price, stop_loss, system_symbol)
             lot_size = position_info['lot_size']
             
-            # Determine order type
+            # 🎯 MT5 OPERATIONS - ใช้ broker_symbol
+            # ================================================
+            # Get current market data - ใช้ broker_symbol กับ MT5
+            tick = mt5.symbol_info_tick(broker_symbol)
+            if not tick:
+                return {
+                    'success': False, 
+                    'error': f'No tick data for {broker_symbol}',
+                    'broker_symbol': broker_symbol
+                }
+            
+            # Determine order type - ใช้ broker_symbol กับ MT5
             if signal_direction in ['BUY', 'STRONG_BUY']:
                 order_type = mt5.ORDER_TYPE_BUY
-                price = mt5.symbol_info_tick(symbol).ask
+                price = tick.ask
             elif signal_direction in ['SELL', 'STRONG_SELL']:
                 order_type = mt5.ORDER_TYPE_SELL
-                price = mt5.symbol_info_tick(symbol).bid
+                price = tick.bid
             else:
                 return {'success': False, 'error': 'Invalid signal direction'}
             
-            # Prepare order request
+            # Prepare order request - ใช้ broker_symbol
             request = {
                 'action': mt5.TRADE_ACTION_DEAL,
-                'symbol': symbol,
+                'symbol': broker_symbol,  # 🎯 สำคัญ! ใช้ broker_symbol กับ MT5
                 'volume': lot_size,
                 'type': order_type,
                 'price': price,
@@ -1468,24 +1561,36 @@ class EnhancedSmartAutoTradingDashboard:
                 'tp': take_profit_1,
                 'deviation': self.slippage_tolerance,
                 'magic': 12345,  # EA magic number
-                'comment': f'Auto Trade - {signal_direction}',
+                'comment': f'Auto-{signal_direction}-{system_symbol}',  # ใส่ system_symbol ใน comment
                 'type_time': mt5.ORDER_TIME_GTC,
                 'type_filling': mt5.ORDER_FILLING_IOC,
             }
+            # ================================================
             
             # Execute order
-            self.trade_logger.info(f"Executing {signal_direction} order for {symbol} - Lot: {lot_size}")
+            self.trade_logger.info(f"📤 Executing {signal_direction} order for {system_symbol} → {broker_symbol} - Lot: {lot_size}")
+            self.trade_logger.info(f"💰 Entry Price: {price}, SL: {stop_loss}, TP: {take_profit_1}")
+            
             result = mt5.order_send(request)
             
             if result.retcode != mt5.TRADE_RETCODE_DONE:
                 error_msg = f"Order failed: {result.retcode} - {result.comment}"
-                self.logger.error(error_msg)
-                return {'success': False, 'error': error_msg, 'retcode': result.retcode}
+                self.logger.error(f"❌ {system_symbol} ({broker_symbol}): {error_msg}")
+                return {
+                    'success': False, 
+                    'error': error_msg, 
+                    'retcode': result.retcode,
+                    'system_symbol': system_symbol,
+                    'broker_symbol': broker_symbol
+                }
             
-            # Order successful
+            # ✅ ORDER SUCCESSFUL - บันทึกข้อมูล
+            # ================================================
             trade_info = {
                 'ticket': result.order,
-                'symbol': symbol,
+                'system_symbol': system_symbol,     # 🆕 เพิ่ม system symbol
+                'broker_symbol': broker_symbol,     # 🆕 เพิ่ม broker symbol
+                'symbol': system_symbol,            # เก็บไว้เพื่อ backward compatibility
                 'lot_size': lot_size,
                 'entry_price': result.price,
                 'stop_loss': stop_loss,
@@ -1496,19 +1601,23 @@ class EnhancedSmartAutoTradingDashboard:
                 'risk_amount': position_info['risk_amount'],
                 'risk_percentage': position_info['risk_percentage'],
                 'timestamp': datetime.now(),
-                'validation_score': validation['score']
+                'validation_score': validation['score'],
+                'requested_price': price,
+                'actual_price': result.price,
+                'slippage_pips': abs(result.price - price) * (10000 if 'JPY' not in broker_symbol else 100)
             }
             
-            # Update tracking
-            self.active_trades_per_pair[symbol].append(result.order)
-            self.pair_trade_status[symbol] = 'TRADING'
+            # Update tracking - ใช้ system_symbol สำหรับ consistency
+            self.active_trades_per_pair[system_symbol].append(result.order)
+            self.pair_trade_status[system_symbol] = 'TRADING'
             self.daily_stats['trades_executed'] += 1
             self.last_global_trade_time = datetime.now()
             
-            # Save trade to database
+            # Save trade to database - เพิ่ม broker_symbol
             self.persistence.save_trade_to_db({
                 'ticket': str(result.order),
-                'symbol': symbol,
+                'symbol': system_symbol,              # เก็บ system symbol
+                'broker_symbol': broker_symbol,       # 🆕 เพิ่ม broker symbol
                 'type': signal_direction,
                 'volume': lot_size,
                 'entry_price': result.price,
@@ -1517,15 +1626,29 @@ class EnhancedSmartAutoTradingDashboard:
                 'entry_time': datetime.now().isoformat(),
                 'signal_strength': signal_data.get('strength', 0),
                 'entry_quality': signal_data.get('entry_quality', 'UNKNOWN'),
-                'risk_percentage': position_info['risk_percentage']
+                'risk_percentage': position_info['risk_percentage'],
+                'slippage_pips': trade_info['slippage_pips']
             })
+            # ================================================
             
-            # Log successful trade
-            self.trade_logger.info(f"TRADE EXECUTED: {symbol} {signal_direction} - Ticket: {result.order}")
-            self.trade_logger.info(f"Entry: {result.price}, SL: {stop_loss}, TP: {take_profit_1}")
-            self.trade_logger.info(f"Lot Size: {lot_size}, Risk: {position_info['risk_percentage']:.2f}%")
+            # Enhanced logging
+            self.trade_logger.info(f"✅ TRADE EXECUTED SUCCESSFULLY!")
+            self.trade_logger.info(f"   System Symbol: {system_symbol}")
+            self.trade_logger.info(f"   Broker Symbol: {broker_symbol}")
+            self.trade_logger.info(f"   Ticket: {result.order}")
+            self.trade_logger.info(f"   Direction: {signal_direction}")
+            self.trade_logger.info(f"   Entry Price: {result.price} (Requested: {price})")
+            self.trade_logger.info(f"   Stop Loss: {stop_loss}")
+            self.trade_logger.info(f"   Take Profit: {take_profit_1}")
+            self.trade_logger.info(f"   Lot Size: {lot_size}")
+            self.trade_logger.info(f"   Risk: {position_info['risk_percentage']:.2f}%")
+            self.trade_logger.info(f"   Slippage: {trade_info['slippage_pips']:.1f} pips")
             
-            self.persistence.log_system_event('INFO', f'Trade executed: {symbol} {signal_direction} Ticket: {result.order}', 'TRADING')
+            self.persistence.log_system_event(
+                'INFO', 
+                f'Trade executed: {system_symbol}({broker_symbol}) {signal_direction} Ticket: {result.order} Entry: {result.price}', 
+                'TRADING'
+            )
             
             # Save updated tracking data
             self.save_pair_tracking_data()
@@ -1535,15 +1658,52 @@ class EnhancedSmartAutoTradingDashboard:
                 'success': True,
                 'ticket': result.order,
                 'trade_info': trade_info,
-                'validation': validation
+                'validation': validation,
+                'system_symbol': system_symbol,
+                'broker_symbol': broker_symbol,
+                'execution_summary': {
+                    'requested_price': price,
+                    'actual_price': result.price,
+                    'slippage_pips': trade_info['slippage_pips'],
+                    'execution_time': datetime.now().isoformat()
+                }
             }
             
         except Exception as e:
             error_msg = f"Trade execution error for {symbol}: {str(e)}"
-            self.logger.error(error_msg)
+            self.logger.error(f"❌ {error_msg}")
             self.persistence.log_system_event('ERROR', error_msg, 'TRADING')
-            return {'success': False, 'error': error_msg}
-    
+            return {
+                'success': False, 
+                'error': error_msg,
+                'system_symbol': symbol,
+                'broker_symbol': broker_symbol if 'broker_symbol' in locals() else 'unknown'
+            }
+
+    def _verify_broker_symbol(self, broker_symbol: str) -> bool:
+        """🔍 ตรวจสอบว่า broker symbol มีอยู่จริงใน MT5"""
+        try:
+            symbol_info = mt5.symbol_info(broker_symbol)
+            if symbol_info is None:
+                self.logger.warning(f"❌ Symbol not found: {broker_symbol}")
+                return False
+            
+            # ตรวจสอบว่า symbol สามารถเทรดได้
+            if not symbol_info.visible:
+                # พยายาม enable symbol
+                if mt5.symbol_select(broker_symbol, True):
+                    self.logger.info(f"✅ Symbol enabled: {broker_symbol}")
+                    return True
+                else:
+                    self.logger.warning(f"❌ Cannot enable symbol: {broker_symbol}")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Symbol verification error for {broker_symbol}: {str(e)}")
+            return False
+        
     def monitor_positions(self):
         """Monitor and manage open positions"""
         try:
