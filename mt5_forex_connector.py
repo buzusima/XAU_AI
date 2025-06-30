@@ -409,7 +409,31 @@ class EnhancedSmartAutoTradingDashboard:
         self.min_lot_size = 0.01
         self.partial_close_enabled = True
         self.trailing_stop_enabled = True
-        
+        self.trailing_profiles = {
+            'CONSERVATIVE': {
+                'breakeven_trigger_atr': 1.0,
+                'trail_distance_atr': 2.0,
+                'min_trail_distance_atr': 1.5
+            },
+            'MODERATE': {
+                'breakeven_trigger_atr': 0.8,
+                'trail_distance_atr': 1.5,
+                'min_trail_distance_atr': 1.2
+            },
+            'AGGRESSIVE': {
+                'breakeven_trigger_atr': 0.5,
+                'trail_distance_atr': 1.0,
+                'min_trail_distance_atr': 0.8
+            }
+        }
+        self.current_trailing_profile = 'MODERATE'
+        self.trailing_position_states = {}
+        self.trailing_statistics = {
+            'total_sl_updates': 0,
+            'breakeven_protections': 0,
+            'trail_moves': 0,
+            'profit_secured': 0.0
+        }
         # Trade Execution Settings
         self.slippage_tolerance = 3
         self.max_spread_threshold = 2.0
@@ -3103,6 +3127,58 @@ class EnhancedSmartAutoTradingDashboard:
     <a href="/" style="color:#00ccff;">← Back to Main Dashboard</a>
     </body></html>'''
         
+        # 🎯 TRAILING STOP API ROUTES
+        @self.app.route('/api/trailing-stops/status')
+        def get_trailing_status():
+            """Get trailing stop status"""
+            try:
+                data = self.get_trailing_dashboard_data()
+                return jsonify({'success': True, 'data': data})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @self.app.route('/api/trailing-stops/toggle', methods=['POST'])
+        def toggle_trailing():
+            """Toggle trailing stops on/off"""
+            try:
+                data = request.get_json()
+                enabled = data.get('enabled', False)
+                self.trailing_system_enabled = enabled
+                
+                if enabled:
+                    print("🟢 Trailing Stops: ENABLED")
+                else:
+                    print("🔴 Trailing Stops: DISABLED")
+                
+                return jsonify({'success': True, 'enabled': enabled})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @self.app.route('/api/trailing-stops/profile', methods=['POST'])
+        def set_trailing_profile():
+            """Set trailing stop profile"""
+            try:
+                data = request.get_json()
+                profile = data.get('profile', 'MODERATE')
+                
+                if profile in self.trailing_profiles:
+                    self.current_trailing_profile = profile
+                    print(f"🎯 Trailing Profile Changed: {profile}")
+                    return jsonify({'success': True, 'profile': profile})
+                else:
+                    return jsonify({'success': False, 'error': 'Invalid profile'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        
+        @self.app.route('/api/trailing-stops/manual-update', methods=['POST'])
+        def manual_trailing_update():
+            """Manually trigger trailing stop update"""
+            try:
+                self.process_all_trailing_stops()
+                return jsonify({'success': True, 'message': 'Trailing stops updated'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+
         @self.app.route('/trailing-dashboard')
         def trailing_dashboard():
             """Serve trailing stop dashboard"""
@@ -3110,12 +3186,11 @@ class EnhancedSmartAutoTradingDashboard:
                 return send_from_directory('.', 'trailing_dashboard.html')
             except:
                 return '''
-                <h1>Trailing Stop Dashboard</h1>
-                <p>Please save the trailing_dashboard.html file in the same directory.</p>
-                <a href="/">← Back to Main Dashboard</a>
+                <h1 style="color:#00ff00;">🎯 Trailing Stop Dashboard</h1>
+                <p style="color:#ffaa00;">Please save the trailing_dashboard.html file in the same directory.</p>
+                <a href="/" style="color:#00ccff;">← Back to Main Dashboard</a>
                 '''
-        # 🎯 HEDGING SYSTEM ROUTES
-    
+
         if hasattr(self, 'hedging_enabled') and self.hedging_enabled:
             self.setup_hedging_routes()
         
@@ -3370,6 +3445,208 @@ class EnhancedSmartAutoTradingDashboard:
         if hasattr(self, 'enhanced_trading'):
                 self.enhanced_trading.stop_trailing_thread()
                 print("⏹️ Trailing Stop System: STOPPED")
+
+    def calculate_trailing_stop(self, position, market_data):
+        """🎯 คำนวณ Trailing Stop สำหรับ position"""
+        try:
+            symbol = position.symbol
+            ticket = position.ticket
+            position_type = position.type
+            entry_price = position.price_open
+            current_price = market_data.get('bid' if position_type == 0 else 'ask', entry_price)
+            current_sl = position.sl
+            
+            # Get ATR
+            atr = market_data.get('atr', 0.001)
+            if atr <= 0:
+                atr = abs(current_price - entry_price) * 0.01
+                
+            # Get profile settings
+            profile = self.trailing_profiles[self.current_trailing_profile]
+            
+            # Initialize position state
+            if ticket not in self.trailing_position_states:
+                self.trailing_position_states[ticket] = {
+                    'highest_price': current_price if position_type == 0 else entry_price,
+                    'lowest_price': current_price if position_type == 1 else entry_price,
+                    'breakeven_activated': False,
+                    'trail_count': 0
+                }
+            
+            state = self.trailing_position_states[ticket]
+            
+            # Calculate profit
+            if position_type == 0:  # BUY
+                profit_pips = current_price - entry_price
+                state['highest_price'] = max(state['highest_price'], current_price)
+                reference_price = state['highest_price']
+            else:  # SELL
+                profit_pips = entry_price - current_price
+                state['lowest_price'] = min(state['lowest_price'], current_price)
+                reference_price = state['lowest_price']
+            
+            profit_atr = profit_pips / atr
+            
+            # Check for trailing
+            new_sl = current_sl
+            should_update = False
+            trail_reason = "NO_UPDATE"
+            
+            # Breakeven protection
+            if (not state['breakeven_activated'] and 
+                profit_atr >= profile['breakeven_trigger_atr']):
+                
+                new_sl = entry_price + (0.0001 if position_type == 0 else -0.0001)
+                state['breakeven_activated'] = True
+                should_update = True
+                trail_reason = "BREAKEVEN_PROTECTION"
+                
+            # Dynamic trailing
+            elif state['breakeven_activated'] or profit_atr >= profile['breakeven_trigger_atr']:
+                trail_distance = profile['min_trail_distance_atr'] * atr
+                
+                if position_type == 0:  # BUY
+                    calculated_sl = reference_price - trail_distance
+                    if calculated_sl > current_sl:
+                        new_sl = calculated_sl
+                        should_update = True
+                        trail_reason = "TRAILING_UP"
+                        state['trail_count'] += 1
+                else:  # SELL
+                    calculated_sl = reference_price + trail_distance
+                    if current_sl == 0 or calculated_sl < current_sl:
+                        new_sl = calculated_sl
+                        should_update = True
+                        trail_reason = "TRAILING_DOWN"
+                        state['trail_count'] += 1
+            
+            return {
+                'should_update': should_update,
+                'new_sl': new_sl,
+                'trail_reason': trail_reason,
+                'profit_atr': round(profit_atr, 2),
+                'breakeven_activated': state['breakeven_activated'],
+                'trail_count': state['trail_count']
+            }
+            
+        except Exception as e:
+            print(f"❌ Error calculating trailing stop: {str(e)}")
+            return {'should_update': False, 'error': str(e)}
+
+    def update_position_trailing_stop(self, ticket, new_sl, symbol):
+        """🎯 อัพเดท Stop Loss ใน MT5"""
+        try:
+            position = mt5.positions_get(ticket=ticket)
+            if not position:
+                return False
+            
+            pos = position[0]
+            
+            request = {
+                "action": mt5.TRADE_ACTION_SLTP,
+                "position": ticket,
+                "symbol": symbol,
+                "sl": new_sl,
+                "tp": pos.tp,
+                "magic": pos.magic,
+                "comment": f"Trailing SL - {self.current_trailing_profile}",
+            }
+            
+            result = mt5.order_send(request)
+            
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                print(f"✅ Trailing SL Updated: {symbol} #{ticket} → SL: {new_sl:.5f}")
+                self.trailing_statistics['total_sl_updates'] += 1
+                return True
+            else:
+                print(f"❌ SL Update Failed: {symbol} #{ticket} - {result.comment}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Error updating SL: {str(e)}")
+            return False
+
+    def process_all_trailing_stops(self):
+        """🎯 ประมวลผล Trailing Stop ทุก positions"""
+        if not self.trailing_system_enabled:
+            return
+        
+        try:
+            positions = mt5.positions_get()
+            if not positions:
+                return
+            
+            updates_made = 0
+            
+            for position in positions:
+                symbol = position.symbol
+                
+                # Get market data for this symbol
+                if symbol in self.live_data and self.live_data[symbol]:
+                    market_data = self.live_data[symbol]
+                    
+                    # Calculate trailing
+                    trail_info = self.calculate_trailing_stop(position, market_data)
+                    
+                    if trail_info.get('should_update', False):
+                        success = self.update_position_trailing_stop(
+                            position.ticket, 
+                            trail_info['new_sl'], 
+                            symbol
+                        )
+                        
+                        if success:
+                            updates_made += 1
+                            
+                            if trail_info['trail_reason'] == 'BREAKEVEN_PROTECTION':
+                                self.trailing_statistics['breakeven_protections'] += 1
+                            elif 'TRAILING' in trail_info['trail_reason']:
+                                self.trailing_statistics['trail_moves'] += 1
+            
+            if updates_made > 0:
+                print(f"🎯 Trailing Stop Updates: {updates_made}")
+                
+        except Exception as e:
+            print(f"❌ Error processing trailing stops: {str(e)}")
+
+    def get_trailing_dashboard_data(self):
+        """📊 ข้อมูลสำหรับ Dashboard"""
+        try:
+            positions = mt5.positions_get()
+            position_details = []
+            
+            if positions:
+                for pos in positions:
+                    symbol = pos.symbol
+                    
+                    if symbol in self.live_data and self.live_data[symbol]:
+                        trail_info = self.calculate_trailing_stop(pos, self.live_data[symbol])
+                        
+                        position_details.append({
+                            'ticket': pos.ticket,
+                            'symbol': symbol,
+                            'type': 'BUY' if pos.type == 0 else 'SELL',
+                            'entry_price': pos.price_open,
+                            'current_sl': pos.sl,
+                            'profit': pos.profit,
+                            'trail_info': trail_info
+                        })
+            
+            return {
+                'enabled': self.trailing_system_enabled,
+                'profile': self.current_trailing_profile,
+                'statistics': {
+                    'active_positions': len(positions) if positions else 0,
+                    'breakeven_protected': len([s for s in self.trailing_position_states.values() if s['breakeven_activated']]),
+                    'total_trail_moves': sum(s['trail_count'] for s in self.trailing_position_states.values()),
+                    'system_stats': self.trailing_statistics
+                },
+                'positions': position_details
+            }
+            
+        except Exception as e:
+            print(f"❌ Error getting dashboard data: {str(e)}")
+            return {'error': str(e)}
 
     def run(self, host='0.0.0.0', port=5000):
         """Run the enhanced auto trading dashboard"""

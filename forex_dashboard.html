@@ -943,28 +943,28 @@
         </div>
 
         <!-- Trailing Stop Panel -->
-        <div class="auto-trading-panel" style="background: #002a00; border-color: #4CAF50;">
+        <div class="auto-trading-panel" style="background: #002a00; border-color: #00ff00;">
             <div class="trading-status">
                 <div class="status-indicator" id="trailingIndicator" style="background: #666;"></div>
                 <div>
-                    <div style="color: #4CAF50; font-weight: bold; font-size: 13px;">🎯 TRAILING STOPS</div>
+                    <div style="color: #00ff00; font-weight: bold; font-size: 13px;">🎯 TRAILING STOPS</div>
                     <div style="color: #aaa; font-size: 10px;" id="trailingStatus">DISABLED</div>
                 </div>
                 <div style="margin-left: 1.5rem;">
-                    <div style="color: #4CAF50; font-size: 10px;">Protected: <span id="protectedPositions">0</span></div>
-                    <div style="color: #4CAF50; font-size: 10px;">Trail Moves: <span id="trailMoves">0</span></div>
+                    <div style="color: #00ff00; font-size: 10px;">Protected: <span id="protectedPositions">0</span></div>
+                    <div style="color: #00ff00; font-size: 10px;">Trail Moves: <span id="trailMoves">0</span></div>
                 </div>
             </div>
             <div class="trading-controls">
                 <button class="control-btn" onclick="toggleTrailingSystem()" id="trailingToggleBtn"
-                    style="background: #4CAF50; color: black;">ENABLE TRAILING</button>
+                    style="background: #00ff00; color: black;">ENABLE TRAILING</button>
                 <button class="control-btn" onclick="openTrailingDashboard()"
-                    style="background: #2196F3; color: white;">OPEN DASHBOARD</button>
-                <button class="control-btn" onclick="setTrailingProfile('MODERATE')" id="profileBtn"
-                    style="background: #ff9800; color: black;">MODERATE</button>
+                    style="background: #0088ff; color: white;">OPEN DASHBOARD</button>
+                <button class="control-btn" onclick="cycleTrailingProfile()" id="profileBtn"
+                    style="background: #ffaa00; color: black;">MODERATE</button>
             </div>
         </div>
-
+        
         <!-- Signal Settings Panel -->
         <div class="auto-trading-panel" style="background: #332200; border-color: #ffcc00;">
             <div class="trading-status">

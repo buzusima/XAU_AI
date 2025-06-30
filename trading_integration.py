@@ -7,7 +7,7 @@ import threading
 import time
 from typing import Dict, List
 import json
-
+from flask import Flask, request, jsonify
 # Import the trailing stop system
 from trailing_stop_system import TrailingStopManager, IntelligentTrailingStop
 
