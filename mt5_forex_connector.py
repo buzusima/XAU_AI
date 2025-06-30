@@ -359,7 +359,7 @@ class EnhancedSmartAutoTradingDashboard:
         self.app = Flask(__name__)
         CORS(self.app)
         
-        # Data Persistence Manager
+        # Data Persistence Managerdef get_symbol_data
         self.persistence = DataPersistenceManager()
         self.symbol_adapter = BrokerSymbolAdapter()
         self.broker_symbols_mapped = False
@@ -2563,24 +2563,38 @@ class EnhancedSmartAutoTradingDashboard:
             }
                 
     def get_symbol_data(self, symbol: str) -> Optional[Dict]:
-        """Get enhanced symbol data with advanced features - COMPLETELY FIXED"""
+        """Get enhanced symbol data with advanced features - Multi-Broker Support"""
         try:
             if not self.mt5_connected:
                 self.logger.warning(f"MT5 not connected for {symbol}")
                 return None
             
-            # Get current tick data
-            tick = mt5.symbol_info_tick(symbol)
+            # 🔄 SYMBOL CONVERSION - เพิ่มใหม่!
+            # ================================================
+            # Determine if we need symbol conversion
+            if hasattr(self, 'broker_symbols_mapped') and self.broker_symbols_mapped:
+                # symbol ที่ส่งเข้ามาคือ system symbol, ต้องแปลงเป็น broker symbol
+                system_symbol = symbol
+                broker_symbol = self.symbol_adapter.system_to_broker_symbol(symbol)
+                self.logger.debug(f"🔄 Data fetch: {system_symbol} → {broker_symbol}")
+            else:
+                # ไม่มี mapping, ใช้ symbol เดิม
+                system_symbol = symbol
+                broker_symbol = symbol
+            # ================================================
+            
+            # Get current tick data - ใช้ broker_symbol กับ MT5
+            tick = mt5.symbol_info_tick(broker_symbol)
             if tick is None:
-                self.logger.warning(f"No tick data for {symbol}")
+                self.logger.warning(f"No tick data for {broker_symbol} (system: {system_symbol})")
                 return None
             
             current_price = tick.bid
             if current_price <= 0:
-                self.logger.warning(f"Invalid price for {symbol}: {current_price}")
+                self.logger.warning(f"Invalid price for {broker_symbol}: {current_price}")
                 return None
             
-            # Get multi-timeframe data with error handling
+            # Get multi-timeframe data with error handling - ใช้ broker_symbol กับ MT5
             timeframe_rates = {}
             timeframes_to_get = {
                 'H4': (mt5.TIMEFRAME_H4, 100),
@@ -2591,18 +2605,19 @@ class EnhancedSmartAutoTradingDashboard:
             
             for tf_name, (tf_value, periods) in timeframes_to_get.items():
                 try:
-                    rates = mt5.copy_rates_from_pos(symbol, tf_value, 0, periods)
+                    # 🎯 ใช้ broker_symbol กับ MT5
+                    rates = mt5.copy_rates_from_pos(broker_symbol, tf_value, 0, periods)
                     if rates is not None and len(rates) >= 10:  # Minimum data requirement
                         timeframe_rates[tf_name] = pd.DataFrame(rates)
                     else:
-                        self.logger.warning(f"Insufficient {tf_name} data for {symbol}")
+                        self.logger.warning(f"Insufficient {tf_name} data for {broker_symbol}")
                 except Exception as e:
-                    self.logger.error(f"Error getting {tf_name} data for {symbol}: {str(e)}")
+                    self.logger.error(f"Error getting {tf_name} data for {broker_symbol}: {str(e)}")
                     continue
             
             # Require at least one timeframe
             if not timeframe_rates:
-                self.logger.error(f"No timeframe data available for {symbol}")
+                self.logger.error(f"No timeframe data available for {broker_symbol}")
                 return None
             
             # Use H1 as primary timeframe, fallback to others
@@ -2615,39 +2630,40 @@ class EnhancedSmartAutoTradingDashboard:
                     break
             
             if primary_df is None:
-                self.logger.error(f"No usable timeframe data for {symbol}")
+                self.logger.error(f"No usable timeframe data for {broker_symbol}")
                 return None
             
             # Calculate indicators using primary timeframe
             try:
                 indicators = self.calculate_indicators(primary_df)
                 if not indicators:
-                    self.logger.warning(f"Failed to calculate indicators for {symbol}")
+                    self.logger.warning(f"Failed to calculate indicators for {system_symbol}")
                     indicators = self.get_default_indicators()
             except Exception as e:
-                self.logger.error(f"Indicator calculation error for {symbol}: {str(e)}")
+                self.logger.error(f"Indicator calculation error for {system_symbol}: {str(e)}")
                 indicators = self.get_default_indicators()
             
-            # Perform signal analysis
+            # Perform signal analysis - ใช้ system_symbol สำหรับ consistency
             try:
                 # First try enhanced analysis if signal engine is available
                 if hasattr(self, 'signal_engine') and self.signal_engine:
                     try:
-                        basic_entry_exit_analysis = self.analyze_entry_exit_points(indicators, current_price, symbol)
+                        # ใช้ system_symbol ใน analysis เพื่อ consistency
+                        basic_entry_exit_analysis = self.analyze_entry_exit_points(indicators, current_price, system_symbol)
                         entry_exit_analysis = basic_entry_exit_analysis
                         analysis_method = 'enhanced_signal_engine'
                     except Exception as e:
-                        self.logger.warning(f"Enhanced signal engine failed for {symbol}: {str(e)}")
+                        self.logger.warning(f"Enhanced signal engine failed for {system_symbol}: {str(e)}")
                         # Fallback to old method
-                        entry_exit_analysis = self.old_analyze_entry_exit_points(indicators, current_price, symbol)
+                        entry_exit_analysis = self.old_analyze_entry_exit_points(indicators, current_price, system_symbol)
                         analysis_method = 'fallback_analysis'
                 else:
                     # Use old method directly
-                    entry_exit_analysis = self.old_analyze_entry_exit_points(indicators, current_price, symbol)
+                    entry_exit_analysis = self.old_analyze_entry_exit_points(indicators, current_price, system_symbol)
                     analysis_method = 'old_analysis'
                     
             except Exception as e:
-                self.logger.error(f"Signal analysis failed for {symbol}: {str(e)}")
+                self.logger.error(f"Signal analysis failed for {system_symbol}: {str(e)}")
                 # Ultra-safe fallback
                 entry_exit_analysis = {
                     'signal': 'NONE', 'strength': 0, 'entry_quality': 'POOR',
@@ -2670,40 +2686,161 @@ class EnhancedSmartAutoTradingDashboard:
                     # Add account balance to signal data
                     entry_exit_analysis['account_balance'] = self.account_balance
                     
-                    # Get enhanced analysis
+                    # Get enhanced analysis - ใช้ system_symbol
                     enhanced_analysis = self.advanced_integrator.enhance_signal_analysis(
-                        symbol, entry_exit_analysis, timeframe_data
+                        system_symbol, entry_exit_analysis, timeframe_data
                     )
                     
                     # Use enhanced results
                     entry_exit_analysis = enhanced_analysis
                     analysis_method = 'enhanced_advanced'
                     
-                    # self.logger.info(f" Enhanced Analysis for {symbol}: "
-                    #             f"Signal: {enhanced_analysis.get('signal', 'NONE')} -> "
-                    #             f"Enhanced Strength: {enhanced_analysis.get('enhanced_strength', 0)}")
-                    
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Enhanced analysis failed for {symbol}: {str(e)}")
+                    self.logger.warning(f"⚠️ Enhanced analysis failed for {system_symbol}: {str(e)}")
                     # Keep the basic analysis
                     pass
             
-            # Extract timeframe prices safely
-            def safe_get_price(df, price_type='close'):
-                try:
-                    if df is not None and len(df) > 0 and price_type in df.columns:
-                        price = df[price_type].iloc[-1]
-                        if pd.isna(price) or price <= 0:
-                            return current_price
-                        return float(price)
-                    return current_price
-                except:
-                    return current_price
+            # 🎯 BUILD RESULT - ใช้ system_symbol สำหรับ consistency
+            # ================================================
+            # Extract price data from timeframes
+            prices = {}
+            for tf_name, df in timeframe_rates.items():
+                if not df.empty:
+                    prices[tf_name.lower()] = round(df['close'].iloc[-1], 5 if 'JPY' not in system_symbol else 3)
             
-            h4_price = safe_get_price(timeframe_rates.get('H4'))
-            h1_price = safe_get_price(timeframe_rates.get('H1'))
-            m15_price = safe_get_price(timeframe_rates.get('M15'))
-            m5_price = safe_get_price(timeframe_rates.get('M5'))
+            # Calculate price changes
+            m5_price = prices.get('m5', current_price)
+            m15_price = prices.get('m15', current_price)
+            
+            price_change = m5_price - m15_price
+            change_percent = (price_change / m15_price * 100) if m15_price > 0 else 0
+            
+            # Calculate spread
+            spread_pips = 0
+            try:
+                if tick and tick.ask > tick.bid:
+                    spread = tick.ask - tick.bid
+                    spread_pips = spread * (10000 if 'JPY' not in system_symbol else 100)
+            except Exception as e:
+                self.logger.warning(f"Spread calculation error for {system_symbol}: {str(e)}")
+            
+            # Get trading status
+            try:
+                pair_status = self.check_pair_trading_status(system_symbol)
+            except Exception as e:
+                self.logger.warning(f"Pair status check error for {system_symbol}: {str(e)}")
+                pair_status = {'can_trade': False, 'reason': f'Status check error: {str(e)}'}
+            
+            # Determine precision for price formatting
+            if 'JPY' in system_symbol:
+                precision = 3
+            elif 'XAU' in system_symbol:
+                precision = 2
+            else:
+                precision = 5
+            
+            # Build result dictionary - ใช้ system_symbol สำหรับ output
+            result = {
+                'symbol': system_symbol,  # 🎯 ใช้ system_symbol สำหรับ consistency
+                'broker_symbol': broker_symbol,  # 🆕 เพิ่มข้อมูล broker symbol
+                'h4': round(prices.get('h4', current_price), precision),
+                'h1': round(prices.get('h1', current_price), precision),
+                'm15': round(prices.get('m15', current_price), precision),
+                'm5': round(prices.get('m5', current_price), precision),
+                'current_price': round(current_price, precision),
+                'price_change': round(price_change, precision),
+                'change_percent': round(change_percent, 3),
+                'price_direction': 'up' if m5_price > m15_price else 'down',
+                'bid': round(tick.bid, precision),
+                'ask': round(tick.ask, precision),
+                'spread_pips': round(spread_pips, 1),
+                
+                # Technical indicators (with safe extraction)
+                'rsi': round(indicators.get('rsi', 50), 1),
+                'macd': round(indicators.get('macd', 0), 6),
+                'atrPercent': round(indicators.get('atr_percent', 0.1), 3),
+                'trendStrength': round(indicators.get('trend_strength', 0), 3),
+                'volumeRatio': round(indicators.get('volume_ratio', 1), 2),
+                
+                # Trading signals and analysis (enhanced or basic)
+                **entry_exit_analysis,
+                
+                # Auto trading info - ใช้ system_symbol
+                'pair_status': pair_status,
+                'can_trade': pair_status.get('can_trade', False),
+                'active_trades': len(self.active_trades_per_pair.get(system_symbol, [])),
+                
+                # Metadata
+                'last_update': datetime.now().isoformat(),
+                'analysis_method': analysis_method,
+                'primary_timeframe': primary_tf,
+                'timeframes_available': list(timeframe_rates.keys()),
+                'data_quality': {
+                    'total_timeframes': len(timeframe_rates),
+                    'primary_timeframe': primary_tf,
+                    'tick_available': tick is not None,
+                    'spread_reasonable': spread_pips < 5.0,
+                    'price_valid': current_price > 0
+                }
+            }
+            
+            return result
+            # ================================================
+            
+        except Exception as e:
+            # Enhanced error recovery
+            self.logger.error(f"❌ Fatal error in get_symbol_data for {symbol}: {str(e)}")
+            try:
+                # Try to get basic price data for recovery
+                if hasattr(self, 'broker_symbols_mapped') and self.broker_symbols_mapped:
+                    broker_symbol = self.symbol_adapter.system_to_broker_symbol(symbol)
+                    system_symbol = symbol
+                else:
+                    broker_symbol = symbol
+                    system_symbol = symbol
+                    
+                safe_price = 1.0
+                if hasattr(mt5, 'symbol_info_tick'):
+                    tick = mt5.symbol_info_tick(broker_symbol)
+                    if tick and tick.bid > 0:
+                        safe_price = tick.bid
+                        
+                return {
+                    'symbol': system_symbol,
+                    'broker_symbol': broker_symbol,
+                    'h4': safe_price, 'h1': safe_price, 'm15': safe_price, 'm5': safe_price,
+                    'current_price': safe_price, 'price_change': 0, 'change_percent': 0,
+                    'price_direction': 'unknown', 'bid': safe_price, 'ask': safe_price, 'spread_pips': 0,
+                    'rsi': 50, 'macd': 0, 'atrPercent': 0.1, 'trendStrength': 0, 'volumeRatio': 1,
+                    'signal': 'NONE', 'strength': 0, 'entry_quality': 'POOR', 'entry_score': 0,
+                    'optimal_entry': safe_price, 'stop_loss': safe_price, 'take_profit_1': safe_price,
+                    'lot_size': self.default_lot_size, 'risk_amount': 0, 'risk_percentage': 0,
+                    'rr_tp1': 0, 'rr_tp2': 0, 'rr_tp3': 0,
+                    'pair_status': {'can_trade': False, 'reason': f'Data error: {str(e)}'},
+                    'can_trade': False, 'active_trades': 0, 'advanced_features': False,
+                    'last_update': datetime.now().isoformat(), 'analysis_method': 'error_recovery',
+                    'error': str(e), 'data_quality': {'error_occurred': True}
+                }
+            except Exception as final_error:
+                self.logger.critical(f"Final error recovery failed for {symbol}: {str(final_error)}")
+                return None
+                    
+        # Extract timeframe prices safely
+    def safe_get_price(df, price_type='close'):
+        try:
+            if df is not None and len(df) > 0 and price_type in df.columns:
+                price = df[price_type].iloc[-1]
+                if pd.isna(price) or price <= 0:
+                    return current_price
+                return float(price)
+            return current_price
+        except:
+            return current_price
+        
+        h4_price = safe_get_price(timeframe_rates.get('H4'))
+        h1_price = safe_get_price(timeframe_rates.get('H1'))
+        m15_price = safe_get_price(timeframe_rates.get('M15'))
+        m5_price = safe_get_price(timeframe_rates.get('M5'))
             
             # Calculate price change safely
             try:
