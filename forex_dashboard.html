@@ -965,6 +965,29 @@
             </div>
         </div>
         
+        <!-- Pullback Protection Panel -->
+        <div class="auto-trading-panel" style="background: #330011; border-color: #cc0066;">
+            <div class="trading-status">
+                <div class="status-indicator" id="pullbackIndicator" style="background: #666;"></div>
+                <div>
+                    <div style="color: #cc6699; font-weight: bold; font-size: 13px;">🛡️ PULLBACK PROTECTION</div>
+                    <div style="color: #aaa; font-size: 10px;" id="pullbackStatus">SYSTEM MONITORING</div>
+                </div>
+                <div style="margin-left: 1.5rem;">
+                    <div style="color: #cc6699; font-size: 10px;">Blocked: <span id="pullbackBlocked">0</span></div>
+                    <div style="color: #cc6699; font-size: 10px;">Waiting: <span id="pullbackWaiting">0</span></div>
+                </div>
+            </div>
+            <div class="trading-controls">
+                <button class="control-btn" onclick="togglePullbackSystem()" id="pullbackToggleBtn"
+                    style="background: #cc0066; color: #ff99cc;">ENABLE PROTECTION</button>
+                <button class="control-btn" onclick="openPullbackDashboard()"
+                    style="background: #663399; color: #cc99ff;">🛡️ OPEN DASHBOARD</button>
+                <button class="control-btn" onclick="cyclePullbackMode()" id="pullbackModeBtn"
+                    style="background: #006633; color: #99ff99;">BALANCED</button>
+            </div>
+        
+        </div>
         <!-- Signal Settings Panel -->
         <div class="auto-trading-panel" style="background: #332200; border-color: #ffcc00;">
             <div class="trading-status">
@@ -1225,6 +1248,220 @@
         // 🎯 Trailing Stop Functions
         let trailingSystemEnabled = false;
         let currentTrailingProfile = 'MODERATE';
+        let pullbackEnabled = false;
+        let pullbackMode = 'BALANCED';
+        let pullbackStats = { blocked: 0, waiting: 0 };
+
+        function openPullbackDashboard() {
+            // เปิดในแท็บใหม่
+            window.open('/pullback_dashboard.html', '_blank', 'width=1400,height=900');
+            
+            // หรือเปิดในหน้าต่างป๊อปอัพ
+            // const popup = window.open('/pullback_dashboard.html', 'PullbackDashboard', 
+            //     'width=1400,height=900,scrollbars=yes,resizable=yes');
+            // popup.focus();
+            
+            addToLog('info', '🛡️ เปิด Pullback Protection Dashboard');
+        }
+
+        // เปิด/ปิด Pullback Protection System
+        async function togglePullbackSystem() {
+            try {
+                const response = await fetch('/api/pullback-protection/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !pullbackEnabled })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    pullbackEnabled = result.enabled;
+                    updatePullbackStatus();
+                    showNotification(
+                        pullbackEnabled ? 'success' : 'warning', 
+                        `Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`
+                    );
+                    addToLog('info', `🛡️ Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`);
+                } else {
+                    showNotification('error', result.error || 'เกิดข้อผิดพลาด');
+                }
+            } catch (error) {
+                showNotification('error', 'ไม่สามารถเชื่อมต่อได้');
+                addToLog('error', `❌ Pullback toggle error: ${error.message}`);
+            }
+        }
+
+        // เปลี่ยน Pullback Protection Mode
+        function cyclePullbackMode() {
+            const modes = ['CONSERVATIVE', 'BALANCED', 'AGGRESSIVE'];
+            const currentIndex = modes.indexOf(pullbackMode);
+            const nextIndex = (currentIndex + 1) % modes.length;
+            pullbackMode = modes[nextIndex];
+            
+            // อัพเดต UI
+            const modeBtn = document.getElementById('pullbackModeBtn');
+            const modeColors = {
+                'CONSERVATIVE': { bg: '#003366', color: '#6699ff' },
+                'BALANCED': { bg: '#006633', color: '#99ff99' },
+                'AGGRESSIVE': { bg: '#660000', color: '#ff6666' }
+            };
+            
+            const colors = modeColors[pullbackMode];
+            modeBtn.style.background = colors.bg;
+            modeBtn.style.color = colors.color;
+            modeBtn.textContent = pullbackMode;
+            
+            // ส่งไปยัง API
+            setPullbackMode(pullbackMode.toLowerCase());
+            
+            addToLog('info', `🛡️ เปลี่ยน Pullback Mode เป็น ${pullbackMode}`);
+        }
+
+        // ตั้งค่า Pullback Mode ผ่าน API
+        async function setPullbackMode(mode) {
+            try {
+                const modeSettings = {
+                    'conservative': {
+                        rsi_extreme_buy: 30,
+                        rsi_extreme_sell: 70,
+                        ema_distance_warning: 0.2,
+                        max_wait_minutes: 45,
+                        volume_decline_threshold: 0.9,
+                        volume_very_low: 0.7
+                    },
+                    'balanced': {
+                        rsi_extreme_buy: 25,
+                        rsi_extreme_sell: 75,
+                        ema_distance_warning: 0.3,
+                        max_wait_minutes: 30,
+                        volume_decline_threshold: 0.8,
+                        volume_very_low: 0.6
+                    },
+                    'aggressive': {
+                        rsi_extreme_buy: 15,
+                        rsi_extreme_sell: 85,
+                        ema_distance_warning: 0.5,
+                        max_wait_minutes: 15,
+                        volume_decline_threshold: 0.6,
+                        volume_very_low: 0.4
+                    }
+                };
+
+                const response = await fetch('/api/pullback-protection/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(modeSettings[mode])
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('success', `ตั้งค่า ${mode.toUpperCase()} mode เรียบร้อย`);
+                }
+            } catch (error) {
+                addToLog('error', `❌ Error setting pullback mode: ${error.message}`);
+            }
+        }
+
+        // อัพเดตสถานะ Pullback Protection
+        function updatePullbackStatus() {
+            const indicator = document.getElementById('pullbackIndicator');
+            const status = document.getElementById('pullbackStatus');
+            const toggleBtn = document.getElementById('pullbackToggleBtn');
+
+            if (pullbackEnabled) {
+                indicator.style.background = '#cc0066';
+                indicator.classList.add('status-active');
+                status.textContent = 'ACTIVE - Monitoring Signals';
+                toggleBtn.textContent = 'DISABLE PROTECTION';
+                toggleBtn.style.background = '#660000';
+                toggleBtn.style.color = '#ff6666';
+            } else {
+                indicator.style.background = '#666';
+                indicator.classList.remove('status-active');
+                status.textContent = 'DISABLED - Not Monitoring';
+                toggleBtn.textContent = 'ENABLE PROTECTION';
+                toggleBtn.style.background = '#cc0066';
+                toggleBtn.style.color = '#ff99cc';
+            }
+        }
+
+        // อัพเดตสถิติ Pullback Protection
+        function updatePullbackStats(stats) {
+            if (stats && stats.pullback_protection) {
+                const pb = stats.pullback_protection;
+                pullbackEnabled = pb.enabled;
+                pullbackStats.blocked = pb.total_blocked || 0;
+                pullbackStats.waiting = pb.waiting_positions || 0;
+                
+                // อัพเดต UI
+                document.getElementById('pullbackBlocked').textContent = pullbackStats.blocked;
+                document.getElementById('pullbackWaiting').textContent = pullbackStats.waiting;
+                
+                updatePullbackStatus();
+            }
+        }
+
+        // เรียกใช้ใน updateMarketData function ที่มีอยู่แล้ว
+        // เพิ่มบรรทัดนี้ใน updateMarketData():
+        // updatePullbackStats(data.auto_trading);
+
+        // เพิ่มในส่วน updateMarketData() function ที่มีอยู่แล้ว
+        function updateMarketDataWithPullback(data) {
+            // ... โค้ดเดิม ...
+            
+            // เพิ่มส่วนนี้
+            if (data.auto_trading) {
+                updatePullbackStats(data.auto_trading);
+            }
+            
+            // ... โค้ดเดิม ...
+        }
+
+        // Quick access to Pullback Dashboard with keyboard shortcut
+        document.addEventListener('keydown', function(e) {
+            // กด Ctrl+P เพื่อเปิด Pullback Dashboard
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                openPullbackDashboard();
+            }
+            
+            // กด Ctrl+Shift+P เพื่อ toggle Pullback Protection
+            if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                togglePullbackSystem();
+            }
+        });
+
+        // Initialize Pullback Protection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // เรียกข้อมูลเริ่มต้น
+            fetchPullbackStatus();
+        });
+
+        // ดึงสถานะ Pullback Protection
+        async function fetchPullbackStatus() {
+            try {
+                const response = await fetch('/api/pullback-protection/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    pullbackEnabled = data.plugin_enabled;
+                    updatePullbackStatus();
+                    
+                    // อัพเดตสถิติ
+                    if (data.statistics) {
+                        pullbackStats.blocked = data.statistics.signals_blocked || 0;
+                        pullbackStats.waiting = data.waiting_positions.total_waiting || 0;
+                        document.getElementById('pullbackBlocked').textContent = pullbackStats.blocked;
+                        document.getElementById('pullbackWaiting').textContent = pullbackStats.waiting;
+                    }
+                }
+            } catch (error) {
+                // ไม่แสดง error ถ้า plugin ยังไม่ได้ติดตั้ง
+                console.log('Pullback Protection not available:', error.message);
+            }
+        }
 
         async function updateTrailingStatus() {
             try {
@@ -1321,7 +1558,6 @@
             }
         }
 
-        // Add to existing updateData function
         async function updateData() {
             // ... existing code ...
             
@@ -1500,7 +1736,6 @@
             }
         }
 
-        // Enhanced Features Functions
         async function testEnhancedSignals() {
             try {
                 showNotification('🔄 Testing Enhanced Signal System...', 'info');
@@ -1667,7 +1902,6 @@
             }
         }
 
-        // Risk Profile Management
         function updateRiskProfile() {
             const riskProfile = document.getElementById('riskProfile').value;
             const customRiskDiv = document.getElementById('customRiskDiv');
@@ -1731,7 +1965,6 @@
             }
         }
 
-        // Data Fetching
         async function fetchMarketData() {
             try {
                 const response = await fetch('/api/market-data');
@@ -1782,7 +2015,6 @@
             }
         }
 
-        // UI Update Functions
         function updateAutoTradingUI(enabled) {
             const indicator = document.getElementById('autoTradingIndicator');
             const status = document.getElementById('autoTradingStatus');
@@ -1872,7 +2104,6 @@
             positionsList.innerHTML = html;
         }
 
-        // Utility Functions
         function getPrecision(pair) {
             return pair.includes('JPY') ? 3 : pair.includes('XAU') ? 2 : 5;
         }
@@ -1935,7 +2166,6 @@
             }
         }
 
-        // Notification system
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.style.cssText = `
@@ -1984,7 +2214,6 @@
             console.log(`${emoji} ${message}`);
         }
 
-        // Table Creation
         function createDataTable() {
             const tbody = document.getElementById('dataBody');
 
@@ -2105,7 +2334,6 @@
             document.getElementById('eligibleConfluenceSignals').textContent = confluenceSignals;
         }
 
-        // Main Update Function
         async function updateData() {
             const success = await fetchMarketData();
             if (success) {
@@ -2119,7 +2347,6 @@
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
 
-        // Manual Refresh
         async function manualRefresh() {
             console.log('🔄 Manual refresh initiated...');
             document.getElementById('lastUpdate').textContent = 'Refreshing...';
@@ -2145,7 +2372,6 @@
             document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
         }
 
-        // Initialization
         function init() {
             console.log('🚀 Initializing Professional Auto Trading Dashboard');
 
@@ -2162,7 +2388,6 @@
             }, 2000);
         }
 
-        // Event Listeners
         document.addEventListener('DOMContentLoaded', init);
 
         document.addEventListener('keydown', function (e) {

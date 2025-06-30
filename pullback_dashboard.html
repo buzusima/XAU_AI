@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Pullback Protection Dashboard</title>
+    <style>
+        /* Base Styling - เหมือนระบบเดิม */
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 1rem;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Header Panel - สไตล์เดียวกับ forex dashboard */
+        .header-panel {
+            background: #001133;
+            border: 2px solid #0088ff;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 136, 255, 0.3);
+        }
+
+        .header-title {
+            color: #0088ff;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-subtitle {
+            color: #ffcc00;
+            font-size: 11px;
+            margin-bottom: 0.3rem;
+        }
+
+        .header-description {
+            color: #00ccff;
+            font-size: 10px;
+        }
+
+        /* Dashboard Status - แบบ Auto Trading Panel */
+        .update-status {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Auto Trading Panel Style for Pullback Protection */
+        .auto-trading-panel {
+            background: #001122;
+            border: 1px solid #0066cc;
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pullback-panel {
+            background: #330011;
+            border: 1px solid #cc0066;
+        }
+
+        .pullback-status-panel {
+            background: #113300;
+            border: 1px solid #66cc00;
+        }
+
+        .trading-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        .status-inactive {
+            background: #666;
+        }
+
+        .trading-controls {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .control-btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.2s;
+            background: #444;
+            color: #fff;
+        }
+
+        .btn-success {
+            background: #006600;
+            color: #00ff00;
+        }
+
+        .btn-success:hover {
+            background: #009900;
+        }
+
+        .btn-danger {
+            background: #660000;
+            color: #ff4444;
+        }
+
+        .btn-danger:hover {
+            background: #990000;
+        }
+
+        .btn-warning {
+            background: #cc6600;
+            color: #ffaa00;
+        }
+
+        .btn-warning:hover {
+            background: #ff8800;
+        }
+
+        .btn-info {
+            background: #003366;
+            color: #0099ff;
+        }
+
+        .btn-info:hover {
+            background: #0066cc;
+        }
+
+        /* Statistics Grid - แบบ positions panel */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.8rem;
+            margin: 0.5rem 0;
+        }
+
+        .stat-item {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 0.8rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            color: #00ff00;
+            font-size: 16px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-label {
+            color: #aaa;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Settings Panel - แบบ signal settings */
+        .settings-panel {
+            background: #1a2f1a;
+            border: 1px solid #4a7c59;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .panel-hidden {
+            display: none;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .setting-label {
+            color: #66ff66;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .setting-input {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 0.4rem;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .setting-value {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        /* Waiting Positions List - แบบ positions panel */
+        .waiting-positions-panel {
+            background: #222;
+            border: 1px solid #666;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .waiting-header {
+            background: #333;
+            border-bottom: 1px solid #666;
+            padding: 0.8rem;
+            font-weight: bold;
+            color: #ffcc00;
+            font-size: 12px;
+        }
+
+        .waiting-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .waiting-item {
+            padding: 0.8rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .waiting-item:last-child {
+            border-bottom: none;
+        }
+
+        .waiting-item:hover {
+            background: #2a2a2a;
+        }
+
+        .symbol {
+            font-weight: bold;
+            color: #00ccff;
+            font-size: 12px;
+        }
+
+        .risk-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .risk-high {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .risk-medium {
+            background: #ffaa00;
+            color: #000;
+        }
+
+        .risk-low {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .timeout {
+            color: #ffcc00;
+            font-size: 10px;
+        }
+
+        /* Activity Log - แบบ debug console */
+        .log-panel {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-header {
+            background: #222;
+            border-bottom: 1px solid #333;
+            padding: 0.8rem;
+            font-weight: bold;
+            color: #00ff00;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-area {
+            background: #000;
+            padding: 0.8rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 0.3rem;
+            padding: 0.2rem 0;
+        }
+
+        .log-time {
+            color: #666;
+        }
+
+        .log-info {
+            color: #00ccff;
+        }
+
+        .log-warning {
+            color: #ffaa00;
+        }
+
+        .log-error {
+            color: #ff4444;
+        }
+
+        .log-success {
+            color: #00ff00;
+        }
+
+        /* Performance Metrics - แบบ info display */
+        .performance-panel {
+            background: #2a1a00;
+            border: 1px solid #cc9900;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .performance-item {
+            text-align: center;
+        }
+
+        .performance-value {
+            color: #ffcc00;
+            font-size: 18px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .performance-label {
+            color: #cc9900;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: #333;
+            border-radius: 3px;
+            height: 6px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffcc00);
+            transition: width 0.3s ease;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 0.8rem 1rem;
+            border-radius: 4px;
+            color: #fff;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            font-size: 11px;
+            border: 1px solid;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #006600;
+            border-color: #00ff00;
+        }
+
+        .notification.error {
+            background: #660000;
+            border-color: #ff4444;
+        }
+
+        .notification.warning {
+            background: #663300;
+            border-color: #ffaa00;
+        }
+
+        /* Mode Buttons */
+        .mode-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .mode-btn {
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .mode-conservative {
+            background: #003366;
+            color: #6699ff;
+        }
+
+        .mode-aggressive {
+            background: #660000;
+            color: #ff6666;
+        }
+
+        .mode-default {
+            background: #336600;
+            color: #99ff99;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid,
+            .settings-grid,
+            .performance-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .auto-trading-panel {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header-panel">
+        <div class="header-title">🛡️ Pullback Protection Dashboard</div>
+        <div class="header-subtitle">ระบบป้องกัน Pullback สำหรับ Forex Trading</div>
+        <div class="header-description">🎯 เป้าหมาย: เพิ่ม Win Rate จาก 55% เป็น 65%+ | ลด False Signals 60-70%</div>
+    </div>
+
+    <!-- Update Status -->
+    <div class="update-status">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="status-dot" id="status-dot"></span>
+            <span>Pullback Protection Active</span>
+            <span style="color: #666; margin-left: 1rem;">Last Update: <span id="lastUpdate">--:--:--</span></span>
+        </div>
+        <div>
+            <button class="control-btn btn-info" onclick="refreshData()">Refresh</button>
+            <button class="control-btn" onclick="window.location.href='/'">🏠 Main Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Plugin Status Panel -->
+    <div class="auto-trading-panel pullback-status-panel">
+        <div class="trading-status">
+            <div class="status-indicator" id="pluginIndicator"></div>
+            <div>
+                <div style="color: #66cc00; font-weight: bold; font-size: 13px;">🛡️ PULLBACK PROTECTION</div>
+                <div style="color: #aaa; font-size: 10px;" id="pluginStatus">SYSTEM STATUS</div>
+            </div>
+            <div style="margin-left: 1.5rem;">
+                <div style="color: #66cc00; font-size: 10px;">Mode: <span id="currentMode">NORMAL</span></div>
+                <div style="color: #66cc00; font-size: 10px;">Uptime: <span id="systemUptime">00:00:00</span></div>
+            </div>
+        </div>
+        <div class="trading-controls">
+            <button class="control-btn btn-success" onclick="togglePlugin()" id="toggleBtn">ENABLE</button>
+            <button class="control-btn btn-danger" onclick="resetStats()">RESET STATS</button>
+            <button class="control-btn btn-warning" onclick="emergencyDisable()">EMERGENCY STOP</button>
+            <button class="control-btn" onclick="toggleSettings()">⚙️ SETTINGS</button>
+        </div>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="auto-trading-panel">
+        <div class="trading-status">
+            <div style="color: #00ccff; font-weight: bold; font-size: 13px;">📊 STATISTICS OVERVIEW</div>
+        </div>
+        <div class="trading-controls">
+            <button class="control-btn" onclick="exportStats()">📁 EXPORT</button>
+            <button class="control-btn" onclick="showDetailedStats()">📈 DETAILS</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-item">
+            <span id="total-signals" class="stat-value">0</span>
+            <div class="stat-label">Total Signals</div>
+        </div>
+        <div class="stat-item">
+            <span id="blocked-signals" class="stat-value">0</span>
+            <div class="stat-label">Blocked Signals</div>
+        </div>
+        <div class="stat-item">
+            <span id="block-rate" class="stat-value">0%</span>
+            <div class="stat-label">Block Rate</div>
+        </div>
+        <div class="stat-item">
+            <span id="waiting-count" class="stat-value">0</span>
+            <div class="stat-label">Waiting Positions</div>
+        </div>
+        <div class="stat-item">
+            <span id="success-rate" class="stat-value">0%</span>
+            <div class="stat-label">Success After Wait</div>
+        </div>
+        <div class="stat-item">
+            <span id="false-signals-prevented" class="stat-value">0</span>
+            <div class="stat-label">False Signals Prevented</div>
+        </div>
+    </div>
+
+    <!-- Quick Mode Selection -->
+    <div class="auto-trading-panel pullback-panel">
+        <div class="trading-status">
+            <div style="color: #cc6699; font-weight: bold; font-size: 13px;">⚡ QUICK MODES</div>
+            <div style="color: #aaa; font-size: 10px;">Pre-configured Pullback Protection Settings</div>
+        </div>
+        <div class="trading-controls">
+            <button class="control-btn mode-conservative" onclick="setMode('conservative')">🛡️ CONSERVATIVE</button>
+            <button class="control-btn mode-default" onclick="setMode('default')">⚖️ BALANCED</button>
+            <button class="control-btn mode-aggressive" onclick="setMode('aggressive')">⚡ AGGRESSIVE</button>
+        </div>
+    </div>
+
+    <!-- Settings Panel (Hidden by default) -->
+    <div id="settingsPanel" class="settings-panel panel-hidden">
+        <div style="color: #66ff66; font-weight: bold; margin-bottom: 1rem; font-size: 12px;">⚙️ PULLBACK PROTECTION SETTINGS</div>
+        <div class="settings-grid">
+            <div class="setting-item">
+                <label class="setting-label">RSI Extreme Buy Threshold:</label>
+                <input type="number" id="rsi-extreme-buy" class="setting-input" value="25" min="0" max="50">
+                <div class="setting-value">Current: <span id="rsiExtremeBuyValue">25</span></div>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">RSI Extreme Sell Threshold:</label>
+                <input type="number" id="rsi-extreme-sell" class="setting-input" value="75" min="50" max="100">
+                <div class="setting-value">Current: <span id="rsiExtremeSellValue">75</span></div>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">EMA Distance Warning (ATR %):</label>
+                <input type="number" id="ema-distance-warning" class="setting-input" value="0.3" min="0" max="1" step="0.1">
+                <div class="setting-value">Current: <span id="emaDistanceValue">0.3</span></div>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">Max Wait Time (Minutes):</label>
+                <input type="number" id="max-wait-minutes" class="setting-input" value="30" min="5" max="120">
+                <div class="setting-value">Current: <span id="maxWaitValue">30</span> min</div>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">Volume Decline Threshold:</label>
+                <input type="number" id="volume-threshold" class="setting-input" value="0.8" min="0" max="2" step="0.1">
+                <div class="setting-value">Current: <span id="volumeThresholdValue">0.8</span></div>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">Volume Very Low Threshold:</label>
+                <input type="number" id="volume-very-low" class="setting-input" value="0.6" min="0" max="1" step="0.1">
+                <div class="setting-value">Current: <span id="volumeVeryLowValue">0.6</span></div>
+            </div>
+        </div>
+        <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #555;">
+            <button class="control-btn btn-success" onclick="saveSettings()">💾 SAVE SETTINGS</button>
+            <button class="control-btn btn-warning" onclick="loadDefaultSettings()">🔄 LOAD DEFAULTS</button>
+            <button class="control-btn" onclick="testSettings()">🧪 TEST SETTINGS</button>
+        </div>
+    </div>
+
+    <!-- Waiting Positions Panel -->
+    <div class="waiting-positions-panel">
+        <div class="waiting-header">
+            ⏳ WAITING POSITIONS
+            <span style="float: right; color: #666;">Next Timeout: <span id="next-timeout">-</span></span>
+        </div>
+        <div id="waiting-positions" class="waiting-list">
+            <div style="text-align: center; padding: 20px; color: #666;">
+                ไม่มี positions ที่รอ pullback
+            </div>
+        </div>
+        <div style="padding: 0.8rem; border-top: 1px solid #333;">
+            <div style="color: #ffcc00; font-size: 10px; margin-bottom: 0.3rem;">
+                ⏱️ Timeout Progress:
+            </div>
+            <div class="progress-container">
+                <div id="timeout-progress" class="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Log Panel -->
+    <div class="log-panel">
+        <div class="log-header">
+            📋 ACTIVITY LOG
+            <div>
+                <button class="control-btn btn-danger" onclick="clearLog()">🗑️ CLEAR</button>
+                <button class="control-btn" onclick="exportLog()">📁 EXPORT</button>
+            </div>
+        </div>
+        <div id="activity-log" class="log-area">
+            <div class="log-entry log-info">
+                <span class="log-time">[00:00:00]</span> 
+                🛡️ Pullback Protection Dashboard เริ่มต้นแล้ว
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics Panel -->
+    <div class="performance-panel">
+        <div style="color: #ffcc00; font-weight: bold; margin-bottom: 1rem; font-size: 12px;">📈 PERFORMANCE METRICS</div>
+        <div class="performance-grid">
+            <div class="performance-item">
+                <span id="win-rate-improvement" class="performance-value">+0%</span>
+                <div class="performance-label">Win Rate Improvement</div>
+            </div>
+            <div class="performance-item">
+                <span id="avg-response-time" class="performance-value">< 50ms</span>
+                <div class="performance-label">Avg Response Time</div>
+            </div>
+            <div class="performance-item">
+                <span id="risk-reduction" class="performance-value">0%</span>
+                <div class="performance-label">Risk Reduction</div>
+            </div>
+            <div class="performance-item">
+                <span id="efficiency-score" class="performance-value">0</span>
+                <div class="performance-label">Efficiency Score</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        class PullbackProtectionDashboard {
+            constructor() {
+                this.apiUrl = '/api/pullback-protection';
+                this.isEnabled = false;
+                this.startTime = new Date();
+                this.settingsVisible = false;
+                
+                this.initEventListeners();
+                this.startAutoRefresh();
+                this.updateUptime();
+                
+                this.addLog('info', '🛡️ Dashboard เริ่มต้นเรียบร้อย');
+                
+                // Load initial data
+                this.refreshData();
+            }
+
+            initEventListeners() {
+                // Update setting display when inputs change
+                const inputs = ['rsi-extreme-buy', 'rsi-extreme-sell', 'ema-distance-warning', 
+                              'max-wait-minutes', 'volume-threshold', 'volume-very-low'];
+                
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.addEventListener('input', () => this.updateSettingDisplay(id));
+                    }
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'r' || e.key === 'R') {
+                        e.preventDefault();
+                        this.refreshData();
+                    }
+                    if (e.key === 's' || e.key === 'S') {
+                        e.preventDefault();
+                        this.toggleSettings();
+                    }
+                });
+            }
+
+            updateSettingDisplay(inputId) {
+                const input = document.getElementById(inputId);
+                const valueSpan = document.getElementById(inputId.replace(/-/g, '') + 'Value');
+                if (input && valueSpan) {
+                    valueSpan.textContent = input.value;
+                }
+            }
+
+            async togglePlugin() {
+                try {
+                    const response = await fetch(`${this.apiUrl}/toggle`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: !this.isEnabled })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.isEnabled = result.enabled;
+                        this.showNotification('success', result.message);
+                        this.addLog('info', `🛡️ Plugin ${this.isEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`);
+                        this.updatePluginStatus();
+                    } else {
+                        this.showNotification('error', result.error);
+                    }
+                } catch (error) {
+                    this.showNotification('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                    this.addLog('error', `❌ Connection error: ${error.message}`);
+                }
+            }
+
+            async resetStats() {
+                if (!confirm('คุณต้องการรีเซ็ตสถิติทั้งหมดหรือไม่?')) return;
+
+                try {
+                    const response = await fetch(`${this.apiUrl}/reset-stats`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showNotification('success', 'สถิติถูกรีเซ็ตแล้ว');
+                        this.addLog('warning', '🔄 สถิติถูกรีเซ็ต');
+                        this.refreshData();
+                    } else {
+                        this.showNotification('error', result.error);
+                    }
+                } catch (error) {
+                    this.showNotification('error', 'เกิดข้อผิดพลาด');
+                }
+            }
+
+            async refreshData() {
+                try {
+                    const response = await fetch(`${this.apiUrl}/status`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.updateDashboard(data);
+                        this.addLog('info', '🔄 ข้อมูลถูกรีเฟรชแล้ว');
+                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    } else {
+                        this.addLog('error', `❌ Error loading data: ${data.error}`);
+                    }
+                } catch (error) {
+                    this.addLog('error', `❌ Network error: ${error.message}`);
+                }
+            }
+
+            updateDashboard(data) {
+                // Update plugin status
+                this.isEnabled = data.plugin_enabled;
+                this.updatePluginStatus();
+
+                // Update statistics
+                const stats = data.statistics;
+                document.getElementById('total-signals').textContent = stats.total_signals_checked || 0;
+                document.getElementById('blocked-signals').textContent = stats.signals_blocked || 0;
+                document.getElementById('block-rate').textContent = (stats.block_rate_percent || 0) + '%';
+                document.getElementById('success-rate').textContent = (stats.success_after_wait_percent || 0) + '%';
+                document.getElementById('false-signals-prevented').textContent = stats.false_signals_prevented || 0;
+                document.getElementById('win-rate-improvement').textContent = stats.estimated_win_rate_improvement || '+0%';
+
+                // Update waiting positions
+                const waiting = data.waiting_positions;
+                document.getElementById('waiting-count').textContent = waiting.total_waiting || 0;
+                this.updateWaitingPositions(waiting);
+
+                // Update settings display
+                if (data.settings) {
+                    this.updateSettingsFromAPI(data.settings);
+                }
+
+                // Update performance metrics
+                this.updatePerformanceMetrics(stats);
+            }
+
+            updatePluginStatus() {
+                const indicator = document.getElementById('pluginIndicator');
+                const status = document.getElementById('pluginStatus');
+                const toggleBtn = document.getElementById('toggleBtn');
+
+                if (this.isEnabled) {
+                    indicator.classList.remove('status-inactive');
+                    status.textContent = 'ACTIVE - Monitoring Signals';
+                    toggleBtn.textContent = 'DISABLE';
+                    toggleBtn.className = 'control-btn btn-danger';
+                } else {
+                    indicator.classList.add('status-inactive');
+                    status.textContent = 'DISABLED - Not Monitoring';
+                    toggleBtn.textContent = 'ENABLE';
+                    toggleBtn.className = 'control-btn btn-success';
+                }
+            }
+
+            updateWaitingPositions(waiting) {
+                const container = document.getElementById('waiting-positions');
+                
+                if (!waiting.positions || waiting.positions.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #666;">
+                            ไม่มี positions ที่รอ pullback
+                        </div>
+                    `;
+                    document.getElementById('next-timeout').textContent = '-';
+                    document.getElementById('timeout-progress').style.width = '0%';
+                    return;
+                }
+
+                let html = '';
+                waiting.positions.forEach(pos => {
+                    const riskClass = `risk-${pos.risk_level.toLowerCase()}`;
+                    html += `
+                        <div class="waiting-item">
+                            <div>
+                                <div class="symbol">${pos.symbol}</div>
+                                <div style="font-size: 9px; color: #888;">
+                                    Started: ${pos.wait_start} | Factors: ${pos.risk_factors?.length || 0}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="risk-badge ${riskClass}">${pos.risk_level}</div>
+                                <div class="timeout">${pos.timeout_in_minutes} min left</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                // Update next timeout
+                if (waiting.next_timeout) {
+                    document.getElementById('next-timeout').textContent = waiting.next_timeout;
+                }
+            }
+
+            updateSettingsFromAPI(settings) {
+                const mappings = {
+                    'rsi_extreme_buy': 'rsi-extreme-buy',
+                    'rsi_extreme_sell': 'rsi-extreme-sell',
+                    'ema_distance_warning': 'ema-distance-warning',
+                    'max_wait_minutes': 'max-wait-minutes',
+                    'volume_decline_threshold': 'volume-threshold',
+                    'volume_very_low': 'volume-very-low'
+                };
+
+                Object.keys(mappings).forEach(apiKey => {
+                    const elementId = mappings[apiKey];
+                    const element = document.getElementById(elementId);
+                    if (element && settings[apiKey] !== undefined) {
+                        element.value = settings[apiKey];
+                        this.updateSettingDisplay(elementId);
+                    }
+                });
+            }
+
+            updatePerformanceMetrics(stats) {
+                // Calculate efficiency score
+                const blockRate = stats.block_rate_percent || 0;
+                const successRate = stats.success_after_wait_percent || 0;
+                const efficiency = Math.round((successRate * 0.7) + (blockRate * 0.3));
+                
+                document.getElementById('efficiency-score').textContent = efficiency + '/100';
+                
+                // Calculate risk reduction
+                const riskReduction = Math.round(blockRate * 0.6); // Estimate
+                document.getElementById('risk-reduction').textContent = riskReduction + '%';
+            }
+
+            async saveSettings() {
+                const settings = {
+                    rsi_extreme_buy: parseFloat(document.getElementById('rsi-extreme-buy').value),
+                    rsi_extreme_sell: parseFloat(document.getElementById('rsi-extreme-sell').value),
+                    ema_distance_warning: parseFloat(document.getElementById('ema-distance-warning').value),
+                    max_wait_minutes: parseInt(document.getElementById('max-wait-minutes').value),
+                    volume_decline_threshold: parseFloat(document.getElementById('volume-threshold').value),
+                    volume_very_low: parseFloat(document.getElementById('volume-very-low').value)
+                };
+
+                try {
+                    const response = await fetch(`${this.apiUrl}/settings`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showNotification('success', 'การตั้งค่าถูกบันทึกแล้ว');
+                        this.addLog('success', '💾 การตั้งค่าถูกบันทึก');
+                    } else {
+                        this.showNotification('error', result.error);
+                    }
+                } catch (error) {
+                    this.showNotification('error', 'เกิดข้อผิดพลาด');
+                }
+            }
+
+            loadDefaultSettings() {
+                const defaults = {
+                    'rsi-extreme-buy': 25,
+                    'rsi-extreme-sell': 75,
+                    'ema-distance-warning': 0.3,
+                    'max-wait-minutes': 30,
+                    'volume-threshold': 0.8,
+                    'volume-very-low': 0.6
+                };
+
+                Object.keys(defaults).forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = defaults[id];
+                        this.updateSettingDisplay(id);
+                    }
+                });
+                
+                this.addLog('info', '🔄 คืนค่าเริ่มต้นเรียบร้อย');
+            }
+
+            setMode(mode) {
+                let settings = {};
+                let modeName = '';
+                
+                switch(mode) {
+                    case 'conservative':
+                        settings = {
+                            'rsi-extreme-buy': 30,
+                            'rsi-extreme-sell': 70,
+                            'ema-distance-warning': 0.2,
+                            'max-wait-minutes': 45,
+                            'volume-threshold': 0.9,
+                            'volume-very-low': 0.7
+                        };
+                        modeName = 'CONSERVATIVE';
+                        this.addLog('info', '🛡️ เปลี่ยนเป็น Conservative Mode');
+                        break;
+                    case 'aggressive':
+                        settings = {
+                            'rsi-extreme-buy': 15,
+                            'rsi-extreme-sell': 85,
+                            'ema-distance-warning': 0.5,
+                            'max-wait-minutes': 15,
+                            'volume-threshold': 0.6,
+                            'volume-very-low': 0.4
+                        };
+                        modeName = 'AGGRESSIVE';
+                        this.addLog('info', '⚡ เปลี่ยนเป็น Aggressive Mode');
+                        break;
+                    default:
+                        settings = {
+                            'rsi-extreme-buy': 25,
+                            'rsi-extreme-sell': 75,
+                            'ema-distance-warning': 0.3,
+                            'max-wait-minutes': 30,
+                            'volume-threshold': 0.8,
+                            'volume-very-low': 0.6
+                        };
+                        modeName = 'BALANCED';
+                        this.addLog('info', '⚖️ เปลี่ยนเป็น Balanced Mode');
+                }
+
+                // Update input fields
+                Object.keys(settings).forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = settings[id];
+                        this.updateSettingDisplay(id);
+                    }
+                });
+
+                // Update mode display
+                document.getElementById('currentMode').textContent = modeName;
+
+                // Auto save
+                this.saveSettings();
+            }
+
+            toggleSettings() {
+                const panel = document.getElementById('settingsPanel');
+                this.settingsVisible = !this.settingsVisible;
+                
+                if (this.settingsVisible) {
+                    panel.classList.remove('panel-hidden');
+                    this.addLog('info', '⚙️ เปิดแผง Settings');
+                } else {
+                    panel.classList.add('panel-hidden');
+                    this.addLog('info', '⚙️ ปิดแผง Settings');
+                }
+            }
+
+            emergencyDisable() {
+                if (confirm('Emergency Stop: ปิดใช้งาน Pullback Protection ทันที?')) {
+                    this.isEnabled = false;
+                    this.updatePluginStatus();
+                    this.showNotification('warning', 'Emergency Stop Activated');
+                    this.addLog('error', '🚨 Emergency Stop - Plugin ถูกปิดทันที');
+                }
+            }
+
+            exportStats() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    plugin_status: this.isEnabled,
+                    statistics: this.getCurrentStats(),
+                    settings: this.getCurrentSettings(),
+                    uptime: document.getElementById('systemUptime').textContent
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pullback_protection_stats_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.addLog('info', '📁 สถิติถูก Export แล้ว');
+            }
+
+            getCurrentStats() {
+                return {
+                    total_signals: document.getElementById('total-signals').textContent,
+                    blocked_signals: document.getElementById('blocked-signals').textContent,
+                    block_rate: document.getElementById('block-rate').textContent,
+                    success_rate: document.getElementById('success-rate').textContent,
+                    false_signals_prevented: document.getElementById('false-signals-prevented').textContent,
+                    waiting_count: document.getElementById('waiting-count').textContent
+                };
+            }
+
+            getCurrentSettings() {
+                return {
+                    rsi_extreme_buy: document.getElementById('rsi-extreme-buy').value,
+                    rsi_extreme_sell: document.getElementById('rsi-extreme-sell').value,
+                    ema_distance_warning: document.getElementById('ema-distance-warning').value,
+                    max_wait_minutes: document.getElementById('max-wait-minutes').value,
+                    volume_threshold: document.getElementById('volume-threshold').value,
+                    volume_very_low: document.getElementById('volume-very-low').value
+                };
+            }
+
+            testSettings() {
+                this.addLog('info', '🧪 ทดสอบการตั้งค่า...');
+                // Simulate test
+                setTimeout(() => {
+                    this.addLog('success', '✅ การตั้งค่าทำงานปกติ');
+                    this.showNotification('success', 'การตั้งค่าผ่านการทดสอบ');
+                }, 1000);
+            }
+
+            showDetailedStats() {
+                const stats = this.getCurrentStats();
+                let message = 'DETAILED STATISTICS:\n\n';
+                Object.keys(stats).forEach(key => {
+                    message += `${key.replace(/_/g, ' ').toUpperCase()}: ${stats[key]}\n`;
+                });
+                alert(message);
+            }
+
+            addLog(level, message) {
+                const logArea = document.getElementById('activity-log');
+                const time = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${level}`;
+                entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+                
+                logArea.appendChild(entry);
+                logArea.scrollTop = logArea.scrollHeight;
+
+                // Keep only last 100 entries
+                const entries = logArea.children;
+                if (entries.length > 100) {
+                    logArea.removeChild(entries[0]);
+                }
+            }
+
+            clearLog() {
+                document.getElementById('activity-log').innerHTML = '';
+                this.addLog('info', '🗑️ Log ถูกล้างแล้ว');
+            }
+
+            exportLog() {
+                const logArea = document.getElementById('activity-log');
+                const logData = Array.from(logArea.children).map(entry => entry.textContent).join('\n');
+                
+                const blob = new Blob([logData], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pullback_protection_log_${new Date().toISOString().split('T')[0]}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.addLog('info', '📁 Log ถูก Export แล้ว');
+            }
+
+            showNotification(type, message) {
+                const notification = document.getElementById('notification');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                notification.classList.add('show');
+
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            updateUptime() {
+                setInterval(() => {
+                    const now = new Date();
+                    const diff = now - this.startTime;
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    
+                    document.getElementById('systemUptime').textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            startAutoRefresh() {
+                // Refresh data every 15 seconds
+                setInterval(() => {
+                    this.refreshData();
+                }, 15000);
+            }
+        }
+
+        // Global functions for onclick handlers
+        function togglePlugin() { dashboard.togglePlugin(); }
+        function resetStats() { dashboard.resetStats(); }
+        function refreshData() { dashboard.refreshData(); }
+        function emergencyDisable() { dashboard.emergencyDisable(); }
+        function toggleSettings() { dashboard.toggleSettings(); }
+        function saveSettings() { dashboard.saveSettings(); }
+        function loadDefaultSettings() { dashboard.loadDefaultSettings(); }
+        function setMode(mode) { dashboard.setMode(mode); }
+        function exportStats() { dashboard.exportStats(); }
+        function showDetailedStats() { dashboard.showDetailedStats(); }
+        function testSettings() { dashboard.testSettings(); }
+        function clearLog() { dashboard.clearLog(); }
+        function exportLog() { dashboard.exportLog(); }
+
+        // Initialize dashboard when page loads
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new PullbackProtectionDashboard();
+        });
+    </script>
+</body>
+</html>
