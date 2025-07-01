@@ -1692,7 +1692,7 @@ class MultiTimeframeSignalEngine:
                 
             except Exception as e:
                 self.logger.error(f"Quality enhancement error for {symbol}: {str(e)}")
-            
+
             # FIXED: Final validation
             confluence_result = self.validate_confluence_result(confluence_result)
             
@@ -2320,86 +2320,6 @@ class MultiTimeframeSignalEngine:
         except Exception as e:
             self.logger.error(f"Correlation check error: {str(e)}")
             return True  # Default to allow trading if error
-    
-    def check_news_filter(self, symbol: str) -> bool:
-        """Check if current time is safe for trading (avoid news events) - COMPLETELY FIXED"""
-        try:
-            current_time = datetime.utcnow()
-            current_hour = current_time.hour
-            current_minute = current_time.minute
-            current_weekday = current_time.weekday()
-            
-            # FIXED: Weekend check
-            if current_weekday >= 5:  # Saturday = 5, Sunday = 6
-                return False  # Weekend trading risk
-            
-            # FIXED: Friday late hours check
-            if current_weekday == 4 and current_hour >= 21:  # Friday after 21:00 UTC
-                return False  # Week-end approaching
-            
-            # FIXED: Monday early hours check
-            if current_weekday == 0 and current_hour <= 2:  # Monday before 02:00 UTC
-                return False  # Week opening volatility
-            
-            # FIXED: More sophisticated news filtering
-            current_total_minutes = current_hour * 60 + current_minute
-            
-            # CRITICAL FIX: Handle different data types in high_impact_times
-            for news_time in self.high_impact_times:
-                try:
-                    # Convert news_time to string format if it's not already
-                    if isinstance(news_time, tuple):
-                        # If it's a tuple like ('00:00', '01:30'), take the start time
-                        news_time_str = news_time[0] if len(news_time) > 0 else "00:00"
-                    elif isinstance(news_time, str):
-                        # If it's already a string like "09:00"
-                        news_time_str = news_time
-                    else:
-                        # Skip invalid format
-                        continue
-                    
-                    # Parse the time string
-                    if ':' not in news_time_str:
-                        continue  # Skip invalid format
-                    
-                    time_parts = news_time_str.split(':')
-                    if len(time_parts) != 2:
-                        continue  # Skip invalid format
-                    
-                    news_hour = int(time_parts[0])
-                    news_minute = int(time_parts[1])
-                    news_total_minutes = news_hour * 60 + news_minute
-                    
-                    # Calculate time difference considering day rollover
-                    time_diff = abs(current_total_minutes - news_total_minutes)
-                    
-                    # Handle day rollover (e.g., 23:30 vs 00:30)
-                    if time_diff > 720:  # 12 hours
-                        time_diff = 1440 - time_diff  # 24 hours - diff
-                    
-                    # FIXED: Currency-specific buffer times
-                    if 'JPY' in symbol or 'USD' in symbol:
-                        buffer_minutes = 30  # Longer buffer for major currencies
-                    elif 'EUR' in symbol or 'GBP' in symbol:
-                        buffer_minutes = 20
-                    elif 'XAU' in symbol:  # Gold
-                        buffer_minutes = 45  # Gold is very news-sensitive
-                    else:
-                        buffer_minutes = 15  # Standard buffer
-                    
-                    if time_diff <= buffer_minutes:
-                        self.logger.info(f"News filter: {symbol} blocked - too close to {news_time_str} (diff: {time_diff}min)")
-                        return False  # Too close to news event
-                        
-                except (ValueError, IndexError, AttributeError) as e:
-                    self.logger.warning(f"Invalid news time format: {news_time} - {str(e)}")
-                    continue  # Skip invalid time format
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"News filter error: {str(e)}")
-            return True  # Default to allow trading
         
     def get_default_indicators(self) -> Dict:
         """Professional fallback indicators - FIXED เพื่อไม่ให้เป็น UNKNOWN"""

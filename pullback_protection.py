@@ -270,7 +270,7 @@ class PullbackProtectionPlugin:
             if recommendation == 'WAIT':
                 self._add_waiting_position(symbol, result)
             
-            self.logger.info(f"🔍 {symbol}: Risk={risk_level}({risk_score}), Recommendation={recommendation}")
+            # self.logger.info(f"🔍 {symbol}: Risk={risk_level}({risk_score}), Recommendation={recommendation}")
             
             return result
             
@@ -329,7 +329,7 @@ class PullbackProtectionPlugin:
             conn.commit()
             conn.close()
             
-            self.logger.info(f"⏳ {symbol}: เพิ่มในรายการรอ pullback (timeout: {analysis_result['timeout_minutes']} นาที)")
+            # self.logger.info(f"⏳ {symbol}: เพิ่มในรายการรอ pullback (timeout: {analysis_result['timeout_minutes']} นาที)")
             
         except Exception as e:
             self.logger.error(f"❌ Error adding waiting position for {symbol}: {str(e)}")
@@ -512,7 +512,7 @@ class PullbackProtectionPlugin:
                     'timeout_minutes': risk_analysis['timeout_minutes']
                 }
                 
-                self.logger.warning(f"⚠️ {symbol}: Signal blocked - Pullback risk {risk_analysis['risk_level']}")
+                # self.logger.warning(f"⚠️ {symbol}: Signal blocked - Pullback risk {risk_analysis['risk_level']}")
                 return modified_data
             
             else:

@@ -1,0 +1,6 @@
+.log
+.db
+/logs
+/trading_data
+/__pycache__
+/Lightning_Scalper_Client

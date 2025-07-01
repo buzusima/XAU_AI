@@ -912,8 +912,6 @@
             </div>
             <div class="trading-controls">
                 <button class="control-btn" style="background: #663399; color: #cc99ff;"
-                    onclick="testEnhancedSignals()">TEST SIGNALS</button>
-                <button class="control-btn" style="background: #663399; color: #cc99ff;"
                     onclick="toggleAdvancedFeatures()">TOGGLE ADVANCED</button>
                 <button class="control-btn" style="background: #663399; color: #cc99ff;"
                     onclick="showMarketRegime()">MARKET REGIME</button>
@@ -1256,7 +1254,7 @@
             // popup.focus();
             
             window.location.href = '/pullback-dashboard'
-            addToLog('info', '🛡️ เปิด Pullback Protection Dashboard');
+            // addToLog('info', '🛡️ เปิด Pullback Protection Dashboard');
         }
 
         // เปิด/ปิด Pullback Protection System
@@ -1277,13 +1275,13 @@
                         pullbackEnabled ? 'success' : 'warning', 
                         `Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`
                     );
-                    addToLog('info', `🛡️ Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`);
+                    // addToLog('info', `🛡️ Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`);
                 } else {
                     showNotification('error', result.error || 'เกิดข้อผิดพลาด');
                 }
             } catch (error) {
                 showNotification('error', 'ไม่สามารถเชื่อมต่อได้');
-                addToLog('error', `❌ Pullback toggle error: ${error.message}`);
+                // addToLog('error', `❌ Pullback toggle error: ${error.message}`);
             }
         }
 
@@ -1310,7 +1308,7 @@
             // ส่งไปยัง API
             setPullbackMode(pullbackMode.toLowerCase());
             
-            addToLog('info', `🛡️ เปลี่ยน Pullback Mode เป็น ${pullbackMode}`);
+            // addToLog('info', `🛡️ เปลี่ยน Pullback Mode เป็น ${pullbackMode}`);
         }
 
         // ตั้งค่า Pullback Mode ผ่าน API
@@ -1354,7 +1352,7 @@
                     showNotification('success', `ตั้งค่า ${mode.toUpperCase()} mode เรียบร้อย`);
                 }
             } catch (error) {
-                addToLog('error', `❌ Error setting pullback mode: ${error.message}`);
+                // addToLog('error', `❌ Error setting pullback mode: ${error.message}`);
             }
         }
 
@@ -1732,38 +1730,6 @@
             }
         }
 
-        async function testEnhancedSignals() {
-            try {
-                showNotification('🔄 Testing Enhanced Signal System...', 'info');
-
-                const response = await fetch('/api/test-enhanced-signals');
-                const result = await response.json();
-
-                if (result.success) {
-                    console.log('Enhanced signals test completed:', result);
-                    showNotification('✅ Enhanced Signal Test Completed!', 'success');
-
-                    const testResults = result.test_results || {};
-                    let message = '🔥 Enhanced Signal Test Results:\n';
-
-                    Object.keys(testResults).forEach(symbol => {
-                        const data = testResults[symbol];
-                        if (data.error) {
-                            message += `${symbol}: Error - ${data.error}\n`;
-                        } else {
-                            message += `${symbol}: ${data.signal} (${data.strength}/10) - ${data.quality}\n`;
-                        }
-                    });
-
-                    console.log(message);
-                } else {
-                    showNotification('❌ Enhanced signals test failed: ' + result.error, 'error');
-                }
-            } catch (error) {
-                console.error('Error testing enhanced signals:', error);
-                showNotification('❌ Error testing enhanced signals: ' + error.message, 'error');
-            }
-        }
 
         async function toggleAdvancedFeatures() {
             try {
@@ -1790,7 +1756,7 @@
 
         async function showMarketRegime() {
             try {
-                const testPairs = ['EURUSD.c', 'GBPUSD.c', 'USDJPY.c'];
+                const testPairs = ['EURUSD.v', 'GBPUSD.v', 'USDJPY.v'];
                 let message = '📊 Current Market Regimes:\n\n';
 
                 for (const symbol of testPairs) {
