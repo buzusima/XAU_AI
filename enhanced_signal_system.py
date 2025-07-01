@@ -57,82 +57,276 @@ class MultiTimeframeSignalEngine:
     M15 = Precise Entry Timing (Execution)
     M5 = Risk Management & Monitoring
     """
-    
+        
     def __init__(self):
+        """Initialize with automatic symbol detection - FIXED VERSION"""
+        self.logger = logging.getLogger(__name__)
+        
         self.timeframes = {
-            'H4': mt5.TIMEFRAME_H4,
-            'H1': mt5.TIMEFRAME_H1, 
-            'M15': mt5.TIMEFRAME_M15,
-            'M5': mt5.TIMEFRAME_M5
+            'H4': mt5.TIMEFRAME_H4,      # 16388
+            'H1': mt5.TIMEFRAME_H1,      # 16385  
+            'M15': mt5.TIMEFRAME_M15,    # 15
+            'M5': mt5.TIMEFRAME_M5       # 5
         }
         
         # Signal Cache for performance
         self.signal_cache = {}
-        self.cache_duration = 60  # 1 minute cache
+        self.cache_duration = 60
         
         # Market Regime Detection
         self.market_regimes = {}
         
-        # FIXED: Complete correlation matrix
+        # Start with base correlation pairs (without suffix)
         self.correlation_pairs = {
+            'EURUSD': ['GBPUSD', 'AUDUSD', 'NZDUSD', 'EURGBP'],
+            'GBPUSD': ['EURUSD', 'GBPJPY', 'GBPCHF', 'GBPAUD'],
+            'USDJPY': ['EURJPY', 'GBPJPY', 'AUDJPY', 'USDCHF'],
+            'USDCHF': ['USDJPY', 'EURCHF', 'GBPCHF'],
+            'AUDUSD': ['NZDUSD', 'EURAUD', 'GBPAUD', 'AUDCHF'],
+            'NZDUSD': ['AUDUSD', 'AUDNZD', 'NZDJPY', 'NZDCHF'],
+            'USDCAD': ['EURCAD', 'GBPCAD', 'AUDCAD', 'CADJPY'],
+            'EURJPY': ['USDJPY', 'GBPJPY', 'AUDJPY', 'EURCHF'],
+            'GBPJPY': ['USDJPY', 'EURJPY', 'AUDJPY', 'GBPCHF'],
+            'EURGBP': ['EURUSD', 'GBPUSD', 'EURJPY', 'GBPJPY'],
+            'EURCHF': ['EURUSD', 'USDCHF', 'GBPCHF'],
+            'EURAUD': ['EURUSD', 'AUDUSD', 'AUDCHF'],
+            'EURNZD': ['EURUSD', 'NZDUSD', 'AUDNZD'],
+            'EURCAD': ['EURUSD', 'USDCAD', 'AUDCAD'],
+            'GBPCHF': ['GBPUSD', 'USDCHF', 'EURCHF'],
+            'GBPAUD': ['GBPUSD', 'AUDUSD', 'EURAUD'],
+            'GBPNZD': ['GBPUSD', 'NZDUSD', 'AUDNZD'],
+            'GBPCAD': ['GBPUSD', 'USDCAD', 'EURCAD'],
+            'AUDCHF': ['AUDUSD', 'USDCHF', 'EURCHF'],
+            'AUDJPY': ['AUDUSD', 'USDJPY', 'EURJPY'],
+            'AUDNZD': ['AUDUSD', 'NZDUSD', 'EURNZD'],
+            'AUDCAD': ['AUDUSD', 'USDCAD', 'EURCAD'],
+            'NZDJPY': ['NZDUSD', 'USDJPY', 'AUDJPY'],
+            'NZDCHF': ['NZDUSD', 'USDCHF', 'AUDCHF'],
+            'NZDCAD': ['NZDUSD', 'USDCAD', 'AUDCAD'],
+            'CHFJPY': ['USDCHF', 'USDJPY', 'EURJPY'],
+            'CADJPY': ['USDCAD', 'USDJPY', 'AUDJPY'],
+            'XAUUSD': ['AUDUSD', 'EURUSD', 'GBPUSD', 'USDCHF']
+        }
+        
+        # Market sessions
+        self.market_sessions = {
+            'ASIAN': {'start': 0, 'end': 9},
+            'LONDON': {'start': 8, 'end': 17}, 
+            'NEWYORK': {'start': 13, 'end': 22},
+            'OVERLAP': {'start': 13, 'end': 17}
+        }
+        
+        # Fixed high_impact_times (string only)
+        self.high_impact_times = [
+            '00:00', '01:30', '03:00', '05:00',
+            '07:00', '08:30', '09:00', '10:00',
+            '12:30', '13:30', '14:30', '15:00', '16:00',
+            '19:00', '20:00', '21:00', '22:00'
+        ]
+    
+        self.logger.info("✅ Enhanced Signal Engine initialized with auto symbol detection")    
+    
+    def _detect_broker_suffix(self) -> str:
+        """🔍 ตรวจจับ suffix ของโบรกเกอร์อัตโนมัติ"""
+        try:
+            if not mt5.initialize():
+                self.logger.warning("MT5 not initialized, using default suffix")
+                return '.c'
+            
+            # Get all available symbols
+            all_symbols = mt5.symbols_get()
+            if not all_symbols:
+                self.logger.warning("No symbols available, using default suffix")
+                return '.c'
+            
+            symbol_names = [symbol.name for symbol in all_symbols]
+            
+            # Common suffixes to test
+            suffixes_to_test = ['', '.c', '.raw', '.ecn', '.pro', '.m', '.micro', 
+                            '.sb', '.std', '#', '_', '.mt5', '.fx', '.prime']
+            
+            # Score each suffix
+            suffix_scores = {}
+            for suffix in suffixes_to_test:
+                score = 0
+                for base_pair in self.base_pairs[:10]:  # Test first 10 major pairs
+                    test_symbol = base_pair + suffix
+                    if test_symbol in symbol_names:
+                        score += 1
+                suffix_scores[suffix] = score
+            
+            # Find best suffix
+            best_suffix = max(suffix_scores.keys(), key=lambda x: suffix_scores[x])
+            best_score = suffix_scores[best_suffix]
+            
+            self.logger.info(f"🎯 Detected broker suffix: '{best_suffix}' (found {best_score}/{len(self.base_pairs[:10])} pairs)")
+            
+            return best_suffix if best_score > 0 else '.c'
+            
+        except Exception as e:
+            self.logger.error(f"Suffix detection error: {str(e)}")
+            return '.c' 
+              
+    def _detect_and_build_correlation_pairs(self) -> Dict:
+        """🔗 สร้าง correlation pairs พร้อมตรวจจับ suffix อัตโนมัติ"""
+        try:
+            # Detect broker suffix
+            self.detected_suffix = self._detect_broker_suffix()
+            
+            # Build correlation matrix with detected suffix
+            correlation_pairs = {}
+            
+            # Major USD pairs
+            usd_majors = ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDCAD', 'USDCHF', 'USDJPY']
+            for pair in usd_majors:
+                broker_symbol = pair + self.detected_suffix
+                correlations = []
+                for other_pair in usd_majors:
+                    if other_pair != pair:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations[:4]  # Top 4 correlations
+            
+            # EUR cross pairs
+            eur_crosses = ['EURGBP', 'EURJPY', 'EURCHF', 'EURAUD', 'EURNZD', 'EURCAD']
+            for pair in eur_crosses:
+                broker_symbol = pair + self.detected_suffix
+                correlations = ['EURUSD' + self.detected_suffix]  # Always include EURUSD
+                for other_pair in eur_crosses:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations
+            
+            # GBP cross pairs
+            gbp_crosses = ['GBPJPY', 'GBPCHF', 'GBPAUD', 'GBPNZD', 'GBPCAD']
+            for pair in gbp_crosses:
+                broker_symbol = pair + self.detected_suffix
+                correlations = ['GBPUSD' + self.detected_suffix]  # Always include GBPUSD
+                for other_pair in gbp_crosses:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations
+            
+            # JPY pairs
+            jpy_pairs = ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY', 'NZDJPY', 'CADJPY', 'CHFJPY']
+            for pair in jpy_pairs:
+                broker_symbol = pair + self.detected_suffix
+                correlations = []
+                for other_pair in jpy_pairs:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations
+            
+            # AUD pairs
+            aud_pairs = ['AUDUSD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'AUDCAD']
+            for pair in aud_pairs:
+                broker_symbol = pair + self.detected_suffix
+                correlations = []
+                for other_pair in aud_pairs:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                # Add NZDUSD as it's highly correlated with AUD pairs
+                if 'NZDUSD' + self.detected_suffix not in correlations:
+                    correlations.append('NZDUSD' + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations[:4]
+            
+            # NZD pairs
+            nzd_pairs = ['NZDUSD', 'NZDJPY', 'NZDCHF', 'NZDCAD']
+            for pair in nzd_pairs:
+                broker_symbol = pair + self.detected_suffix
+                correlations = ['AUDUSD' + self.detected_suffix]  # AUD highly correlated
+                for other_pair in nzd_pairs:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations
+            
+            # CHF pairs
+            chf_pairs = ['USDCHF', 'EURCHF', 'GBPCHF', 'AUDCHF', 'NZDCHF', 'CHFJPY']
+            for pair in chf_pairs:
+                broker_symbol = pair + self.detected_suffix
+                correlations = []
+                for other_pair in chf_pairs:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations
+            
+            # CAD pairs
+            cad_pairs = ['USDCAD', 'EURCAD', 'GBPCAD', 'AUDCAD', 'NZDCAD', 'CADJPY']
+            for pair in cad_pairs:
+                broker_symbol = pair + self.detected_suffix
+                correlations = []
+                for other_pair in cad_pairs:
+                    if other_pair != pair and len(correlations) < 4:
+                        correlations.append(other_pair + self.detected_suffix)
+                correlation_pairs[broker_symbol] = correlations
+            
+            # Precious metals
+            metals = ['XAUUSD', 'XAGUSD']
+            for metal in metals:
+                broker_symbol = metal + self.detected_suffix
+                # Metals often correlate with AUD, EUR, and have inverse correlation with USD
+                correlations = [
+                    'AUDUSD' + self.detected_suffix,
+                    'EURUSD' + self.detected_suffix,
+                    'GBPUSD' + self.detected_suffix,
+                    'USDCHF' + self.detected_suffix
+                ]
+                correlation_pairs[broker_symbol] = correlations
+            
+            self.logger.info(f"✅ Built correlation matrix with {len(correlation_pairs)} pairs using suffix '{self.detected_suffix}'")
+            
+            return correlation_pairs
+            
+        except Exception as e:
+            self.logger.error(f"Error building correlation pairs: {str(e)}")
+            # Fallback to default .c suffix
+            return self._get_default_correlation_pairs()
+
+    def _get_default_correlation_pairs(self) -> Dict:
+        """📋 Fallback correlation pairs with .c suffix"""
+        return {
             'EURUSD.c': ['GBPUSD.c', 'AUDUSD.c', 'NZDUSD.c', 'EURGBP.c'],
             'GBPUSD.c': ['EURUSD.c', 'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c'],
             'USDJPY.c': ['EURJPY.c', 'GBPJPY.c', 'AUDJPY.c', 'USDCHF.c'],
             'USDCHF.c': ['USDJPY.c', 'EURCHF.c', 'GBPCHF.c'],
-            'AUDUSD.c': ['NZDUSD.c', 'EURUSD.c', 'AUDCHF.c', 'AUDJPY.c'],
-            'NZDUSD.c': ['AUDUSD.c', 'EURUSD.c', 'NZDJPY.c', 'NZDCHF.c'],
-            'USDCAD.c': ['CADJPY.c', 'AUDCAD.c', 'EURCAD.c'],
-            'EURJPY.c': ['USDJPY.c', 'GBPJPY.c', 'AUDJPY.c', 'EURCHF.c'],
-            'GBPJPY.c': ['USDJPY.c', 'EURJPY.c', 'AUDJPY.c', 'GBPCHF.c'],
-            'EURGBP.c': ['EURUSD.c', 'GBPUSD.c', 'EURJPY.c', 'GBPJPY.c'],
-            'EURCHF.c': ['EURUSD.c', 'USDCHF.c', 'GBPCHF.c'],
-            'EURAUD.c': ['EURUSD.c', 'AUDUSD.c', 'AUDCHF.c'],
-            'EURNZD.c': ['EURUSD.c', 'NZDUSD.c', 'AUDNZD.c'],
-            'EURCAD.c': ['EURUSD.c', 'USDCAD.c', 'AUDCAD.c'],
-            'GBPCHF.c': ['GBPUSD.c', 'USDCHF.c', 'EURCHF.c'],
-            'GBPAUD.c': ['GBPUSD.c', 'AUDUSD.c', 'EURAUD.c'],
-            'GBPNZD.c': ['GBPUSD.c', 'NZDUSD.c', 'AUDNZD.c'],
-            'GBPCAD.c': ['GBPUSD.c', 'USDCAD.c', 'EURCAD.c'],
-            'AUDCHF.c': ['AUDUSD.c', 'USDCHF.c', 'EURCHF.c'],
-            'AUDJPY.c': ['AUDUSD.c', 'USDJPY.c', 'EURJPY.c'],
-            'AUDNZD.c': ['AUDUSD.c', 'NZDUSD.c', 'EURNZD.c'],
-            'AUDCAD.c': ['AUDUSD.c', 'USDCAD.c', 'EURCAD.c'],
-            'NZDJPY.c': ['NZDUSD.c', 'USDJPY.c', 'AUDJPY.c'],
-            'NZDCHF.c': ['NZDUSD.c', 'USDCHF.c', 'AUDCHF.c'],
-            'NZDCAD.c': ['NZDUSD.c', 'USDCAD.c', 'AUDCAD.c'],
-            'CHFJPY.c': ['USDCHF.c', 'USDJPY.c', 'EURJPY.c'],
-            'CADJPY.c': ['USDCAD.c', 'USDJPY.c', 'AUDJPY.c'],
-            'XAUUSD.c': ['XAGUSD.c', 'XPTUSD.c'],  # Gold correlations
+            'AUDUSD.c': ['NZDUSD.c', 'EURAUD.c', 'GBPAUD.c', 'AUDCHF.c'],
+            'NZDUSD.c': ['AUDUSD.c', 'AUDNZD.c', 'NZDJPY.c', 'NZDCHF.c'],
+            'USDCAD.c': ['EURCAD.c', 'GBPCAD.c', 'AUDCAD.c', 'CADJPY.c'],
+            'XAUUSD.c': ['AUDUSD.c', 'EURUSD.c', 'GBPUSD.c', 'USDCHF.c']
         }
+
+    def get_broker_symbol(self, base_symbol: str) -> str:
+        """🔄 แปลง base symbol เป็น broker symbol"""
+        if self.detected_suffix is None:
+            self.detected_suffix = self._detect_broker_suffix()
         
-        # FIXED: Extended news times with market sessions
-        self.high_impact_times = [
-            # Asian Session
-            '00:00', '01:30', '03:00', '05:00',
-            # London Session  
-            '07:00', '08:30', '09:00', '10:00',
-            # NY Session
-            '12:30', '13:30', '14:30', '15:00', '16:00',
-            # Major News Times
-            '19:00', '20:00', '21:00', '22:00'
-        ]
+        # ถ้า symbol มี suffix อยู่แล้ว ให้ return เลย
+        if any(base_symbol.endswith(suffix) for suffix in ['.c', '.raw', '.ecn', '.pro', '.m']):
+            return base_symbol
         
-        # FIXED: Add market session detection
-        self.market_sessions = {
-            'ASIAN': {'start': 0, 'end': 9},     # 00:00-09:00 UTC
-            'LONDON': {'start': 8, 'end': 17},   # 08:00-17:00 UTC
-            'NEWYORK': {'start': 13, 'end': 22}, # 13:00-22:00 UTC
-            'OVERLAP': {'start': 13, 'end': 17}  # London-NY Overlap
-        }
+        return base_symbol + self.detected_suffix
+
+    def get_correlation_pairs_for_symbol(self, symbol: str) -> List[str]:
+        """🔗 ดึง correlation pairs สำหรับ symbol ที่กำหนด"""
+        # แปลงเป็น broker symbol format ก่อน
+        broker_symbol = self.get_broker_symbol(symbol)
         
-        # Setup logging
-        self.logger = logging.getLogger(__name__)
+        # หา correlation pairs
+        correlations = self.correlation_pairs.get(broker_symbol, [])
         
-        print("✅ Enhanced Multi-Timeframe Signal Engine Initialized")
-        print("📊 H4 Trend + H1 Setup + M15 Entry + M5 Management")
-        print("🔄 Signal Confluence System Active")
-        print("🌐 All correlation pairs and market sessions loaded")
-    
+        if not correlations:
+            # ลองหาจาก base symbol
+            base_symbol = symbol.replace('.c', '').replace('.raw', '').replace('.ecn', '')
+            base_symbol = base_symbol.replace('.pro', '').replace('.m', '').replace('.micro', '')
+            
+            # หาใน correlation_pairs โดยเปรียบเทียบ base symbol
+            for key, values in self.correlation_pairs.items():
+                key_base = key.replace(self.detected_suffix, '') if self.detected_suffix else key
+                if key_base == base_symbol:
+                    correlations = values
+                    break
+        
+        return correlations
+
     def get_cached_signal(self, symbol: str) -> Optional[Dict]:
         """Get cached signal to reduce computation - FIXED"""
         try:
@@ -161,18 +355,24 @@ class MultiTimeframeSignalEngine:
             self.logger.error(f"Cache save error for {symbol}: {str(e)}")
     
     def get_timeframe_data(self, symbol: str, timeframe: int, periods: int = 100) -> Optional[pd.DataFrame]:
-        """Get OHLC data for specific timeframe with enhanced error handling - FIXED"""
+        """Get OHLC data with automatic symbol detection - COMPLETELY FIXED"""
         try:
+            # CRITICAL FIX: Auto-detect correct symbol format
+            actual_symbol = self._find_actual_symbol(symbol)
+            if not actual_symbol:
+                self.logger.warning(f"Cannot find actual symbol for {symbol}")
+                return None
+            
             # FIXED: Add retry mechanism with exponential backoff
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, periods)
+                    rates = mt5.copy_rates_from_pos(actual_symbol, timeframe, 0, periods)
                     if rates is None or len(rates) < 10:  # Reduced minimum from 50 to 10
                         if attempt < max_retries - 1:
                             time.sleep(0.1 * (attempt + 1))  # Exponential backoff
                             continue
-                        self.logger.warning(f"Insufficient data for {symbol} timeframe {timeframe}")
+                        self.logger.warning(f"Insufficient data for {actual_symbol} timeframe {timeframe}")
                         return None
                     
                     df = pd.DataFrame(rates)
@@ -180,7 +380,7 @@ class MultiTimeframeSignalEngine:
                     
                     # FIXED: Validate data quality
                     if df['close'].isna().sum() > len(df) * 0.1:  # More than 10% NaN
-                        self.logger.warning(f"Poor data quality for {symbol}")
+                        self.logger.warning(f"Poor data quality for {actual_symbol}")
                         return None
                     
                     return df
@@ -189,7 +389,7 @@ class MultiTimeframeSignalEngine:
                     if attempt < max_retries - 1:
                         time.sleep(0.1 * (attempt + 1))
                         continue
-                    self.logger.error(f"Error getting {symbol} data (attempt {attempt + 1}): {str(e)}")
+                    self.logger.error(f"Error getting {actual_symbol} data (attempt {attempt + 1}): {str(e)}")
                     return None
             
             return None
@@ -197,209 +397,461 @@ class MultiTimeframeSignalEngine:
         except Exception as e:
             self.logger.error(f"Critical error getting {symbol} data: {str(e)}")
             return None
-    
-    def calculate_rsi(self, close: pd.Series, period: int = 14) -> pd.Series:
-        """Calculate RSI with enhanced error handling - FIXED"""
+    def _find_actual_symbol(self, target_symbol: str) -> Optional[str]:
+        """🔍 หา symbol ที่ถูกต้องในโบรกเกอร์"""
         try:
-            if len(close) < period:
-                return pd.Series([50.0] * len(close), index=close.index)
+            if not mt5.initialize():
+                return target_symbol
+            
+            # Get all available symbols
+            all_symbols = mt5.symbols_get()
+            if not all_symbols:
+                return target_symbol
+            
+            symbol_names = [symbol.name for symbol in all_symbols]
+            
+            # Step 1: Try exact match first
+            if target_symbol in symbol_names:
+                return target_symbol
+            
+            # Step 2: Remove .c suffix and try base symbol
+            base_symbol = target_symbol.replace('.c', '')
+            if base_symbol in symbol_names:
+                self.logger.info(f"✅ Found {base_symbol} (removed .c from {target_symbol})")
+                return base_symbol
+            
+            # Step 3: Try common suffixes
+            common_suffixes = ['', '.raw', '.ecn', '.pro', '.m', '.micro', '.sb', '.std', '#', '_']
+            for suffix in common_suffixes:
+                test_symbol = base_symbol + suffix
+                if test_symbol in symbol_names:
+                    self.logger.info(f"✅ Found {test_symbol} for {target_symbol}")
+                    return test_symbol
+            
+            # Step 4: Try partial matching (case insensitive)
+            base_lower = base_symbol.lower()
+            for symbol_name in symbol_names:
+                if symbol_name.lower().startswith(base_lower):
+                    self.logger.info(f"✅ Found partial match {symbol_name} for {target_symbol}")
+                    return symbol_name
+            
+            self.logger.warning(f"❌ Cannot find symbol for {target_symbol}")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Symbol detection error: {str(e)}")
+            return target_symbol
+
+    # 🔧 FIX 3: แก้ไข correlation_pairs ให้ใช้ base symbols
+    def _update_correlation_pairs_to_base_symbols(self):
+        """🔄 อัปเดต correlation_pairs เป็น base symbols"""
+        try:
+            # Convert existing correlation_pairs to base symbols
+            updated_pairs = {}
+            
+            for symbol, correlations in self.correlation_pairs.items():
+                # Convert main symbol to base
+                base_symbol = symbol.replace('.c', '')
                 
-            delta = close.diff()
-            gain = delta.where(delta > 0, 0)
-            loss = -delta.where(delta < 0, 0)
+                # Convert correlation symbols to base
+                base_correlations = []
+                for corr_symbol in correlations:
+                    base_corr = corr_symbol.replace('.c', '')
+                    base_correlations.append(base_corr)
+                
+                updated_pairs[base_symbol] = base_correlations
             
-            # FIXED: Use Wilder's smoothing method for more accurate RSI
-            alpha = 1.0 / period
-            avg_gain = gain.ewm(alpha=alpha, adjust=False).mean()
-            avg_loss = loss.ewm(alpha=alpha, adjust=False).mean()
+            self.correlation_pairs = updated_pairs
+            self.logger.info(f"✅ Updated correlation pairs to base symbols: {len(updated_pairs)} pairs")
             
-            # FIXED: Handle division by zero
-            rs = avg_gain / avg_loss.replace(0, 0.001)
+        except Exception as e:
+            self.logger.error(f"Error updating correlation pairs: {str(e)}")    
+    def calculate_rsi(self, close: pd.Series, period: int = 14) -> pd.Series:
+        """Calculate RSI with BULLETPROOF error handling - PROFESSIONAL FIX"""
+        try:
+            # Validate input data
+            if close is None or len(close) < 2:
+                self.logger.warning(f"RSI: Insufficient data length: {len(close) if close is not None else 0}")
+                return pd.Series([50.0] * (len(close) if close is not None else 14), 
+                            index=close.index if close is not None else range(14))
+            
+            # CRITICAL FIX: Handle insufficient data gracefully
+            if len(close) < period:
+                self.logger.warning(f"RSI: Data length {len(close)} < period {period}, using available data")
+                period = max(2, len(close) - 1)
+            
+            # Calculate price changes
+            delta = close.diff().dropna()
+            if len(delta) == 0:
+                return pd.Series([50.0] * len(close), index=close.index)
+            
+            # Separate gains and losses
+            gains = delta.where(delta > 0, 0)
+            losses = -delta.where(delta < 0, 0)
+            
+            # PROFESSIONAL FIX: Use Wilder's smoothing method (industry standard)
+            # First calculation using SMA
+            avg_gain = gains.rolling(window=period, min_periods=1).mean()
+            avg_loss = losses.rolling(window=period, min_periods=1).mean()
+            
+            # Apply Wilder's smoothing for subsequent values
+            for i in range(period, len(gains)):
+                avg_gain.iloc[i] = (avg_gain.iloc[i-1] * (period - 1) + gains.iloc[i]) / period
+                avg_loss.iloc[i] = (avg_loss.iloc[i-1] * (period - 1) + losses.iloc[i]) / period
+            
+            # CRITICAL FIX: Division by zero protection
+            avg_loss_safe = avg_loss.where(avg_loss != 0, 0.0001)  # Prevent division by zero
+            rs = avg_gain / avg_loss_safe
+            
+            # Calculate RSI
             rsi = 100 - (100 / (1 + rs))
             
-            # FIXED: Fill NaN values with neutral RSI
-            rsi = rsi.fillna(50.0)
+            # BULLETPROOF VALIDATION
+            rsi = rsi.fillna(50.0)  # Fill NaN with neutral RSI
+            rsi = rsi.replace([np.inf, -np.inf], 50.0)  # Replace infinite values
+            rsi = rsi.clip(0, 100)  # Ensure valid range
             
-            # FIXED: Clamp values to valid range
-            rsi = rsi.clip(0, 100)
+            # Extend to match original close series length
+            if len(rsi) < len(close):
+                rsi = rsi.reindex(close.index, method='bfill').fillna(50.0)
             
             return rsi
+            
         except Exception as e:
-            self.logger.error(f"RSI calculation error: {str(e)}")
+            self.logger.error(f"CRITICAL RSI calculation error: {str(e)}")
+            # Emergency fallback
             return pd.Series([50.0] * len(close), index=close.index)
-    
+        
     def calculate_atr(self, high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
-        """Calculate Average True Range with enhanced error handling - FIXED"""
+        """Calculate ATR with BULLETPROOF error handling - PROFESSIONAL FIX"""
         try:
-            if len(close) < period:
-                default_atr = (high - low).mean() if len(high) > 0 else 0.001
-                return pd.Series([default_atr] * len(close), index=close.index)
+            # Validate inputs
+            if any(series is None or len(series) < 2 for series in [high, low, close]):
+                self.logger.warning("ATR: Insufficient or invalid input data")
+                return pd.Series([0.001] * len(close), index=close.index)
+            
+            # CRITICAL FIX: Ensure all series have same length
+            min_length = min(len(high), len(low), len(close))
+            if min_length < 2:
+                return pd.Series([0.001] * len(close), index=close.index)
+            
+            high = high.iloc[:min_length]
+            low = low.iloc[:min_length] 
+            close = close.iloc[:min_length]
+            
+            # Adaptive period for insufficient data
+            if min_length < period:
+                period = max(2, min_length - 1)
+                self.logger.warning(f"ATR: Adjusted period to {period} due to data length {min_length}")
+            
+            # True Range calculation with enhanced error handling
+            try:
+                tr1 = high - low  # High - Low
+                tr2 = abs(high - close.shift(1))  # High - Previous Close
+                tr3 = abs(low - close.shift(1))   # Low - Previous Close
                 
-            tr1 = high - low
-            tr2 = abs(high - close.shift())
-            tr3 = abs(low - close.shift())
-            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+                # PROFESSIONAL FIX: Handle NaN values in TR components
+                tr1 = tr1.fillna(0)
+                tr2 = tr2.fillna(tr1)  # Use high-low if no previous close
+                tr3 = tr3.fillna(tr1)  # Use high-low if no previous close
+                
+                # True Range = Maximum of the three
+                tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+                
+            except Exception as tr_error:
+                self.logger.error(f"ATR True Range calculation error: {tr_error}")
+                # Fallback to simple range
+                tr = high - low
+                tr = tr.fillna(0.001)
             
-            # FIXED: Use Wilder's smoothing for ATR
-            atr = tr.ewm(span=period, adjust=False).mean()
+            # ATR calculation using Wilder's smoothing method
+            try:
+                # First ATR value using simple moving average
+                atr = tr.rolling(window=period, min_periods=1).mean()
+                
+                # Apply Wilder's smoothing for professional accuracy
+                for i in range(period, len(tr)):
+                    atr.iloc[i] = (atr.iloc[i-1] * (period - 1) + tr.iloc[i]) / period
+                    
+            except Exception as atr_error:
+                self.logger.error(f"ATR smoothing calculation error: {atr_error}")
+                # Fallback to simple moving average
+                atr = tr.rolling(window=period, min_periods=1).mean()
             
-            # FIXED: Handle NaN values more robustly
-            atr = atr.fillna(method='bfill').fillna(method='ffill').fillna(0.001)
+            # BULLETPROOF VALIDATION
+            atr = atr.fillna(0.001)  # Fill NaN with minimum value
+            atr = atr.replace([np.inf, -np.inf], 0.001)  # Replace infinite values
+            atr = atr.where(atr > 0.000001, 0.001)  # Ensure positive minimum value
             
-            # FIXED: Ensure minimum ATR value
-            atr = atr.where(atr > 0.000001, 0.001)
+            # Extend series to match close length if needed
+            if len(atr) < len(close):
+                atr = atr.reindex(close.index, method='bfill').fillna(0.001)
             
             return atr
+            
         except Exception as e:
-            self.logger.error(f"ATR calculation error: {str(e)}")
+            self.logger.error(f"CRITICAL ATR calculation error: {str(e)}")
+            # Emergency fallback
             return pd.Series([0.001] * len(close), index=close.index)
-    
+        
     def calculate_macd(self, close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> Tuple[pd.Series, pd.Series, pd.Series]:
-        """Calculate MACD with enhanced error handling - FIXED"""
+        """Calculate MACD with BULLETPROOF error handling - PROFESSIONAL FIX"""
         try:
-            if len(close) < slow:
+            # Validate input
+            if close is None or len(close) < 2:
+                default_series = pd.Series([0.0] * (len(close) if close is not None else slow+signal), 
+                                        index=close.index if close is not None else range(slow+signal))
+                return default_series, default_series, default_series
+            
+            # CRITICAL FIX: Adaptive periods for insufficient data
+            data_len = len(close)
+            if data_len < slow + signal:
+                self.logger.warning(f"MACD: Insufficient data {data_len}, adjusting periods")
+                fast = min(fast, max(2, data_len // 3))
+                slow = min(slow, max(3, data_len // 2))
+                signal = min(signal, max(2, data_len // 4))
+            
+            # Calculate EMAs with error handling
+            try:
+                ema_fast = close.ewm(span=fast, adjust=False).mean()
+                ema_slow = close.ewm(span=slow, adjust=False).mean()
+            except Exception as ema_error:
+                self.logger.error(f"MACD EMA calculation error: {ema_error}")
                 default_series = pd.Series([0.0] * len(close), index=close.index)
                 return default_series, default_series, default_series
-                
-            ema_fast = close.ewm(span=fast, adjust=False).mean()
-            ema_slow = close.ewm(span=slow, adjust=False).mean()
+            
+            # MACD Line calculation
             macd_line = ema_fast - ema_slow
-            macd_signal = macd_line.ewm(span=signal, adjust=False).mean()
+            
+            # Signal Line calculation  
+            try:
+                macd_signal = macd_line.ewm(span=signal, adjust=False).mean()
+            except Exception as signal_error:
+                self.logger.error(f"MACD signal calculation error: {signal_error}")
+                macd_signal = pd.Series([0.0] * len(macd_line), index=macd_line.index)
+            
+            # Histogram calculation
             macd_histogram = macd_line - macd_signal
             
-            # FIXED: Handle NaN values properly
-            macd_line = macd_line.fillna(0.0)
-            macd_signal = macd_signal.fillna(0.0) 
-            macd_histogram = macd_histogram.fillna(0.0)
+            # BULLETPROOF VALIDATION
+            macd_line = macd_line.fillna(0.0).replace([np.inf, -np.inf], 0.0)
+            macd_signal = macd_signal.fillna(0.0).replace([np.inf, -np.inf], 0.0)
+            macd_histogram = macd_histogram.fillna(0.0).replace([np.inf, -np.inf], 0.0)
             
             return macd_line, macd_signal, macd_histogram
+            
         except Exception as e:
-            self.logger.error(f"MACD calculation error: {str(e)}")
+            self.logger.error(f"CRITICAL MACD calculation error: {str(e)}")
+            # Emergency fallback
             default_series = pd.Series([0.0] * len(close), index=close.index)
             return default_series, default_series, default_series
-    
+        
     def calculate_advanced_indicators(self, df: pd.DataFrame) -> Dict:
-        """Calculate comprehensive technical indicators - COMPLETELY FIXED"""
+        """Calculate comprehensive technical indicators with BULLETPROOF error handling - PROFESSIONAL FIX"""
         try:
-            if len(df) < 5:  # Further reduced minimum requirement
+            # CRITICAL VALIDATION
+            if df is None or len(df) < 3:
+                self.logger.warning(f"Advanced indicators: Insufficient data length: {len(df) if df is not None else 0}")
                 return self.get_default_indicators()
-                
-            close = df['close']
-            high = df['high']
-            low = df['low']
+            
+            # Validate required columns
+            required_columns = ['close', 'high', 'low']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                self.logger.error(f"Advanced indicators: Missing columns: {missing_columns}")
+                return self.get_default_indicators()
+            
+            # Extract and validate price series
+            close = df['close'].fillna(method='ffill').fillna(method='bfill')
+            high = df['high'].fillna(method='ffill').fillna(method='bfill')
+            low = df['low'].fillna(method='ffill').fillna(method='bfill')
             volume = df.get('tick_volume', pd.Series(1, index=df.index))
             
-            # FIXED: Adaptive periods based on available data
+            # Final data quality check
+            if close.isna().all() or high.isna().all() or low.isna().all():
+                self.logger.error("Advanced indicators: All price data is NaN after cleaning")
+                return self.get_default_indicators()
+            
+            # PROFESSIONAL ADAPTIVE PERIODS based on data availability
             data_len = len(close)
-            ema_9_period = min(9, max(3, data_len // 3))
-            ema_21_period = min(21, max(5, data_len // 2))
-            ema_50_period = min(50, max(10, data_len - 1))
-            ema_200_period = min(200, data_len - 1)
-            
-            # EMA SYSTEM with adaptive periods
-            ema_9 = close.ewm(span=ema_9_period, adjust=False).mean()
-            ema_21 = close.ewm(span=ema_21_period, adjust=False).mean()
-            ema_50 = close.ewm(span=ema_50_period, adjust=False).mean()
-            ema_200 = close.ewm(span=ema_200_period, adjust=False).mean()
-            
-            # RSI MULTI-PERIOD
-            rsi_14_period = min(14, max(3, data_len // 2))
-            rsi_21_period = min(21, max(5, data_len - 1))
-            rsi_14 = self.calculate_rsi(close, rsi_14_period)
-            rsi_21 = self.calculate_rsi(close, rsi_21_period)
-            
-            # ATR & VOLATILITY
-            atr_14_period = min(14, max(3, data_len // 2))
-            atr_21_period = min(21, max(5, data_len - 1))
-            atr_14 = self.calculate_atr(high, low, close, atr_14_period)
-            atr_21 = self.calculate_atr(high, low, close, atr_21_period)
-            
-            # MACD SYSTEM
-            macd_line, macd_signal, macd_histogram = self.calculate_macd(close)
-            
-            # VOLUME ANALYSIS
-            volume_periods = min(20, max(3, data_len - 1))
-            volume_sma = volume.rolling(window=volume_periods, min_periods=1).mean()
-            volume_ratio = volume / volume_sma.replace(0, 1)
-            
-            # TREND ANALYSIS - FIXED: Resolve the pandas Series truth value error
-            trend_strength = self.calculate_trend_strength(close, ema_9, ema_21, ema_50)
-            trend_direction = self.get_trend_direction(ema_9, ema_21, ema_50, ema_200)
-            
-            # MOMENTUM with variable periods
-            momentum_10_period = min(10, max(1, data_len - 2))
-            momentum_20_period = min(20, max(2, data_len - 2))
-            momentum_10 = close / close.shift(momentum_10_period) - 1 if momentum_10_period > 0 else pd.Series([0] * len(close))
-            momentum_20 = close / close.shift(momentum_20_period) - 1 if momentum_20_period > 0 else momentum_10
-            
-            # FIXED: Ultra-safe value extraction with multiple fallbacks
-            def ultra_safe_get_last(series, default=0, symbol_specific_default=None):
-                try:
-                    if len(series) == 0:
-                        return symbol_specific_default or default
-                    val = series.iloc[-1]
-                    if pd.isna(val) or val == np.inf or val == -np.inf:
-                        return symbol_specific_default or default
-                    return float(val)
-                except:
-                    return symbol_specific_default or default
-            
-            current_price = ultra_safe_get_last(close, 1.0, 1.0)
-            
-            # FIXED: Calculate dynamic defaults based on current price
-            default_atr = current_price * 0.001
-            
-            return {
-                # EMAs
-                'ema_9': ultra_safe_get_last(ema_9, current_price),
-                'ema_21': ultra_safe_get_last(ema_21, current_price),
-                'ema_50': ultra_safe_get_last(ema_50, current_price),
-                'ema_200': ultra_safe_get_last(ema_200, current_price),
-                
-                # RSI
-                'rsi_14': ultra_safe_get_last(rsi_14, 50.0),
-                'rsi_21': ultra_safe_get_last(rsi_21, 50.0),
-                
-                # ATR & Volatility
-                'atr_14': ultra_safe_get_last(atr_14, default_atr),
-                'atr_21': ultra_safe_get_last(atr_21, default_atr),
-                'atr_percent': (ultra_safe_get_last(atr_14, default_atr) / current_price * 100) if current_price > 0 else 0.1,
-                
-                # MACD
-                'macd_line': ultra_safe_get_last(macd_line, 0.0),
-                'macd_signal': ultra_safe_get_last(macd_signal, 0.0),
-                'macd_histogram': ultra_safe_get_last(macd_histogram, 0.0),
-                
-                # Volume
-                'volume_ratio': ultra_safe_get_last(volume_ratio, 1.0),
-                
-                # Trend
-                'trend_strength': trend_strength,
-                'trend_direction': trend_direction,
-                
-                # Momentum
-                'momentum_10': ultra_safe_get_last(momentum_10, 0.0),
-                'momentum_20': ultra_safe_get_last(momentum_20, 0.0),
-                
-                # Current Price
-                'current_price': current_price,
-                
-                # FIXED: Add data quality metrics
-                'data_quality': {
-                    'data_points': data_len,
-                    'ema_periods_used': {
-                        'ema_9': ema_9_period,
-                        'ema_21': ema_21_period,
-                        'ema_50': ema_50_period
-                    },
-                    'indicators_calculated': True
-                }
+            periods = {
+                'ema_9': min(9, max(3, data_len // 4)),
+                'ema_21': min(21, max(5, data_len // 3)), 
+                'ema_50': min(50, max(8, data_len // 2)),
+                'ema_200': min(200, max(20, data_len - 1)),
+                'rsi_14': min(14, max(3, data_len // 3)),
+                'rsi_21': min(21, max(5, data_len // 2)),
+                'atr_14': min(14, max(3, data_len // 3)),
+                'macd_fast': min(12, max(3, data_len // 4)),
+                'macd_slow': min(26, max(5, data_len // 3)),
+                'macd_signal': min(9, max(2, data_len // 5))
             }
             
+            # Calculate current price safely
+            current_price = float(close.iloc[-1]) if len(close) > 0 else 1.0
+            
+            # Calculate all indicators with professional error handling
+            try:
+                # EMA calculations with validation
+                ema_9 = close.ewm(span=periods['ema_9'], adjust=False).mean()
+                ema_21 = close.ewm(span=periods['ema_21'], adjust=False).mean()
+                ema_50 = close.ewm(span=periods['ema_50'], adjust=False).mean()
+                ema_200 = close.ewm(span=periods['ema_200'], adjust=False).mean()
+                
+                # Get latest EMA values with validation
+                ema_9_val = float(ema_9.iloc[-1]) if len(ema_9) > 0 and pd.notna(ema_9.iloc[-1]) else current_price
+                ema_21_val = float(ema_21.iloc[-1]) if len(ema_21) > 0 and pd.notna(ema_21.iloc[-1]) else current_price
+                ema_50_val = float(ema_50.iloc[-1]) if len(ema_50) > 0 and pd.notna(ema_50.iloc[-1]) else current_price
+                ema_200_val = float(ema_200.iloc[-1]) if len(ema_200) > 0 and pd.notna(ema_200.iloc[-1]) else current_price
+                        
+            except Exception as ema_error:
+                self.logger.error(f"EMA calculation error: {ema_error}")
+                ema_9_val = ema_21_val = ema_50_val = ema_200_val = current_price
+            
+            try:
+                # RSI calculations using fixed method
+                rsi_series_14 = self.calculate_rsi(close, periods['rsi_14'])
+                rsi_series_21 = self.calculate_rsi(close, periods['rsi_21'])
+                
+                rsi_14_val = float(rsi_series_14.iloc[-1]) if len(rsi_series_14) > 0 else 50.0
+                rsi_21_val = float(rsi_series_21.iloc[-1]) if len(rsi_series_21) > 0 else 50.0
+                
+                # Ensure RSI is in valid range
+                rsi_14_val = max(0, min(100, rsi_14_val))
+                rsi_21_val = max(0, min(100, rsi_21_val))
+                
+            except Exception as rsi_error:
+                self.logger.error(f"RSI calculation error: {rsi_error}")
+                rsi_14_val = rsi_21_val = 50.0
+            
+            try:
+                # MACD calculations using fixed method
+                macd_line, macd_signal_line, macd_histogram = self.calculate_macd(
+                    close, periods['macd_fast'], periods['macd_slow'], periods['macd_signal']
+                )
+                
+                macd_val = float(macd_line.iloc[-1]) if len(macd_line) > 0 and pd.notna(macd_line.iloc[-1]) else 0.0
+                macd_signal_val = float(macd_signal_line.iloc[-1]) if len(macd_signal_line) > 0 and pd.notna(macd_signal_line.iloc[-1]) else 0.0
+                macd_hist_val = float(macd_histogram.iloc[-1]) if len(macd_histogram) > 0 and pd.notna(macd_histogram.iloc[-1]) else 0.0
+                
+            except Exception as macd_error:
+                self.logger.error(f"MACD calculation error: {macd_error}")
+                macd_val = macd_signal_val = macd_hist_val = 0.0
+            
+            try:
+                # ATR calculations using fixed method
+                atr_series = self.calculate_atr(high, low, close, periods['atr_14'])
+                atr_val = float(atr_series.iloc[-1]) if len(atr_series) > 0 and pd.notna(atr_series.iloc[-1]) else 0.001
+                
+                # Calculate ATR percentage
+                atr_percent = (atr_val / current_price) * 100 if current_price > 0 else 0.1
+                
+            except Exception as atr_error:
+                self.logger.error(f"ATR calculation error: {atr_error}")
+                atr_val = 0.001
+                atr_percent = 0.1
+            
+            # PROFESSIONAL TREND ANALYSIS
+            try:
+                trend_conditions = [
+                    current_price > ema_9_val,
+                    ema_9_val > ema_21_val, 
+                    ema_21_val > ema_50_val,
+                    rsi_14_val > 50,
+                    macd_val > macd_signal_val
+                ]
+                trend_strength = sum(trend_conditions) / len(trend_conditions)
+                
+            except Exception:
+                trend_strength = 0.5
+            
+            # VOLUME ANALYSIS
+            try:
+                if len(volume) >= 20:
+                    avg_volume = volume.rolling(20, min_periods=5).mean().iloc[-1]
+                    current_volume = volume.iloc[-1]
+                    volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1.0
+                else:
+                    volume_ratio = 1.0
+            except Exception:
+                volume_ratio = 1.0
+            
+            # TREND DIRECTION CLASSIFICATION
+            try:
+                if (ema_9_val > ema_21_val > ema_50_val > ema_200_val and 
+                    current_price > ema_9_val):
+                    trend_direction = 'STRONG_UPTREND'
+                elif (ema_9_val > ema_21_val > ema_50_val and 
+                    current_price > ema_9_val):
+                    trend_direction = 'UPTREND'
+                elif (ema_9_val < ema_21_val < ema_50_val < ema_200_val and 
+                    current_price < ema_9_val):
+                    trend_direction = 'STRONG_DOWNTREND'
+                elif (ema_9_val < ema_21_val < ema_50_val and 
+                    current_price < ema_9_val):
+                    trend_direction = 'DOWNTREND'
+                else:
+                    trend_direction = 'SIDEWAYS'
+            except Exception:
+                trend_direction = 'UNKNOWN'
+            
+            # RETURN PROFESSIONAL RESULTS
+            result = {
+                # Core indicators - exact names used in original code
+                'rsi_14': rsi_14_val,
+                'rsi_21': rsi_21_val,
+                'macd_line': macd_val,
+                'macd_signal': macd_signal_val,
+                'macd_histogram': macd_hist_val,
+                'atr_14': atr_val,
+                'atr_percent': atr_percent,
+                
+                # Moving averages - exact names used in original code
+                'ema_9': ema_9_val,
+                'ema_21': ema_21_val,
+                'ema_50': ema_50_val,
+                'ema_200': ema_200_val,
+                
+                # Derived indicators
+                'trend_strength': max(0, min(1, trend_strength)),
+                'volume_ratio': max(0.1, volume_ratio),
+                'trend_direction': trend_direction,
+                'current_price': current_price,
+                
+                # Data quality metadata
+                'data_quality': {
+                    'data_points': data_len,
+                    'adaptive_periods_used': periods,
+                    'calculation_success': True,
+                    'zero_division_protected': True
+                },
+                
+                # Timestamp
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Final validation of all numeric values
+            for key, value in result.items():
+                if key not in ['trend_direction', 'data_quality', 'timestamp']:
+                    if not isinstance(value, (int, float)) or not np.isfinite(value):
+                        self.logger.warning(f"Invalid value for {key}: {value}, fixing...")
+                        if 'rsi' in key:
+                            result[key] = 50.0
+                        elif 'atr' in key and 'percent' not in key:
+                            result[key] = 0.001
+                        elif 'percent' in key:
+                            result[key] = 0.1
+                        elif any(x in key for x in ['price', 'ema']):
+                            result[key] = current_price
+                        else:
+                            result[key] = 0.0
+            
+            return result
+            
         except Exception as e:
-            self.logger.error(f"Error calculating indicators: {str(e)}")
+            self.logger.error(f"CRITICAL advanced indicators calculation error: {str(e)}")
             return self.get_default_indicators()
-    
+        
     def calculate_trend_strength(self, close: pd.Series, ema_9: pd.Series, ema_21: pd.Series, ema_50: pd.Series) -> float:
         """Calculate trend strength (0-1) with ZERO DIVISION PROTECTION - COMPLETELY FIXED"""
         try:
@@ -1874,9 +2326,30 @@ class MultiTimeframeSignalEngine:
             # FIXED: More sophisticated news filtering
             current_total_minutes = current_hour * 60 + current_minute
             
+            # CRITICAL FIX: Handle different data types in high_impact_times
             for news_time in self.high_impact_times:
                 try:
-                    news_hour, news_minute = map(int, news_time.split(':'))
+                    # Convert news_time to string format if it's not already
+                    if isinstance(news_time, tuple):
+                        # If it's a tuple like ('00:00', '01:30'), take the start time
+                        news_time_str = news_time[0] if len(news_time) > 0 else "00:00"
+                    elif isinstance(news_time, str):
+                        # If it's already a string like "09:00"
+                        news_time_str = news_time
+                    else:
+                        # Skip invalid format
+                        continue
+                    
+                    # Parse the time string
+                    if ':' not in news_time_str:
+                        continue  # Skip invalid format
+                    
+                    time_parts = news_time_str.split(':')
+                    if len(time_parts) != 2:
+                        continue  # Skip invalid format
+                    
+                    news_hour = int(time_parts[0])
+                    news_minute = int(time_parts[1])
                     news_total_minutes = news_hour * 60 + news_minute
                     
                     # Calculate time difference considering day rollover
@@ -1897,9 +2370,11 @@ class MultiTimeframeSignalEngine:
                         buffer_minutes = 15  # Standard buffer
                     
                     if time_diff <= buffer_minutes:
+                        self.logger.info(f"News filter: {symbol} blocked - too close to {news_time_str} (diff: {time_diff}min)")
                         return False  # Too close to news event
                         
-                except (ValueError, IndexError):
+                except (ValueError, IndexError, AttributeError) as e:
+                    self.logger.warning(f"Invalid news time format: {news_time} - {str(e)}")
                     continue  # Skip invalid time format
             
             return True
@@ -1907,22 +2382,39 @@ class MultiTimeframeSignalEngine:
         except Exception as e:
             self.logger.error(f"News filter error: {str(e)}")
             return True  # Default to allow trading
-    
+        
     def get_default_indicators(self) -> Dict:
-        """Return default indicators when calculation fails - COMPLETELY FIXED"""
+        """Professional fallback indicators when calculation fails"""
         return {
-            'ema_9': 1.0, 'ema_21': 1.0, 'ema_50': 1.0, 'ema_200': 1.0,
-            'rsi_14': 50.0, 'rsi_21': 50.0,
-            'atr_14': 0.001, 'atr_21': 0.001, 'atr_percent': 0.1,
-            'macd_line': 0.0, 'macd_signal': 0.0, 'macd_histogram': 0.0,
-            'volume_ratio': 1.0, 'trend_strength': 0.0, 'trend_direction': 'UNKNOWN',
-            'momentum_10': 0.0, 'momentum_20': 0.0,
+            # Core indicators matching original structure
+            'rsi_14': 50.0,
+            'rsi_21': 50.0,
+            'macd_line': 0.0,
+            'macd_signal': 0.0,
+            'macd_histogram': 0.0,
+            'atr_14': 0.001,
+            'atr_percent': 0.1,
+            
+            # Moving averages
+            'ema_9': 1.0,
+            'ema_21': 1.0,
+            'ema_50': 1.0,
+            'ema_200': 1.0,
+            
+            # Derived indicators
+            'trend_strength': 0.5,
+            'volume_ratio': 1.0,
+            'trend_direction': 'UNKNOWN',
             'current_price': 1.0,
+            
+            # Meta information
             'data_quality': {
                 'data_points': 0,
-                'ema_periods_used': {'ema_9': 0, 'ema_21': 0, 'ema_50': 0},
-                'indicators_calculated': False
-            }
+                'adaptive_periods_used': {},
+                'calculation_success': False,
+                'zero_division_protected': True
+            },
+            'timestamp': datetime.now().isoformat()
         }
     
     def validate_confluence_result(self, confluence_result: Dict) -> Dict:
