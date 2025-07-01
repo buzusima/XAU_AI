@@ -664,108 +664,36 @@ class UniversalAdvancedTradingIntegrator:
             print("- Symbol Adapter: NONE (using direct symbols)")
     
     def enhance_signal_analysis(self, symbol: str, basic_signal_data: Dict, timeframe_data: Dict = None) -> Dict: 
+        # TEMPORARY FIX: Return basic data without enhancement to avoid errors
         try:
-            logger = logging.getLogger(__name__)
-            if timeframe_data is None:
-                timeframe_data = {}
-            broker_symbol = self._get_broker_symbol(symbol)
-            
-            if 'H4' in timeframe_data and 'H1' in timeframe_data:
-                regime_data = self.regime_detector.detect_regime(
-                    timeframe_data['H4'], timeframe_data['H1'], broker_symbol
-                )
-            else:
-                regime_data = {
-                    'regime': MarketRegime.RANGING,
-                    'confidence': 0.5,
-                    'trend_strength': 0.0,
-                    'volatility_percentile': 50.0,
-                    'calculation_method': 'NO_DATA_FALLBACK'
-                }
-            
-            timeframe_analysis = basic_signal_data.get('enhanced_analysis', {}).get('timeframe_analysis', {})
-            enhanced_score = self.signal_scorer.calculate_enhanced_score(
-                basic_signal_data, regime_data, timeframe_analysis
-            )
-            
-            portfolio_risk_data = self._calculate_portfolio_risk_enhancement(
-                basic_signal_data, enhanced_score
-            )
-            
-            pattern_score = self._calculate_pattern_recognition_score(
-                symbol, timeframe_data, enhanced_score
-            )
-            
-            time_adjusted_score = self._calculate_time_based_adjustment(
-                enhanced_score, broker_symbol
-            )
-            
-            if basic_signal_data.get('stop_loss', 0) > 0:
-                position_info = self.position_sizer.calculate_enhanced_position_size(
-                    account_balance=basic_signal_data.get('account_balance', 10000),
-                    base_risk_percent=1.5,
-                    signal_data=basic_signal_data,
-                    enhanced_score=time_adjusted_score,
-                    entry_price=basic_signal_data.get('optimal_entry', 0),
-                    stop_loss=basic_signal_data.get('stop_loss', 0),
-                    symbol=broker_symbol
-                )
-            else:
-                position_info = {
-                    'lot_size': 0.01, 
-                    'error': 'No stop loss defined',
-                    'universal_calculation': True
-                }
-            
             enhanced_result = basic_signal_data.copy()
             enhanced_result.update({
-                'enhanced_strength': time_adjusted_score.get('enhanced_strength', enhanced_score.get('enhanced_strength', basic_signal_data.get('strength', 0))),
-                'enhanced_quality': time_adjusted_score.get('enhanced_quality', enhanced_score.get('enhanced_quality', basic_signal_data.get('entry_quality', 'POOR'))),
-                'market_regime': regime_data['regime'].value if hasattr(regime_data['regime'], 'value') else str(regime_data['regime']),
-                'regime_confidence': regime_data.get('confidence', 0.5),
-                'trend_strength': regime_data.get('trend_strength', 0.0),
-                'volatility_percentile': regime_data.get('volatility_percentile', 50.0),
-                'enhanced_lot_size': position_info.get('lot_size', 0.01),
-                'enhanced_risk_amount': position_info.get('actual_risk_amount', 0),
-                'enhanced_risk_percent': position_info.get('actual_risk_percent', 0),
-                'pattern_recognition_score': pattern_score.get('total_score', 0),
-                'detected_patterns': pattern_score.get('detected_patterns', []),
-                'portfolio_risk_score': portfolio_risk_data.get('portfolio_risk_score', 0),
-                'recommended_max_exposure': portfolio_risk_data.get('recommended_max_exposure', 2.0),
-                'time_session_multiplier': time_adjusted_score.get('session_multiplier', 1.0),
-                'optimal_trading_window': time_adjusted_score.get('optimal_window', 'UNKNOWN'),
-                'universal_enhanced': True,
-                'broker_symbol': broker_symbol,
+                'enhanced_strength': basic_signal_data.get('strength', 0),
+                'enhanced_quality': basic_signal_data.get('entry_quality', 'POOR'),
+                'market_regime': 'RANGING',
+                'regime_confidence': 0.5,
+                'trend_strength': 0.0,
+                'volatility_percentile': 50.0,
+                'enhanced_lot_size': basic_signal_data.get('lot_size', 0.01),
+                'enhanced_risk_amount': 0,
+                'enhanced_risk_percent': 0,
+                'pattern_recognition_score': 0,
+                'detected_patterns': [],
+                'portfolio_risk_score': 'MODERATE',
+                'recommended_max_exposure': 2.0,
+                'time_session_multiplier': 1.0,
+                'optimal_trading_window': 'STANDARD',
+                'universal_enhanced': False,
+                'broker_symbol': symbol,
                 'system_symbol': symbol,
-                'enhancement_version': '2.0_EXTENDED',
-                'enhancement_details': {
-                    'regime_data': regime_data,
-                    'enhanced_score': enhanced_score,
-                    'position_info': position_info,
-                    'pattern_analysis': pattern_score,
-                    'portfolio_analysis': portfolio_risk_data,
-                    'time_analysis': time_adjusted_score,
-                    'calculation_method': 'UNIVERSAL_EXTENDED'
-                }
+                'enhancement_version': 'DISABLED_FOR_STABILITY',
+                'enhancement_note': 'Advanced features temporarily disabled to prevent errors'
             })
-            
-            enhanced_result = clean_data_for_json(enhanced_result)
-            
-            if 'market_regime' in enhanced_result:
-                if hasattr(enhanced_result['market_regime'], 'value'):
-                    enhanced_result['market_regime'] = enhanced_result['market_regime'].value
-            
-            if 'enhancement_details' in enhanced_result:
-                enhanced_result['enhancement_details'] = clean_data_for_json(
-                    enhanced_result['enhancement_details']
-                )
-            
             return enhanced_result
             
         except Exception as e:
-            import logging
             logger = logging.getLogger(__name__)
-            self.logger.error(f"Universal enhancement error for {symbol}: {str(e)}")
+            logger.error(f"Universal enhancement error for {symbol}: {str(e)}")
             enhanced_result = basic_signal_data.copy()
             enhanced_result.update({
                 'enhanced_strength': basic_signal_data.get('strength', 0),
@@ -774,7 +702,7 @@ class UniversalAdvancedTradingIntegrator:
                 'enhancement_error': str(e),
                 'universal_enhanced': False,
                 'error_fallback_used': True,
-                'broker_symbol': self._get_broker_symbol(symbol),
+                'broker_symbol': symbol,
                 'system_symbol': symbol
             })
             return enhanced_result

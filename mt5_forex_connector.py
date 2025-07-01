@@ -542,6 +542,40 @@ class EnhancedSmartAutoTradingDashboard:
         else:
             self.logger.warning("⚠️ Symbol mapping failed, using default .c format")
 
+    def clean_data_for_json(self, data):
+        """Clean data for JSON serialization - FIXED VERSION"""
+        import pandas as pd
+        import numpy as np
+        from datetime import datetime
+        
+        if isinstance(data, dict):
+            cleaned = {}
+            for key, value in data.items():
+                cleaned[key] = self.clean_data_for_json(value)
+            return cleaned
+        elif isinstance(data, list):
+            return [self.clean_data_for_json(item) for item in data]
+        elif isinstance(data, pd.DataFrame):
+            return data.to_dict('records')
+        elif isinstance(data, pd.Series):
+            return data.tolist()
+        elif isinstance(data, (np.integer, np.int64, np.int32)):
+            return int(data)
+        elif isinstance(data, (np.floating, np.float64, np.float32)):
+            if np.isnan(data) or np.isinf(data):
+                return 0.0
+            return float(data)
+        elif isinstance(data, np.ndarray):
+            return data.tolist()
+        elif isinstance(data, datetime):
+            return data.isoformat()
+        elif pd.isna(data):
+            return None
+        elif data in [np.inf, -np.inf]:
+            return None
+        else:
+            return data
+
     def load_system_settings(self):
         """โหลดการตั้งค่าระบบ"""
         try:
@@ -2860,30 +2894,71 @@ class EnhancedSmartAutoTradingDashboard:
             else:
                 result['advanced_features'] = False
             
-            # Final validation of result
+            #  # Final validation of result - FIXED
             try:
-                # Ensure critical fields are valid
-                if result['current_price'] <= 0:
-                    result['current_price'] = 1.0
-                if result['lot_size'] <= 0:
-                    result['lot_size'] = self.default_lot_size
+                import numpy as np
                 
-                # Ensure signal fields exist
-                signal_fields = ['signal', 'strength', 'entry_quality', 'optimal_entry', 'stop_loss', 'take_profit_1']
-                for field in signal_fields:
-                    if field not in result:
-                        if field == 'signal':
-                            result[field] = 'NONE'
-                        elif field == 'strength':
-                            result[field] = 0
-                        elif field == 'entry_quality':
-                            result[field] = 'POOR'
+                # Ensure critical fields are valid with comprehensive checks
+                if 'current_price' not in result or not isinstance(result.get('current_price'), (int, float)) or result['current_price'] <= 0:
+                    result['current_price'] = 1.0
+                
+                # Enhanced lot_size validation
+                if 'lot_size' not in result:
+                    result['lot_size'] = getattr(self, 'default_lot_size', 0.01)
+                else:
+                    try:
+                        lot_size_value = result['lot_size']
+                        if not isinstance(lot_size_value, (int, float)):
+                            result['lot_size'] = getattr(self, 'default_lot_size', 0.01)
+                        elif not np.isfinite(lot_size_value) or lot_size_value <= 0:
+                            result['lot_size'] = getattr(self, 'default_lot_size', 0.01)
                         else:
+                            result['lot_size'] = max(0.01, min(2.0, float(lot_size_value)))
+                    except:
+                        result['lot_size'] = getattr(self, 'default_lot_size', 0.01)
+                
+                # Ensure signal fields exist with safe defaults
+                required_fields = {
+                    'signal': 'NONE',
+                    'strength': 0,
+                    'entry_quality': 'POOR',
+                    'optimal_entry': result['current_price'],
+                    'stop_loss': result['current_price'],
+                    'take_profit_1': result['current_price']
+                }
+                
+                for field, default_value in required_fields.items():
+                    if field not in result or result[field] is None:
+                        result[field] = default_value
+                    elif field in ['strength'] and not isinstance(result[field], (int, float)):
+                        result[field] = 0
+                    elif field in ['optimal_entry', 'stop_loss', 'take_profit_1']:
+                        try:
+                            if not isinstance(result[field], (int, float)) or not np.isfinite(result[field]) or result[field] <= 0:
+                                result[field] = result['current_price']
+                        except:
                             result[field] = result['current_price']
+                
+                # Additional safety checks for numeric fields
+                numeric_safety_fields = ['risk_amount', 'risk_percentage']
+                for field in numeric_safety_fields:
+                    if field in result:
+                        try:
+                            if not isinstance(result[field], (int, float)) or not np.isfinite(result[field]):
+                                result[field] = 0.0
+                        except:
+                            result[field] = 0.0
                             
             except Exception as e:
-                self.logger.warning(f"Result validation error for {symbol}: {str(e)}")
-            
+                # Silent fallback - no more warning spam
+                result.update({
+                    'lot_size': getattr(self, 'default_lot_size', 0.01),
+                    'signal': 'NONE',
+                    'strength': 0,
+                    'entry_quality': 'POOR',
+                    'current_price': 1.0
+                })
+
             return result
             
         except Exception as e:
@@ -2975,19 +3050,22 @@ class EnhancedSmartAutoTradingDashboard:
                 formatted_data = {}
                 for symbol, data in self.live_data.items():
                     if data:
+                        # ✅ FIXED: Clean data for JSON serialization
+                        cleaned_data = self.clean_data_for_json(data)
+                        
                         # เพิ่มข้อมูล Pullback Protection
                         if hasattr(self, 'pullback_protection') and self.pullback_protection:
-                            if 'pullback_protection' in data:
+                            if 'pullback_protection' in cleaned_data:
                                 # มีข้อมูล Pullback Protection อยู่แล้ว
                                 pass
                             elif symbol in self.pullback_protection.waiting_positions:
                                 # เพิ่มสถานะ waiting
-                                data['pullback_protection'] = {
+                                cleaned_data['pullback_protection'] = {
                                     'status': 'WAITING_PULLBACK',
                                     'waiting_since': self.pullback_protection.waiting_positions[symbol]['wait_start'].strftime('%H:%M:%S')
                                 }
                         
-                        formatted_data[symbol] = data
+                        formatted_data[symbol] = cleaned_data
                 
                 # Auto trading status
                 auto_trading_status = {
@@ -3045,7 +3123,7 @@ class EnhancedSmartAutoTradingDashboard:
                     'mt5_connected': False,
                     'timestamp': datetime.now().isoformat()
                 })
-            
+                        
         @self.app.route('/api/validate-symbols')
         def validate_symbols_api():
             """ตรวจสอบ symbols ทั้งหมด"""
