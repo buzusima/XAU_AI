@@ -1,16 +1,12 @@
-# 🎯 BROKER SYMBOL ADAPTER - เพิ่มเข้าระบบเดิม
-# แค่เพิ่มไฟล์นี้เข้าไปใน project เดิม ไม่ต้องแก้อะไรเลย!
+# 🔧 FIX 1: broker_symbol_adapter.py
+# แก้ไขปัญหาการตรวจจับ symbol
 
 import MetaTrader5 as mt5
 import logging
 from typing import Dict, List, Optional
 
 class BrokerSymbolAdapter:
-    """
-    🔧 SYMBOL ADAPTER สำหรับรองรับหลายโบรกเกอร์
-    ========================================
-    เพิ่มเข้าระบบเดิมที่ใช้ .c อยู่แล้ว ไม่ต้องแก้โค้ดเดิม
-    """
+    """🔧 SYMBOL ADAPTER สำหรับรองรับหลายโบรกเกอร์ - FIXED"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -29,12 +25,10 @@ class BrokerSymbolAdapter:
         self.detected_broker = None
         self.broker_symbol_map = {}
         self.reverse_symbol_map = {}
+        self.mapping_successful = False
         
     def detect_and_map_broker(self) -> bool:
-        """
-        🎯 AUTO-DETECT และสร้าง symbol mapping อัตโนมัติ
-        ไม่ต้องรู้ชื่อโบรกเกอร์ ตรวจจับ suffix เอง!
-        """
+        """🎯 AUTO-DETECT และสร้าง symbol mapping อัตโนมัติ - ENHANCED"""
         try:
             if not mt5.initialize():
                 self.logger.error("MT5 not connected")
@@ -47,15 +41,25 @@ class BrokerSymbolAdapter:
                 self.logger.info(f"🏦 Connected to: {server_name}")
                 self.logger.info(f"💰 Account: {account_info.login}")
             
-            # 🎯 ตรวจจับ suffix แบบอัตโนมัติ (ไม่ต้องรู้ชื่อโบรกเกอร์)
-            return self._create_symbol_mapping()
+            # 🎯 ตรวจจับ suffix แบบอัตโนมัติ
+            success = self._create_symbol_mapping()
+            
+            if success:
+                self.mapping_successful = True
+                self.logger.info("✅ Symbol mapping completed successfully")
+            else:
+                self.logger.warning("⚠️ Symbol mapping failed, using fallback")
+                self._create_fallback_mapping()
+                
+            return success
                 
         except Exception as e:
             self.logger.error(f"Auto-detection failed: {str(e)}")
+            self._create_fallback_mapping()
             return False
     
     def _create_symbol_mapping(self) -> bool:
-        """🎯 สร้าง mapping โดยตรวจจับ suffix อัตโนมัติ"""
+        """🎯 สร้าง mapping โดยตรวจจับ suffix อัตโนมัติ - FIXED"""
         try:
             # ดึง symbols ทั้งหมดจาก MT5
             available_symbols = mt5.symbols_get()
@@ -89,9 +93,12 @@ class BrokerSymbolAdapter:
                     mapped_count += 1
                     
                     # Make symbol visible in MT5
-                    symbol_info = mt5.symbol_info(broker_symbol)
-                    if symbol_info and not symbol_info.visible:
-                        mt5.symbol_select(broker_symbol, True)
+                    try:
+                        symbol_info = mt5.symbol_info(broker_symbol)
+                        if symbol_info and not symbol_info.visible:
+                            mt5.symbol_select(broker_symbol, True)
+                    except Exception as e:
+                        self.logger.warning(f"Could not make {broker_symbol} visible: {str(e)}")
                 else:
                     self.logger.warning(f"⚠️ Could not find broker symbol for {system_symbol}")
             
@@ -112,7 +119,7 @@ class BrokerSymbolAdapter:
             return False
     
     def _detect_symbol_suffixes(self, available_symbols: List[str]) -> List[str]:
-        """🔍 ตรวจจับ suffix ทั้งหมดที่มีใน MT5"""
+        """🔍 ตรวจจับ suffix ทั้งหมดที่มีใน MT5 - ENHANCED"""
         try:
             # Base symbols ที่ต้องการตรวจสอบ
             major_pairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'NZDUSD', 'USDCAD']
@@ -121,61 +128,100 @@ class BrokerSymbolAdapter:
             
             for symbol_name in available_symbols:
                 for base_pair in major_pairs:
-                    if symbol_name.startswith(base_pair):
-                        # หา suffix
+                    if symbol_name.startswith(base_pair) and len(symbol_name) <= len(base_pair) + 10:
                         suffix = symbol_name[len(base_pair):]
-                        if suffix:  # มี suffix
-                            detected_suffixes.add(suffix)
-                        else:  # ไม่มี suffix
-                            detected_suffixes.add('')
-                        break
+                        if len(suffix) <= 5:  # reasonable suffix length
+                            detected_suffixes.add(suffix if suffix else 'none')
             
-            # เรียงลำดับตาม priority (ไม่มี suffix = สูงสุด, .c = รอง)
-            suffix_priority = ['', '.c', '.raw', '.ecn', '.stp', '.pro', '.m']
-            sorted_suffixes = []
+            # เรียงลำดับตามความนิยม
+            suffix_list = sorted(list(detected_suffixes))
             
-            for priority_suffix in suffix_priority:
-                if priority_suffix in detected_suffixes:
-                    sorted_suffixes.append(priority_suffix)
+            # ใส่ suffix ที่พบบ่อยไว้ข้างหน้า
+            common_suffixes = ['none', '.c', '.raw', '.ecn', '.pro', '.m']
+            ordered_suffixes = []
             
-            # เพิ่ม suffix อื่นๆ ที่เหลือ
-            for suffix in detected_suffixes:
-                if suffix not in sorted_suffixes:
-                    sorted_suffixes.append(suffix)
+            for common in common_suffixes:
+                if common in suffix_list:
+                    ordered_suffixes.append(common)
+                    suffix_list.remove(common)
             
-            return sorted_suffixes
+            # เพิ่มที่เหลือ
+            ordered_suffixes.extend(suffix_list)
+            
+            return ordered_suffixes
             
         except Exception as e:
-            self.logger.error(f"Suffix detection failed: {str(e)}")
-            return ['', '.c']  # fallback
+            self.logger.error(f"Suffix detection error: {str(e)}")
+            return ['none', '.c', '.raw', '.ecn']  # fallback
     
-    def _find_matching_symbol(self, base_symbol: str, available_symbols: List[str], suffixes: List[str]) -> Optional[str]:
-        """🎯 หา broker symbol ที่ตรงกับ base symbol"""
+    def _find_matching_symbol(self, base_symbol: str, available_symbol_names: List[str], detected_suffixes: List[str]) -> Optional[str]:
+        """🔍 หา symbol ที่ตรงกับ base + suffix - COMPLETELY FIXED"""
         try:
-            # ลองแต่ละ suffix ตามลำดับ priority
-            for suffix in suffixes:
-                candidate = base_symbol + suffix
-                if candidate in available_symbols:
-                    return candidate
+            # ลองหาด้วย detected suffixes
+            for suffix in detected_suffixes:
+                if suffix == 'none':
+                    test_symbol = base_symbol
+                else:
+                    test_symbol = base_symbol + suffix
+                
+                if test_symbol in available_symbol_names:
+                    # ทดสอบว่า symbol ใช้งานได้จริง
+                    try:
+                        symbol_info = mt5.symbol_info(test_symbol)
+                        if symbol_info:
+                            self.logger.debug(f"✅ Found: {base_symbol} → {test_symbol}")
+                            return test_symbol
+                    except Exception:
+                        continue
             
-            # ถ้าไม่เจอ ลองหาแบบ case-insensitive
-            base_lower = base_symbol.lower()
-            for symbol in available_symbols:
-                if symbol.lower().startswith(base_lower):
-                    # ตรวจสอบว่าเป็น exact match หรือมี suffix เท่านั้น
-                    remaining = symbol[len(base_symbol):]
-                    if not remaining or remaining.startswith('.') or remaining.startswith('_'):
-                        return symbol
+            # ถ้าหาไม่เจอ ลองใช้ fuzzy matching
+            for symbol_name in available_symbol_names:
+                if (symbol_name.startswith(base_symbol) and 
+                    len(symbol_name) <= len(base_symbol) + 10 and
+                    len(symbol_name) >= len(base_symbol)):
+                    
+                    # ทดสอบว่า symbol ใช้งานได้จริง
+                    try:
+                        symbol_info = mt5.symbol_info(symbol_name)
+                        if symbol_info:
+                            self.logger.debug(f"✅ Fuzzy match: {base_symbol} → {symbol_name}")
+                            return symbol_name
+                    except Exception:
+                        continue
             
             return None
             
         except Exception as e:
-            self.logger.error(f"Symbol matching failed: {str(e)}")
+            self.logger.error(f"Symbol matching failed for {base_symbol}: {str(e)}")
             return None
+    
+    def _create_fallback_mapping(self):
+        """สร้าง fallback mapping 1:1"""
+        self.logger.info("🔄 Creating fallback 1:1 mapping")
+        for system_symbol in self.system_symbols:
+            self.broker_symbol_map[system_symbol] = system_symbol
+            self.reverse_symbol_map[system_symbol] = system_symbol
+        self.mapping_successful = False
     
     def system_to_broker_symbol(self, system_symbol: str) -> str:
-        """🔄 แปลง system symbol เป็น broker symbol"""
-        return self.broker_symbol_map.get(system_symbol, system_symbol)
+        """🔄 แปลง system symbol เป็น broker symbol - ENHANCED"""
+        try:
+            broker_symbol = self.broker_symbol_map.get(system_symbol, system_symbol)
+            
+            # Validate broker symbol exists in MT5 (ถ้าไม่ใช่ fallback mode)
+            if self.mapping_successful and broker_symbol != system_symbol:
+                try:
+                    symbol_info = mt5.symbol_info(broker_symbol)
+                    if symbol_info is None:
+                        self.logger.warning(f"⚠️ Broker symbol {broker_symbol} not found, using {system_symbol}")
+                        return system_symbol
+                except Exception:
+                    pass
+                    
+            return broker_symbol
+        except Exception as e:
+            self.logger.error(f"Error converting {system_symbol}: {str(e)}")
+            return system_symbol
     
     def broker_to_system_symbol(self, broker_symbol: str) -> str:
         """🔄 แปลง broker symbol เป็น system symbol"""
@@ -183,31 +229,34 @@ class BrokerSymbolAdapter:
     
     def get_mapped_symbols(self) -> List[str]:
         """📊 ดึงรายการ broker symbols ที่ map ได้แล้ว"""
+        if not self.broker_symbol_map:
+            return self.system_symbols  # fallback
         return list(self.broker_symbol_map.values())
     
     def get_mapping_info(self) -> Dict:
-        """📋 ดึงข้อมูล mapping ทั้งหมด"""
+        """📋 ดึงข้อมูล mapping ทั้งหมด - ENHANCED"""
         try:
             account_info = mt5.account_info()
             server_name = account_info.server if account_info else "Unknown"
             
             return {
                 'server': server_name,
+                'mapping_successful': self.mapping_successful,
                 'total_system_symbols': len(self.system_symbols),
                 'mapped_symbols': len(self.broker_symbol_map),
                 'mapping_success_rate': f"{len(self.broker_symbol_map)/len(self.system_symbols)*100:.1f}%",
                 'available_broker_symbols': list(self.broker_symbol_map.values()),
                 'sample_mapping': dict(list(self.broker_symbol_map.items())[:5]),
-                'detected_suffixes': self._get_unique_suffixes()
+                'detected_suffixes': self._get_unique_suffixes(),
+                'status': 'ACTIVE' if self.mapping_successful else 'FALLBACK'
             }
         except Exception as e:
-            return {'error': str(e)}
+            return {'error': str(e), 'status': 'ERROR'}
     
     def _get_unique_suffixes(self) -> List[str]:
         """หา suffix ที่ใช้อยู่"""
         suffixes = set()
         for broker_symbol in self.broker_symbol_map.values():
-            # หา base symbol
             for system_symbol in self.system_symbols:
                 base = system_symbol.replace('.c', '')
                 if broker_symbol.startswith(base):
@@ -216,48 +265,43 @@ class BrokerSymbolAdapter:
                     break
         return sorted(list(suffixes))
 
-# 🎯 การใช้งาน - เพิ่มเข้าระบบเดิม
-"""
-# 1. เพิ่มใน __init__ ของ main trading system
-def __init__(self):
-    # ... existing code ...
-    
-    # เพิ่ม Symbol Adapter
-    self.symbol_adapter = BrokerSymbolAdapter()
-    if self.symbol_adapter.detect_and_map_broker():
-        print("✅ Broker symbols mapped successfully!")
-        print(f"📊 Mapping info: {self.symbol_adapter.get_mapping_info()}")
-    else:
-        print("⚠️ Using default symbol format")
-
-# 2. ใช้ในส่วนที่เรียก MT5 functions
-def get_symbol_data(self, system_symbol):
-    # แปลง system symbol เป็น broker symbol
-    broker_symbol = self.symbol_adapter.system_to_broker_symbol(system_symbol)
-    
-    # เรียก MT5 ด้วย broker symbol
-    rates = mt5.copy_rates_from_pos(broker_symbol, mt5.TIMEFRAME_H1, 0, 100)
-    return rates
-
-# 3. ใช้ในส่วน signal generation
-def generate_signals(self):
-    signals = {}
-    
-    # ใช้ mapped symbols แทน hardcoded .c
-    for broker_symbol in self.symbol_adapter.get_mapped_symbols():
-        system_symbol = self.symbol_adapter.broker_to_system_symbol(broker_symbol)
+    def test_symbol_mapping(self) -> Dict:
+        """🧪 ทดสอบ symbol mapping"""
+        test_results = []
         
-        # Generate signal using broker_symbol for MT5 calls
-        signal = self.calculate_signal(broker_symbol)
+        for system_symbol in self.system_symbols[:5]:  # Test first 5
+            broker_symbol = self.system_to_broker_symbol(system_symbol)
+            
+            try:
+                symbol_info = mt5.symbol_info(broker_symbol)
+                tick = mt5.symbol_info_tick(broker_symbol)
+                
+                test_results.append({
+                    'system_symbol': system_symbol,
+                    'broker_symbol': broker_symbol,
+                    'symbol_exists': symbol_info is not None,
+                    'has_price': tick is not None and tick.bid > 0,
+                    'status': 'OK' if symbol_info and tick and tick.bid > 0 else 'FAILED'
+                })
+            except Exception as e:
+                test_results.append({
+                    'system_symbol': system_symbol,
+                    'broker_symbol': broker_symbol,
+                    'status': 'ERROR',
+                    'error': str(e)
+                })
         
-        # Store result using system_symbol for consistency
-        signals[system_symbol] = signal
-    
-    return signals
-"""
+        success_count = len([r for r in test_results if r.get('status') == 'OK'])
+        
+        return {
+            'test_results': test_results,
+            'success_rate': f"{success_count/len(test_results)*100:.1f}%",
+            'mapping_working': success_count > 0
+        }
 
-print("🎯 SMART SYMBOL ADAPTER - AUTO-DETECTION")
-print("✅ ตรวจจับ suffix อัตโนมัติ")
-print("🔧 ไม่ต้องรู้ชื่อโบรกเกอร์")
-print("📊 รองรับทุกรูปแบบ symbol")
-print("🚀 เพิ่มเข้าระบบเดิมได้ทันที!")
+print("🔧 BROKER SYMBOL ADAPTER - FIXED!")
+print("✅ Enhanced suffix detection")
+print("✅ Improved symbol matching")  
+print("✅ Better error handling")
+print("✅ Fallback mechanisms")
+print("✅ Symbol validation")

@@ -77,7 +77,7 @@ except ImportError as e:
 
 # FIXED: Import advanced_features with error handling
 try:
-    from advanced_features import AdvancedTradingIntegrator, MarketRegime
+    from advanced_features import UniversalAdvancedTradingIntegrator, MarketRegime
     ADVANCED_FEATURES_AVAILABLE = True
     print("✅ Advanced Trading Features Loaded Successfully!")
 except ImportError as e:
@@ -463,7 +463,7 @@ class EnhancedSmartAutoTradingDashboard:
         self.setup_logging()
         if ADVANCED_FEATURES_AVAILABLE:
             try:
-                self.advanced_integrator = AdvancedTradingIntegrator()
+                self.advanced_integrator = (UniversalAdvancedTradingIntegrator)
                 self.use_advanced_features = True
                 print("🚀 Advanced Trading Features Activated!")
                 print("   - Market Regime Detection: ON")
@@ -537,6 +537,8 @@ class EnhancedSmartAutoTradingDashboard:
             
             # อัพเดต forex_pairs ให้ใช้ broker symbols
             self.forex_pairs = self.symbol_adapter.get_mapped_symbols()
+            if self.broker_symbols_mapped:
+                self.logger.info(f"🔄 Using broker symbols: {self.forex_pairs[:3]}...")
         else:
             self.logger.warning("⚠️ Symbol mapping failed, using default .c format")
 
@@ -2709,15 +2711,25 @@ class EnhancedSmartAutoTradingDashboard:
                 try:
                     # Prepare timeframe data for advanced analysis
                     timeframe_data = {}
-                    for tf_name, df in timeframe_rates.items():
-                        timeframe_data[tf_name] = df
-                    
+                    if timeframe_rates:
+                        for tf_name, df in timeframe_rates.items():
+                            if df is not None and len(df) > 0:
+                                timeframe_data[tf_name] = df
+
+                    # ถ้าไม่มีข้อมูลเลย ให้สร้าง dummy data
+                    if not timeframe_data:
+                        timeframe_data = {
+                            'H1': None,
+                            'H4': None
+                        }                    
                     # Add account balance to signal data
                     entry_exit_analysis['account_balance'] = self.account_balance
                     
                     # Get enhanced analysis
                     enhanced_analysis = self.advanced_integrator.enhance_signal_analysis(
-                        symbol, entry_exit_analysis, timeframe_data
+                        symbol, 
+                        entry_exit_analysis, 
+                        timeframe_data or {}
                     )
                     
                     # Use enhanced results
@@ -3033,6 +3045,60 @@ class EnhancedSmartAutoTradingDashboard:
                     'mt5_connected': False,
                     'timestamp': datetime.now().isoformat()
                 })
+            
+        @self.app.route('/api/validate-symbols')
+        def validate_symbols_api():
+            """ตรวจสอบ symbols ทั้งหมด"""
+            try:
+                validation_results = []
+                
+                for pair in self.forex_pairs:
+                    try:
+                        # ทดสอบ symbol
+                        symbol_info = mt5.symbol_info(pair)
+                        tick = mt5.symbol_info_tick(pair)
+                        
+                        validation_results.append({
+                            'symbol': pair,
+                            'symbol_exists': symbol_info is not None,
+                            'has_price': tick is not None and tick.bid > 0,
+                            'status': 'OK' if symbol_info and tick and tick.bid > 0 else 'FAILED'
+                        })
+                    except Exception as e:
+                        validation_results.append({
+                            'symbol': pair,
+                            'status': 'ERROR',
+                            'error': str(e)
+                        })
+                
+                valid_count = len([r for r in validation_results if r.get('status') == 'OK'])
+                
+                return jsonify({
+                    'success': True,
+                    'valid_symbols': valid_count,
+                    'total_symbols': len(self.forex_pairs),
+                    'validation_rate': f"{valid_count/len(self.forex_pairs)*100:.1f}%",
+                    'results': validation_results
+                })
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+    
+        @self.app.route('/api/auto-trading/status-detailed')
+        def get_detailed_auto_trading_status():
+            """ดู auto trading status รายละเอียด"""
+            try:
+                return jsonify({
+                    'success': True,
+                    'auto_trading_enabled': self.auto_trading_enabled,
+                    'emergency_stop': self.emergency_stop,
+                    'mt5_connected': self.mt5_connected,
+                    'active_pairs': len([pair for pair, status in self.pair_trade_status.items() if status == 'READY']),
+                    'blocked_pairs': len([pair for pair, status in self.pair_trade_status.items() if status != 'READY']),
+                    'account_balance': self.account_balance,
+                    'current_positions': len(mt5.positions_get()) if mt5.positions_get() else 0
+                })
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
 
         @self.app.route('/api/broker-info')
         def get_broker_info():

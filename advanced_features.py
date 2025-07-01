@@ -663,9 +663,11 @@ class UniversalAdvancedTradingIntegrator:
         else:
             print("- Symbol Adapter: NONE (using direct symbols)")
     
-    def enhance_signal_analysis(self, symbol: str, basic_signal_data: Dict, timeframe_data: Dict) -> Dict:
-        """เพิ่มความสามารถให้กับ Signal Analysis - Universal Version"""
+    def enhance_signal_analysis(self, symbol: str, basic_signal_data: Dict, timeframe_data: Dict = None) -> Dict: 
         try:
+            logger = logging.getLogger(__name__)
+            if timeframe_data is None:
+                timeframe_data = {}
             broker_symbol = self._get_broker_symbol(symbol)
             
             if 'H4' in timeframe_data and 'H1' in timeframe_data:
@@ -761,6 +763,8 @@ class UniversalAdvancedTradingIntegrator:
             return enhanced_result
             
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
             self.logger.error(f"Universal enhancement error for {symbol}: {str(e)}")
             enhanced_result = basic_signal_data.copy()
             enhanced_result.update({
