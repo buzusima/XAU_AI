@@ -1248,13 +1248,14 @@
 
         function openPullbackDashboard() {
             // เปิดในแท็บใหม่
-            window.open('/pullback_dashboard.html', '_blank', 'width=1400,height=900');
+            // window.open('/pullback_dashboard.html', '_blank', 'width=1400,height=900');
             
             // หรือเปิดในหน้าต่างป๊อปอัพ
             // const popup = window.open('/pullback_dashboard.html', 'PullbackDashboard', 
             //     'width=1400,height=900,scrollbars=yes,resizable=yes');
             // popup.focus();
             
+            window.location.href = '/pullback-dashboard'
             addToLog('info', '🛡️ เปิด Pullback Protection Dashboard');
         }
 
@@ -1431,6 +1432,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // เรียกข้อมูลเริ่มต้น
             fetchPullbackStatus();
+            updateTrailingStatus();
         });
 
         // ดึงสถานะ Pullback Protection
@@ -1555,10 +1557,10 @@
         async function updateData() {
             // ... existing code ...
             
-            // Update trailing status
+            
             await updateTrailingStatus();
             
-            // ... rest of existing code ...
+            
         }
 
         function toggleSignalSettings() {
@@ -1611,10 +1613,10 @@
 
         function openHedgingDashboard() {
             // เปิดใน tab ใหม่
-            window.open('/hedging', '_blank');
+            // window.open('/hedging', '_blank');
 
             // หรือเปิดใน tab เดียวกัน
-            // window.location.href = '/hedging';
+            window.location.href = '/hedging';
 
             showNotification('🎯 Opening Hedging Dashboard...', 'info');
         }

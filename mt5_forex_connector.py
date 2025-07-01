@@ -3704,7 +3704,6 @@ class EnhancedSmartAutoTradingDashboard:
                 return jsonify({'success': False, 'error': str(e)})
 
         @self.app.route('/pullback-dashboard')
-        @self.app.route('/pullback_dashboard.html')
         def pullback_dashboard():
             """Pullback Protection Dashboard"""
             try:
@@ -3978,7 +3977,6 @@ class EnhancedSmartAutoTradingDashboard:
         except Exception as e:
             print(f"❌ Error setting up hedging routes: {str(e)}")
             self.hedging_enabled = False
-
 
     def start_data_updates(self):
         """Start automatic data updates"""
@@ -4277,7 +4275,6 @@ def main():
     
     dashboard = EnhancedSmartAutoTradingDashboard()
     dashboard.run()
-    print("Running")
 
 if __name__ == "__main__":
     main()
