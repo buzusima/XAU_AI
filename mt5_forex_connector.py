@@ -24,13 +24,9 @@ from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
 from pullback_protection import PullbackProtectionPlugin, integrate_with_main_system
 from trading_integration import EnhancedTradingSystemWithTrailing, add_trailing_stop_routes
-try:
-    from correlation_hedging_system import HedgeSystemIntegrator, AdvancedCorrelationHedging
-    HEDGING_SYSTEM_AVAILABLE = True
-    print("[OK] Correlation Hedging System Loaded Successfully!")
-except ImportError as e:
-    print(f"[WARN] Hedging system not available: {str(e)}")
-    HEDGING_SYSTEM_AVAILABLE = False
+from correlation_hedging_system import HedgeSystemIntegrator
+from enhanced_signal_system import MultiTimeframeSignalEngine
+from advanced_features import UniversalAdvancedTradingIntegrator
 
 # CRITICAL FIX: Add clean_data_for_json function
 def clean_data_for_json(data):
@@ -64,26 +60,6 @@ def clean_data_for_json(data):
         return None
     else:
         return data
-
-# FIXED: Import enhanced_signal_system with error handling
-try:
-    from enhanced_signal_system import MultiTimeframeSignalEngine
-    ENHANCED_SIGNAL_AVAILABLE = True
-    print("[OK] Enhanced Signal System Loaded Successfully!")
-except ImportError as e:
-    print(f"[WARN] Enhanced signal system not available: {str(e)}")
-    print("[CLIPBOARD] Using standard signal system...")
-    ENHANCED_SIGNAL_AVAILABLE = False
-
-# FIXED: Import advanced_features with error handling
-try:
-    from advanced_features import UniversalAdvancedTradingIntegrator, MarketRegime
-    ADVANCED_FEATURES_AVAILABLE = True
-    print("[OK] Advanced Trading Features Loaded Successfully!")
-except ImportError as e:
-    print(f"[WARN] Advanced features not available: {str(e)}")
-    print("[CLIPBOARD] Using standard trading system...")
-    ADVANCED_FEATURES_AVAILABLE = False
 
 class DataPersistenceManager:
     """จัดการการบันทึกและโหลดข้อมูลระบบ"""
@@ -440,16 +416,17 @@ class EnhancedSmartAutoTradingDashboard:
         self.open_positions = {}
         
         # Features Flags
-        self.use_advanced_features = False
-        self.hedging_enabled = False
-        self.broker_symbols_mapped = False
+        self.use_advanced_features = True
+        self.hedging_enabled = True
+        self.broker_symbols_mapped = True
         
         # [GO] Initialize Essential Components
         self.setup_logging()
-        self.setup_symbol_adapter()
         self.setup_routes()
+        self.setup_symbol_adapter()
         self.load_system_settings()
         self.setup_signal_engine()
+        self.add_enhanced_features()
 
         # print("[OK] Auto Trading Dashboard Initialized")
         # print(f"[MONEY] Account Balance: ${self.account_balance:,.2f}")
@@ -460,23 +437,17 @@ class EnhancedSmartAutoTradingDashboard:
         
         # Enhanced Signal Engine
         try:
-            if ENHANCED_SIGNAL_AVAILABLE:
-                self.enhanced_signal_engine = MultiTimeframeSignalEngine()
-                print("[OK] Enhanced Signal Engine: LOADED")
-            else:
-                self.enhanced_signal_engine = None
+            self.enhanced_signal_engine = MultiTimeframeSignalEngine()
+            print("[OK] Enhanced Signal Engine: LOADED")
         except Exception as e:
             print(f"[WARN] Enhanced signal engine error: {str(e)}")
             self.enhanced_signal_engine = None
         
         # Advanced Features
         try:
-            if ADVANCED_FEATURES_AVAILABLE:
-                self.advanced_integrator = UniversalAdvancedTradingIntegrator(self)
-                self.use_advanced_features = True
-                print("[OK] Advanced Features: LOADED")
-            else:
-                self.use_advanced_features = False
+            self.advanced_integrator = UniversalAdvancedTradingIntegrator(self)
+            self.use_advanced_features = True
+            print("[OK] Advanced Features: LOADED")
         except Exception as e:
             print(f"[WARN] Advanced features error: {str(e)}")
             self.use_advanced_features = False
@@ -492,12 +463,9 @@ class EnhancedSmartAutoTradingDashboard:
         
         # Hedging System
         try:
-            if HEDGING_SYSTEM_AVAILABLE:
-                self.hedge_integrator = HedgeSystemIntegrator(self)
-                self.hedging_enabled = True
-                print("[OK] Hedging System: LOADED")
-            else:
-                self.hedging_enabled = False
+            self.hedge_integrator = HedgeSystemIntegrator(self)
+            self.hedging_enabled = True
+            print("[OK] Hedging System: LOADED")
         except Exception as e:
             print(f"[WARN] Hedging system error: {str(e)}")
             self.hedging_enabled = False
@@ -513,29 +481,18 @@ class EnhancedSmartAutoTradingDashboard:
 
     def setup_signal_engine(self):
         """Setup signal engine properly"""
-        try:
-            # Try to load enhanced signal engine
-            if ENHANCED_SIGNAL_AVAILABLE:
-                self.signal_engine = MultiTimeframeSignalEngine()
-                print("[OK] Enhanced Signal Engine: LOADED")
-            else:
-                # Create fallback signal engine
-                self.signal_engine = self.create_fallback_signal_engine()
-                print("[CHART] Fallback Signal Engine: LOADED")
-                
-        except Exception as e:
-            print(f"[WARN] Signal engine error: {str(e)}")
-            self.signal_engine = self.create_fallback_signal_engine()
+        self.signal_engine = MultiTimeframeSignalEngine()
+        print("[OK] Enhanced Signal Engine: LOADED")
 
     def setup_symbol_adapter(self):
-            """Setup symbol detection - SIMPLIFIED"""
-            try:
-                self.symbol_adapter = BrokerSymbolAdapter()
-                self.broker_symbols_mapped = False
-                print("[CHART] Symbol adapter ready")
-            except Exception as e:
-                print(f"[WARN] Symbol adapter error: {str(e)}")
-                self.symbol_adapter = None
+        """Setup symbol detection - SIMPLIFIED"""
+        try:
+            self.symbol_adapter = BrokerSymbolAdapter()
+            self.broker_symbols_mapped = False
+            print("[CHART] Symbol adapter ready")
+        except Exception as e:
+            print(f"[WARN] Symbol adapter error: {str(e)}")
+            self.symbol_adapter = None
 
     def clean_data_for_json(self, data):
         """Clean data for JSON serialization - FIXED VERSION"""
@@ -2094,7 +2051,7 @@ class EnhancedSmartAutoTradingDashboard:
                         # Validate signal
                         validation = self.validate_trading_signal(actual_symbol, signal_data)
                         if not validation['valid']:
-                            self.logger.info(f"[ERR] {actual_symbol}: Validation failed - {', '.join(validation['issues'])}")
+                            # self.logger.info(f"[ERR] {actual_symbol}: Validation failed - {', '.join(validation['issues'])}")
                             continue
                         
                         # Execute trade (use actual symbol)
@@ -3574,7 +3531,6 @@ class EnhancedSmartAutoTradingDashboard:
             """Get advanced features status"""
             return jsonify({
                 'success': True,
-                'advanced_features_available': ADVANCED_FEATURES_AVAILABLE,
                 'advanced_features_active': self.use_advanced_features,
                 'features': {
                     'market_regime_detection': self.use_advanced_features,
@@ -3616,13 +3572,7 @@ class EnhancedSmartAutoTradingDashboard:
         
         @self.app.route('/api/toggle-advanced-features', methods=['POST'])
         def toggle_advanced_features():
-            """Toggle advanced features on/off"""
-            if not ADVANCED_FEATURES_AVAILABLE:
-                return jsonify({
-                    'success': False,
-                    'error': 'Advanced features module not available'
-                })
-            
+            """Toggle advanced features on/off"""            
             try:
                 self.use_advanced_features = not self.use_advanced_features
                 
@@ -3890,8 +3840,7 @@ class EnhancedSmartAutoTradingDashboard:
                     'status_text': 'ERROR'
                 })
 
-        if hasattr(self, 'hedging_enabled') and self.hedging_enabled:
-            self.setup_hedging_routes()
+        self.setup_hedging_routes()
         
         print("[OK] All routes setup completed")
 
