@@ -1,4 +1,4 @@
-# 🎯 ENHANCED TRADING SYSTEM INTEGRATION
+# [TARGET] ENHANCED TRADING SYSTEM INTEGRATION
 # Integration code สำหรับเชื่อมต่อ Intelligent Trailing Stop กับระบบหลัก
 
 import MetaTrader5 as mt5
@@ -13,7 +13,7 @@ from trailing_stop_system import TrailingStopManager, IntelligentTrailingStop
 
 class EnhancedTradingSystemWithTrailing:
     """
-    🎯 Enhanced Trading System with Intelligent Trailing Stop
+    [TARGET] Enhanced Trading System with Intelligent Trailing Stop
     """
     
     def __init__(self, main_dashboard):
@@ -45,7 +45,7 @@ class EnhancedTradingSystemWithTrailing:
         self.setup_trailing_system()
         
     def setup_trailing_system(self):
-        """🎯 Setup and configure trailing stop system"""
+        """[TARGET] Setup and configure trailing stop system"""
         try:
             # Set initial profile
             self.trailing_manager.trailing_system.set_trailing_profile(self.current_trailing_profile)
@@ -54,7 +54,7 @@ class EnhancedTradingSystemWithTrailing:
             self.trailing_manager.enabled = self.trailing_enabled
             self.trailing_manager.update_interval = self.trailing_update_interval
             
-            print(f"✅ Trailing Stop System Initialized")
+            print(f"[OK] Trailing Stop System Initialized")
             print(f"   Profile: {self.current_trailing_profile}")
             print(f"   Update Interval: {self.trailing_update_interval}s")
             print(f"   Enabled: {self.trailing_enabled}")
@@ -64,27 +64,27 @@ class EnhancedTradingSystemWithTrailing:
                 self.start_trailing_thread()
                 
         except Exception as e:
-            print(f"❌ Error setting up trailing system: {str(e)}")
+            print(f"[ERR] Error setting up trailing system: {str(e)}")
     
     def start_trailing_thread(self):
-        """🚀 Start background thread for trailing stop updates"""
+        """[GO] Start background thread for trailing stop updates"""
         if self.trailing_thread and self.trailing_thread.is_alive():
             return
         
         self.trailing_running = True
         self.trailing_thread = threading.Thread(target=self._trailing_loop, daemon=True)
         self.trailing_thread.start()
-        print("🚀 Trailing Stop Background Thread Started")
+        print("[GO] Trailing Stop Background Thread Started")
     
     def stop_trailing_thread(self):
-        """⏹️ Stop background trailing thread"""
+        """[STOP] Stop background trailing thread"""
         self.trailing_running = False
         if self.trailing_thread:
             self.trailing_thread.join(timeout=5)
-        print("⏹️ Trailing Stop Background Thread Stopped")
+        print("[STOP] Trailing Stop Background Thread Stopped")
     
     def _trailing_loop(self):
-        """🔄 Background loop for trailing stop updates"""
+        """[REFRESH] Background loop for trailing stop updates"""
         while self.trailing_running:
             try:
                 if self.trailing_enabled and hasattr(self.main_dashboard, 'open_positions'):
@@ -102,11 +102,11 @@ class EnhancedTradingSystemWithTrailing:
                 time.sleep(self.trailing_update_interval)
                 
             except Exception as e:
-                print(f"❌ Error in trailing loop: {str(e)}")
+                print(f"[ERR] Error in trailing loop: {str(e)}")
                 time.sleep(5)  # Wait before retrying
     
     def _get_open_positions(self) -> List[Dict]:
-        """📊 Get current open positions from MT5"""
+        """[CHART] Get current open positions from MT5"""
         try:
             positions = mt5.positions_get()
             if positions is None:
@@ -130,11 +130,11 @@ class EnhancedTradingSystemWithTrailing:
             return position_list
             
         except Exception as e:
-            print(f"❌ Error getting positions: {str(e)}")
+            print(f"[ERR] Error getting positions: {str(e)}")
             return []
     
     def _get_market_data_for_trailing(self) -> Dict:
-        """📊 Get market data for trailing calculations"""
+        """[CHART] Get market data for trailing calculations"""
         try:
             if not hasattr(self.main_dashboard, 'live_data'):
                 return {}
@@ -154,11 +154,11 @@ class EnhancedTradingSystemWithTrailing:
             return market_data
             
         except Exception as e:
-            print(f"❌ Error getting market data: {str(e)}")
+            print(f"[ERR] Error getting market data: {str(e)}")
             return {}
     
     def _process_trailing_stops(self, positions: List[Dict], market_data: Dict):
-        """🎯 Process trailing stops for all positions"""
+        """[TARGET] Process trailing stops for all positions"""
         try:
             # Process through trailing manager
             results = self.trailing_manager.process_trailing_stops(positions, market_data)
@@ -183,15 +183,15 @@ class EnhancedTradingSystemWithTrailing:
                 
                 # Log results
                 if updates_executed > 0:
-                    print(f"🎯 Trailing Stop Updates: {updates_executed}/{results['results']['updates_needed']}")
+                    print(f"[TARGET] Trailing Stop Updates: {updates_executed}/{results['results']['updates_needed']}")
                     print(f"   Breakeven Moves: {results['results']['breakeven_moves']}")
                     print(f"   Trail Moves: {results['results']['trailing_moves']}")
             
         except Exception as e:
-            print(f"❌ Error processing trailing stops: {str(e)}")
+            print(f"[ERR] Error processing trailing stops: {str(e)}")
     
     def _execute_sl_modification(self, ticket: int, new_sl: float, symbol: str) -> bool:
-        """🎯 Execute Stop Loss modification in MT5"""
+        """[TARGET] Execute Stop Loss modification in MT5"""
         try:
             # Get current position info
             position = mt5.positions_get(ticket=ticket)
@@ -215,27 +215,27 @@ class EnhancedTradingSystemWithTrailing:
             result = mt5.order_send(request)
             
             if result.retcode == mt5.TRADE_RETCODE_DONE:
-                print(f"✅ SL Updated: {symbol} #{ticket} → SL: {new_sl:.5f}")
+                print(f"[OK] SL Updated: {symbol} #{ticket} -> SL: {new_sl:.5f}")
                 return True
             else:
-                print(f"❌ SL Update Failed: {symbol} #{ticket} - {result.comment}")
+                print(f"[ERR] SL Update Failed: {symbol} #{ticket} - {result.comment}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Error executing SL modification: {str(e)}")
+            print(f"[ERR] Error executing SL modification: {str(e)}")
             return False
     
     def set_trailing_profile(self, profile: str) -> bool:
-        """🎯 Change trailing stop profile"""
+        """[TARGET] Change trailing stop profile"""
         if profile in self.trailing_profiles:
             self.current_trailing_profile = profile
             self.trailing_manager.trailing_system.set_trailing_profile(profile)
-            print(f"🎯 Trailing Profile Changed: {profile}")
+            print(f"[TARGET] Trailing Profile Changed: {profile}")
             return True
         return False
     
     def toggle_trailing_stops(self, enabled: bool) -> bool:
-        """🎯 Enable/Disable trailing stops"""
+        """[TARGET] Enable/Disable trailing stops"""
         self.trailing_enabled = enabled
         self.trailing_manager.enabled = enabled
         
@@ -244,12 +244,12 @@ class EnhancedTradingSystemWithTrailing:
             print("🟢 Trailing Stops: ENABLED")
         else:
             self.stop_trailing_thread()
-            print("🔴 Trailing Stops: DISABLED")
+            print("[EMOJI] Trailing Stops: DISABLED")
         
         return True
     
     def get_trailing_dashboard_data(self) -> Dict:
-        """📊 Get data for trailing stop dashboard"""
+        """[CHART] Get data for trailing stop dashboard"""
         try:
             # Get statistics from trailing manager
             stats = self.trailing_manager.get_statistics()
@@ -292,12 +292,12 @@ class EnhancedTradingSystemWithTrailing:
             }
             
         except Exception as e:
-            print(f"❌ Error getting dashboard data: {str(e)}")
+            print(f"[ERR] Error getting dashboard data: {str(e)}")
             return {'error': str(e)}
 
-# 🎯 API Integration for Web Dashboard
+# [TARGET] API Integration for Web Dashboard
 def add_trailing_stop_routes(app, enhanced_system):
-    """🌐 Add trailing stop routes to Flask app"""
+    """[WEB] Add trailing stop routes to Flask app"""
     
     @app.route('/api/trailing-stops/status')
     def get_trailing_status():
@@ -346,10 +346,10 @@ def add_trailing_stop_routes(app, enhanced_system):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-# 🎯 Integration Instructions
+# [TARGET] Integration Instructions
 def integrate_with_existing_system():
     """
-    📖 Integration Instructions
+    [EMOJI] Integration Instructions
     
     1. ในไฟล์ mt5_forex_connector.py เพิ่ม:
        from trading_integration import EnhancedTradingSystemWithTrailing, add_trailing_stop_routes
@@ -366,7 +366,7 @@ def integrate_with_existing_system():
     
     5. เพิ่ม JavaScript ใน Dashboard สำหรับ Trailing Stop Controls
     """
-    print("📖 Integration Instructions printed above")
+    print("[EMOJI] Integration Instructions printed above")
 
 if __name__ == "__main__":
     integrate_with_existing_system()

@@ -1,12 +1,12 @@
-# แก้ไขไฟล์ "advanced_features.py" ที่มีอยู่แล้ว - แทนที่ทั้งหมด
+# แก้ไขไฟล์ "advanced_features.py" - FIXED VERSION
 
 """
-Advanced Trading Features - Universal Broker Support + EXTENDED VERSION
-======================================================================
+Advanced Trading Features - Universal Broker Support + EXTENDED VERSION - FIXED
+===============================================================================
 เพิ่มความสามารถขั้นสูงในระบบที่มีอยู่แล้ว + เพิ่มฟีเจอร์ใหม่
 UNIVERSAL: ใช้ได้กับทุกโบรกเกอร์ผ่านระบบ BrokerSymbolAdapter
 EXTENDED: เพิ่ม Advanced Pattern Recognition + Smart Risk Scaling
-FIXED: Duplicate returns, enum handling, JSON serialization, Universal symbols
+FIXED: Missing methods, duplicate returns, enum handling, JSON serialization
 """
 
 import MetaTrader5 as mt5
@@ -83,7 +83,7 @@ class UniversalMarketRegimeDetector:
         }
 
     def _calculate_real_market_regime(self, symbol: str, timeframe_data: Dict) -> Dict:
-        """🎯 REAL Market Regime Detection using ALL 4 timeframes"""
+        """[TARGET] REAL Market Regime Detection using ALL 4 timeframes"""
         try:
             # ดึงข้อมูลทั้ง 4 timeframes
             timeframes_needed = ['H4', 'H1', 'M15', 'M5']
@@ -106,47 +106,47 @@ class UniversalMarketRegimeDetector:
                     
                     if tf_rates is not None and len(tf_rates) > 20:
                         timeframe_dfs[tf] = pd.DataFrame(tf_rates)
-                        self.logger.info(f"✅ Fetched {tf} data: {len(tf_rates)} periods for {symbol}")
+                        self.logger.info(f"[OK] Fetched {tf} data: {len(tf_rates)} periods for {symbol}")
                     else:
-                        self.logger.warning(f"⚠️ Failed to fetch {tf} data for {symbol}")
+                        self.logger.warning(f"[WARN] Failed to fetch {tf} data for {symbol}")
                 else:
                     if len(tf_data) > 20:
                         timeframe_dfs[tf] = tf_data
-                        self.logger.info(f"✅ Using existing {tf} data: {len(tf_data)} periods for {symbol}")
+                        # self.logger.info(f"[OK] Using existing {tf} data: {len(tf_data)} periods for {symbol}")
             
             # ตรวจสอบว่ามีข้อมูลเพียงพอหรือไม่
             if len(timeframe_dfs) < 2:
-                self.logger.warning(f"⚠️ Insufficient timeframe data for {symbol}: only {len(timeframe_dfs)} timeframes")
+                self.logger.warning(f"[WARN] Insufficient timeframe data for {symbol}: only {len(timeframe_dfs)} timeframes")
                 return self._get_fallback_regime("Insufficient timeframe data")
             
-            # 🔥 Multi-Timeframe Analysis
+            # [HOT] Multi-Timeframe Analysis
             regime_scores = {}
             
             # H4 Analysis - Main Trend (Weight: 40%)
             if 'H4' in timeframe_dfs:
                 h4_regime = self._analyze_h4_regime(timeframe_dfs['H4'])
                 regime_scores['H4'] = {'data': h4_regime, 'weight': 0.40}
-                self.logger.info(f"📊 H4 Regime for {symbol}: {h4_regime['regime']} (confidence: {h4_regime['confidence']:.2f})")
+                self.logger.info(f"[CHART] H4 Regime for {symbol}: {h4_regime['regime']} (confidence: {h4_regime['confidence']:.2f})")
             
             # H1 Analysis - Setup Confirmation (Weight: 30%)
             if 'H1' in timeframe_dfs:
                 h1_regime = self._analyze_h1_regime(timeframe_dfs['H1'])
                 regime_scores['H1'] = {'data': h1_regime, 'weight': 0.30}
-                self.logger.info(f"📊 H1 Regime for {symbol}: {h1_regime['regime']} (confidence: {h1_regime['confidence']:.2f})")
+                self.logger.info(f"[CHART] H1 Regime for {symbol}: {h1_regime['regime']} (confidence: {h1_regime['confidence']:.2f})")
             
             # M15 Analysis - Entry Timing (Weight: 20%)
             if 'M15' in timeframe_dfs:
                 m15_regime = self._analyze_m15_regime(timeframe_dfs['M15'])
                 regime_scores['M15'] = {'data': m15_regime, 'weight': 0.20}
-                self.logger.info(f"📊 M15 Regime for {symbol}: {m15_regime['regime']} (confidence: {m15_regime['confidence']:.2f})")
+                self.logger.info(f"[CHART] M15 Regime for {symbol}: {m15_regime['regime']} (confidence: {m15_regime['confidence']:.2f})")
             
             # M5 Analysis - Risk Management (Weight: 10%)
             if 'M5' in timeframe_dfs:
                 m5_regime = self._analyze_m5_regime(timeframe_dfs['M5'])
                 regime_scores['M5'] = {'data': m5_regime, 'weight': 0.10}
-                self.logger.info(f"📊 M5 Regime for {symbol}: {m5_regime['regime']} (confidence: {m5_regime['confidence']:.2f})")
+                self.logger.info(f"[CHART] M5 Regime for {symbol}: {m5_regime['regime']} (confidence: {m5_regime['confidence']:.2f})")
             
-            # 🎯 Calculate Final Regime using Weighted Confluence
+            # [TARGET] Calculate Final Regime using Weighted Confluence
             final_regime = self._calculate_weighted_regime_confluence(regime_scores)
             
             # เพิ่มข้อมูล debug และ metadata
@@ -159,13 +159,13 @@ class UniversalMarketRegimeDetector:
                 'symbol': symbol
             })
             
-            self.logger.info(f"🎯 Final Multi-TF Regime for {symbol}: {final_regime['regime']} (confidence: {final_regime['confidence']:.2f})")
+            self.logger.info(f"[TARGET] Final Multi-TF Regime for {symbol}: {final_regime['regime']} (confidence: {final_regime['confidence']:.2f})")
             self.logger.info(f"   Timeframes used: {', '.join(timeframe_dfs.keys())}")
             
             return final_regime
             
         except Exception as e:
-            self.logger.error(f"❌ Multi-timeframe regime calculation error for {symbol}: {str(e)}")
+            self.logger.error(f"[ERR] Multi-timeframe regime calculation error for {symbol}: {str(e)}")
             return self._get_fallback_regime(f"Calculation error: {str(e)}")
 
     def _analyze_h4_regime(self, df_h4: pd.DataFrame) -> Dict:
@@ -497,7 +497,7 @@ class UniversalMarketRegimeDetector:
             }
             
         except Exception as e:
-            self.logger.error(f"❌ Weighted confluence calculation error: {str(e)}")
+            self.logger.error(f"[ERR] Weighted confluence calculation error: {str(e)}")
             return self._get_fallback_regime(f"Confluence error: {str(e)}")
 
     def _calculate_atr_percentile(self, atr_series: pd.Series, current_atr: float) -> float:
@@ -511,16 +511,37 @@ class UniversalMarketRegimeDetector:
         except:
             return 50.0
     
-    def _get_default_regime(self, reason: str) -> Dict:
-        """Get default regime when calculation fails"""
+    def _calculate_risk_factor(self, regime: str, confidence: float) -> float:
+        """Calculate risk adjustment factor based on regime - FIXED METHOD"""
+        try:
+            risk_factors = {
+                'TRENDING_BULLISH': 1.2,
+                'TRENDING_BEARISH': 1.2,
+                'HIGH_VOLATILITY': 0.7,
+                'LOW_VOLATILITY': 0.8,
+                'RANGING': 0.9,
+                'ERROR': 0.5,
+                'UNKNOWN': 0.5
+            }
+            
+            base_factor = risk_factors.get(regime, 1.0)
+            confidence_adjustment = 0.5 + (confidence * 0.5)  # 0.5 to 1.0
+            
+            return round(base_factor * confidence_adjustment, 2)
+        except:
+            return 1.0
+    
+    def _get_fallback_regime(self, reason: str = None) -> Dict:
+        """Fallback regime when calculation fails - FIXED METHOD"""
         return {
-            'regime': MarketRegime.RANGING,
+            'regime': 'RANGING',
             'confidence': 0.5,
             'trend_strength': 0.0,
             'volatility_percentile': 50.0,
             'current_atr': 0.001,
-            'error_reason': reason,
-            'calculation_method': 'DEFAULT_FALLBACK'
+            'risk_factor': 1.0,
+            'calculation_method': 'FALLBACK',
+            'error': reason
         }
     
     def calculate_universal_atr(self, df: pd.DataFrame, period: int = 14) -> float:
@@ -549,8 +570,6 @@ class UniversalMarketRegimeDetector:
         except Exception as e:
             self.logger.error(f"Universal ATR calculation error: {str(e)}")
             return 0.001
-    
-   
     
     def calculate_price_volatility_regime(self, df: pd.DataFrame, period: int = 20) -> float:
         """Price Volatility สำหรับ regime detection"""
@@ -1051,44 +1070,44 @@ class UniversalAdvancedTradingIntegrator:
         self.position_sizer = UniversalDynamicPositionSizer(symbol_adapter)
         self.logger = logging.getLogger(__name__)
         
-        print("🚀 Universal Advanced Trading Features Initialized!")
-        print("✅ Universal Market Regime Detection: ACTIVE")
-        print("✅ Universal Enhanced Signal Scoring: ACTIVE") 
-        print("✅ Universal Dynamic Position Sizing: ACTIVE")
-        print("✅ Broker Compatibility: ALL BROKERS SUPPORTED")
+        print("[GO] Universal Advanced Trading Features Initialized!")
+        print("[OK] Universal Market Regime Detection: ACTIVE")
+        print("[OK] Universal Enhanced Signal Scoring: ACTIVE") 
+        print("[OK] Universal Dynamic Position Sizing: ACTIVE")
+        print("[OK] Broker Compatibility: ALL BROKERS SUPPORTED")
         
         if symbol_adapter:
-            print("✅ Symbol Adapter: CONNECTED")
+            print("[OK] Symbol Adapter: CONNECTED")
         else:
-            print("⚠️ Symbol Adapter: NONE (using direct symbols)")
+            print("[WARN] Symbol Adapter: NONE (using direct symbols)")
 
     def enhance_signal_analysis(self, symbol: str, basic_signal_data: Dict, timeframe_data: Dict = None) -> Dict:
-        """🔥 REAL Enhanced Signal Analysis - COMPLETELY FUNCTIONAL"""
+        """[HOT] REAL Enhanced Signal Analysis - COMPLETELY FUNCTIONAL"""
         try:
             enhanced_result = basic_signal_data.copy()
             
-            # 🎯 1. REAL Market Regime Detection
+            # [TARGET] 1. REAL Market Regime Detection
             regime_data = self.regime_detector._calculate_real_market_regime(symbol, timeframe_data)
             
-            # 🎯 2. REAL Enhanced Strength Calculation
+            # [TARGET] 2. REAL Enhanced Strength Calculation
             enhanced_strength = self._calculate_real_enhanced_strength(basic_signal_data, regime_data)
             
-            # 🎯 3. REAL Volatility Percentile
+            # [TARGET] 3. REAL Volatility Percentile
             volatility_percentile = self._calculate_real_volatility_percentile(symbol, timeframe_data)
             
-            # 🎯 4. REAL Enhanced Quality Assessment
+            # [TARGET] 4. REAL Enhanced Quality Assessment
             enhanced_quality = self._calculate_real_enhanced_quality(basic_signal_data, regime_data)
             
-            # 🎯 5. REAL Pattern Recognition
+            # [TARGET] 5. REAL Pattern Recognition
             detected_patterns = self._detect_real_patterns(symbol, timeframe_data)
             
-            # 🎯 6. REAL Portfolio Risk Assessment
+            # [TARGET] 6. REAL Portfolio Risk Assessment
             portfolio_risk = self._assess_real_portfolio_risk(symbol)
             
-            # 🎯 7. REAL Time-based Optimization
+            # [TARGET] 7. REAL Time-based Optimization
             time_optimization = self._calculate_time_based_optimization()
             
-            # 🔥 Update with REAL calculations
+            # [HOT] Update with REAL calculations
             enhanced_result.update({
                 # Core Enhanced Data
                 'enhanced_strength': enhanced_strength,
@@ -1123,8 +1142,8 @@ class UniversalAdvancedTradingIntegrator:
                 'universal_enhanced': True,
                 'broker_symbol': symbol,
                 'system_symbol': symbol,
-                'enhancement_version': 'REAL_CALCULATION_v3.0_COMPLETE',
-                'enhancement_note': 'Full advanced features with real market regime detection',
+                'enhancement_version': 'REAL_CALCULATION_v3.0_COMPLETE_FIXED',
+                'enhancement_note': 'Full advanced features with real market regime detection - FIXED',
                 'calculation_timestamp': datetime.now().isoformat(),
                 
                 # Debug Information
@@ -1135,8 +1154,8 @@ class UniversalAdvancedTradingIntegrator:
                 }
             })
             
-            # 🎯 Log successful enhancement
-            self.logger.info(f"✅ Enhanced analysis completed for {symbol}:")
+            # [TARGET] Log successful enhancement
+            self.logger.info(f"[OK] Enhanced analysis completed for {symbol}:")
             self.logger.info(f"   Regime: {regime_data['regime']} (confidence: {regime_data['confidence']:.2f})")
             self.logger.info(f"   Enhanced Strength: {enhanced_strength} (was: {basic_signal_data.get('strength', 0)})")
             self.logger.info(f"   Quality: {enhanced_quality} (was: {basic_signal_data.get('entry_quality', 'POOR')})")
@@ -1145,7 +1164,7 @@ class UniversalAdvancedTradingIntegrator:
             return enhanced_result
             
         except Exception as e:
-            self.logger.error(f"❌ Enhanced analysis error for {symbol}: {str(e)}")
+            self.logger.error(f"[ERR] Enhanced analysis error for {symbol}: {str(e)}")
             
             # Enhanced error fallback
             enhanced_result = basic_signal_data.copy()
@@ -1167,38 +1186,8 @@ class UniversalAdvancedTradingIntegrator:
             })
             return enhanced_result
 
-    def _get_fallback_regime(self, error_msg: str = None) -> Dict:
-        """Fallback regime when calculation fails"""
-        return {
-            'regime': 'RANGING',
-            'confidence': 0.5,
-            'trend_strength': 0.0,
-            'volatility_percentile': 50.0,
-            'current_atr': 0.001,
-            'risk_factor': 1.0,
-            'calculation_method': 'FALLBACK',
-            'error': error_msg
-        }
-
-    def _calculate_risk_factor(self, regime: str, confidence: float) -> float:
-        """Calculate risk adjustment factor based on regime"""
-        risk_factors = {
-            'TRENDING_BULLISH': 1.2,
-            'TRENDING_BEARISH': 1.2,
-            'HIGH_VOLATILITY': 0.7,
-            'LOW_VOLATILITY': 0.8,
-            'RANGING': 0.9,
-            'ERROR': 0.5,
-            'UNKNOWN': 0.5
-        }
-        
-        base_factor = risk_factors.get(regime, 1.0)
-        confidence_adjustment = 0.5 + (confidence * 0.5)  # 0.5 to 1.0
-        
-        return round(base_factor * confidence_adjustment, 2)
-
     def _calculate_real_enhanced_strength(self, basic_signal_data: Dict, regime_data: Dict) -> float:
-        """🎯 REAL Enhanced Strength with regime-based multipliers"""
+        """[TARGET] REAL Enhanced Strength with regime-based multipliers"""
         try:
             basic_strength = basic_signal_data.get('strength', 0)
             regime = regime_data.get('regime', 'RANGING')
@@ -1243,11 +1232,11 @@ class UniversalAdvancedTradingIntegrator:
             return round(enhanced_strength, 1)
             
         except Exception as e:
-            self.logger.error(f"❌ Enhanced strength calculation error: {str(e)}")
+            self.logger.error(f"[ERR] Enhanced strength calculation error: {str(e)}")
             return float(basic_signal_data.get('strength', 0))
 
     def _calculate_real_volatility_percentile(self, symbol: str, timeframe_data: Dict) -> float:
-        """🎯 REAL Volatility Percentile using ATR"""
+        """[TARGET] REAL Volatility Percentile using ATR"""
         try:
             # ใช้ข้อมูลจาก timeframe_data ก่อน
             h1_data = timeframe_data.get('H1') if timeframe_data else None
@@ -1286,11 +1275,11 @@ class UniversalAdvancedTradingIntegrator:
             return round(float(percentile), 1)
             
         except Exception as e:
-            self.logger.error(f"❌ Volatility percentile calculation error for {symbol}: {str(e)}")
+            self.logger.error(f"[ERR] Volatility percentile calculation error for {symbol}: {str(e)}")
             return 50.0
 
     def _calculate_real_enhanced_quality(self, basic_signal_data: Dict, regime_data: Dict) -> str:
-        """🎯 REAL Enhanced Quality Assessment"""
+        """[TARGET] REAL Enhanced Quality Assessment"""
         try:
             basic_quality = basic_signal_data.get('entry_quality', 'POOR')
             basic_strength = basic_signal_data.get('strength', 0)
@@ -1338,11 +1327,11 @@ class UniversalAdvancedTradingIntegrator:
                 return 'POOR'
                 
         except Exception as e:
-            self.logger.error(f"❌ Enhanced quality calculation error: {str(e)}")
+            self.logger.error(f"[ERR] Enhanced quality calculation error: {str(e)}")
             return basic_signal_data.get('entry_quality', 'POOR')
 
     def _detect_real_patterns(self, symbol: str, timeframe_data: Dict) -> List[str]:
-        """🎯 REAL Pattern Detection"""
+        """[TARGET] REAL Pattern Detection"""
         try:
             patterns = []
             
@@ -1390,11 +1379,11 @@ class UniversalAdvancedTradingIntegrator:
             return patterns if patterns else ['NO_PATTERN']
             
         except Exception as e:
-            self.logger.error(f"❌ Pattern detection error for {symbol}: {str(e)}")
+            self.logger.error(f"[ERR] Pattern detection error for {symbol}: {str(e)}")
             return ['ERROR']
 
     def _assess_real_portfolio_risk(self, symbol: str) -> Dict:
-        """🎯 REAL Portfolio Risk Assessment"""
+        """[TARGET] REAL Portfolio Risk Assessment"""
         try:
             # ดึงข้อมูล positions ปัจจุบัน
             positions = mt5.positions_get()
@@ -1483,7 +1472,7 @@ class UniversalAdvancedTradingIntegrator:
             }
             
         except Exception as e:
-            self.logger.error(f"❌ Portfolio risk assessment error: {str(e)}")
+            self.logger.error(f"[ERR] Portfolio risk assessment error: {str(e)}")
             return {
                 'score': 'MODERATE',
                 'max_exposure': 2.0,
@@ -1493,7 +1482,7 @@ class UniversalAdvancedTradingIntegrator:
             }
 
     def _calculate_time_based_optimization(self) -> Dict:
-        """🎯 Time-based trading optimization"""
+        """[TARGET] Time-based trading optimization"""
         try:
             current_time = datetime.now()
             current_hour = current_time.hour
@@ -1546,7 +1535,7 @@ class UniversalAdvancedTradingIntegrator:
             }
             
         except Exception as e:
-            self.logger.error(f"❌ Time optimization error: {str(e)}")
+            self.logger.error(f"[ERR] Time optimization error: {str(e)}")
             return {
                 'session_multiplier': 1.0,
                 'optimal_window': 'STANDARD',
@@ -1555,7 +1544,7 @@ class UniversalAdvancedTradingIntegrator:
             }
 
     def _calculate_enhanced_lot_size(self, base_lot_size: float, regime_data: Dict, portfolio_risk: Dict) -> float:
-        """🎯 Enhanced position sizing with regime and risk adjustments"""
+        """[TARGET] Enhanced position sizing with regime and risk adjustments"""
         try:
             regime = regime_data.get('regime', 'RANGING')
             regime_confidence = regime_data.get('confidence', 0.5)
@@ -1592,7 +1581,7 @@ class UniversalAdvancedTradingIntegrator:
             return round(enhanced_lot_size, 2)
             
         except Exception as e:
-            self.logger.error(f"❌ Enhanced lot size calculation error: {str(e)}")
+            self.logger.error(f"[ERR] Enhanced lot size calculation error: {str(e)}")
             return base_lot_size
 
     # Pattern Detection Helper Methods
@@ -1709,7 +1698,7 @@ class UniversalAdvancedTradingIntegrator:
             return 0.5
 
     def get_dashboard_data(self) -> Dict:
-        """🎯 Dashboard data for monitoring"""
+        """[TARGET] Dashboard data for monitoring"""
         try:
             return {
                 'advanced_features_active': True,
@@ -1719,7 +1708,7 @@ class UniversalAdvancedTradingIntegrator:
                 'pattern_recognition_status': 'ACTIVE',
                 'universal_compatibility': True,
                 'broker_adapter_connected': self.symbol_adapter is not None,
-                'enhancement_version': '3.0_COMPLETE',
+                'enhancement_version': '3.0_COMPLETE_FIXED',
                 'last_update': datetime.now().isoformat()
             }
         except Exception as e:
@@ -1737,7 +1726,7 @@ class UniversalAdvancedTradingIntegrator:
             'time_based_optimization': 'ACTIVE',
             'symbol_adapter_connected': self.symbol_adapter is not None,
             'broker_compatibility': 'ALL_BROKERS',
-            'enhancement_version': '3.0_COMPLETE_REAL_CALCULATIONS',
+            'enhancement_version': '3.0_COMPLETE_REAL_CALCULATIONS_FIXED',
             'features': [
                 'REAL_MARKET_REGIME_DETECTION',
                 'REAL_ENHANCED_SIGNAL_SCORING',

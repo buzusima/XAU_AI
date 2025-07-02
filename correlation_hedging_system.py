@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def debug_mt5_connection():
     """ตรวจสอบการเชื่อมต่อ MT5 อย่างละเอียด"""
     print("=" * 50)
-    print("🔍 MT5 CONNECTION DEBUG")
+    print("[SEARCH] MT5 CONNECTION DEBUG")
     print("=" * 50)
     
     # 1. ตรวจสอบ MT5 initialization
@@ -34,26 +34,26 @@ def debug_mt5_connection():
     # 2. ตรวจสอบ terminal info
     terminal_info = mt5.terminal_info()
     if terminal_info:
-        print(f"✅ Terminal Connected: {terminal_info.name}")
+        print(f"[OK] Terminal Connected: {terminal_info.name}")
         print(f"   Company: {terminal_info.company}")
         print(f"   Connected: {terminal_info.connected}")
     else:
-        print("❌ Terminal Info: None")
+        print("[ERR] Terminal Info: None")
         return False
     
     # 3. ตรวจสอบ account
     account_info = mt5.account_info()
     if account_info:
-        print(f"✅ Account: {account_info.login}")
+        print(f"[OK] Account: {account_info.login}")
         print(f"   Balance: ${account_info.balance:,.2f}")
         print(f"   Server: {account_info.server}")
     else:
-        print("❌ Account Info: None")
+        print("[ERR] Account Info: None")
         return False
     
     # 4. ตรวจสอบ positions
     positions = mt5.positions_get()
-    print(f"📊 Positions Found: {len(positions) if positions else 0}")
+    print(f"[CHART] Positions Found: {len(positions) if positions else 0}")
     
     if positions:
         for i, pos in enumerate(positions):
@@ -69,15 +69,15 @@ def debug_mt5_connection():
             try:
                 symbol_pos = mt5.positions_get(symbol=symbol)
                 if symbol_pos:
-                    print(f"   ✅ Found via {symbol}: {len(symbol_pos)} positions")
+                    print(f"   [OK] Found via {symbol}: {len(symbol_pos)} positions")
                     for pos in symbol_pos:
                         print(f"      - {pos.symbol}: {pos.volume} lots")
             except Exception as e:
-                print(f"   ❌ Error checking {symbol}: {e}")
+                print(f"   [ERR] Error checking {symbol}: {e}")
     
     # 5. ตรวจสอบ symbols
     symbols_info = mt5.symbols_get()
-    print(f"📈 Available Symbols: {len(symbols_info) if symbols_info else 0}")
+    print(f"[UP] Available Symbols: {len(symbols_info) if symbols_info else 0}")
     
     return True
 class HedgeAction(Enum):
@@ -118,7 +118,7 @@ class AdvancedCorrelationHedging:
         self.trading_system = trading_system
         self.logger = logging.getLogger(__name__)
         
-        # 📊 ENHANCED CORRELATION MATRIX
+        # [CHART] ENHANCED CORRELATION MATRIX
         self.correlation_pairs = {
             # [MONEY] USD STRENGTH BASKET
             'EURUSD.c': {
@@ -130,7 +130,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇬🇧 GBP STRENGTH BASKET  
+            # [EMOJI] GBP STRENGTH BASKET  
             'GBPUSD.c': {
                 'negative_corr': ['USDCHF.c', 'USDJPY.c'],
                 'positive_corr': ['EURUSD.c', 'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c'],
@@ -141,7 +141,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇯🇵 JPY STRENGTH BASKET
+            # [EMOJI] JPY STRENGTH BASKET
             'USDJPY.c': {
                 'negative_corr': ['EURUSD.c', 'GBPUSD.c', 'AUDUSD.c'],
                 'positive_corr': ['USDCHF.c', 'EURJPY.c', 'GBPJPY.c', 'AUDJPY.c', 'NZDJPY.c'],
@@ -152,7 +152,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇨🇭 CHF STRENGTH BASKET
+            # [EMOJI] CHF STRENGTH BASKET
             'USDCHF.c': {
                 'negative_corr': ['EURUSD.c', 'GBPUSD.c', 'AUDUSD.c'],
                 'positive_corr': ['USDJPY.c', 'EURCHF.c', 'GBPCHF.c'],
@@ -162,7 +162,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇦🇺 COMMODITY CURRENCIES
+            # [EMOJI] COMMODITY CURRENCIES
             'AUDUSD.c': {
                 'negative_corr': ['USDCHF.c', 'USDJPY.c'],
                 'positive_corr': ['NZDUSD.c', 'EURUSD.c', 'AUDNZD.c', 'AUDJPY.c', 'AUDCHF.c'],
@@ -173,7 +173,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇳🇿 NZD STRENGTH BASKET
+            # [EMOJI] NZD STRENGTH BASKET
             'NZDUSD.c': {
                 'negative_corr': ['USDCHF.c', 'USDJPY.c'],
                 'positive_corr': ['AUDUSD.c', 'EURUSD.c', 'AUDNZD.c', 'NZDJPY.c', 'NZDCHF.c'],
@@ -184,7 +184,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇨🇦 CAD STRENGTH BASKET
+            # [EMOJI] CAD STRENGTH BASKET
             'USDCAD.c': {
                 'negative_corr': ['EURUSD.c', 'GBPUSD.c'],
                 'positive_corr': ['USDJPY.c', 'CADJPY.c', 'AUDCAD.c'],
@@ -194,7 +194,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇪🇺 EUR CROSS PAIRS
+            # [EMOJI] EUR CROSS PAIRS
             'EURGBP.c': {
                 'negative_corr': ['GBPCHF.c'],
                 'positive_corr': ['EURUSD.c', 'GBPUSD.c', 'EURJPY.c', 'GBPJPY.c'],
@@ -250,7 +250,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇬🇧 GBP CROSS PAIRS
+            # [EMOJI] GBP CROSS PAIRS
             'GBPJPY.c': {
                 'negative_corr': ['USDCHF.c'],
                 'positive_corr': ['GBPUSD.c', 'USDJPY.c', 'EURJPY.c', 'AUDJPY.c'],
@@ -296,7 +296,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇦🇺 AUD CROSS PAIRS
+            # [EMOJI] AUD CROSS PAIRS
             'AUDCHF.c': {
                 'negative_corr': ['AUDUSD.c'],
                 'positive_corr': ['USDCHF.c', 'EURCHF.c', 'GBPCHF.c'],
@@ -333,7 +333,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇳🇿 NZD CROSS PAIRS
+            # [EMOJI] NZD CROSS PAIRS
             'NZDJPY.c': {
                 'negative_corr': ['USDCHF.c', 'USDJPY.c'],
                 'positive_corr': ['AUDJPY.c', 'EURJPY.c', 'GBPJPY.c', 'NZDUSD.c'],
@@ -361,7 +361,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇨🇭 CHF CROSS PAIRS
+            # [EMOJI] CHF CROSS PAIRS
             'CHFJPY.c': {
                 'negative_corr': ['USDCHF.c'],
                 'positive_corr': ['USDJPY.c', 'EURJPY.c', 'GBPJPY.c'],
@@ -371,7 +371,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🇨🇦 CAD CROSS PAIRS
+            # [EMOJI] CAD CROSS PAIRS
             'CADJPY.c': {
                 'negative_corr': ['USDCAD.c'],
                 'positive_corr': ['USDJPY.c', 'EURJPY.c', 'GBPJPY.c'],
@@ -381,7 +381,7 @@ class AdvancedCorrelationHedging:
                 }
             },
             
-            # 🥇 GOLD CORRELATIONS
+            # [EMOJI] GOLD CORRELATIONS
             'XAUUSD.c': {
                 'negative_corr': ['USDJPY.c', 'USDCHF.c'],
                 'positive_corr': ['EURUSD.c', 'GBPUSD.c'],
@@ -399,13 +399,13 @@ class AdvancedCorrelationHedging:
             'risk_reduction_target': 0.30  # เป้าหมายลดความเสี่ยง 30%
         }
         
-        # 📈 REAL-TIME CORRELATION TRACKING
+        # [UP] REAL-TIME CORRELATION TRACKING
         self.live_correlations = {}
         self.correlation_history = {}
         
         print("[TARGET] Advanced Correlation Hedging System Initialized!")
-        print("💱 Smart Cross-Pair Risk Management Active")
-        print("🛡️ Dynamic Hedge Ratio Calculation Ready")
+        print("[EMOJI] Smart Cross-Pair Risk Management Active")
+        print("[SHIELD] Dynamic Hedge Ratio Calculation Ready")
     
     def normalize_symbol(self, symbol: str) -> str:
         """Normalize symbol format for compatibility"""
@@ -741,23 +741,23 @@ class AdvancedCorrelationHedging:
         try:
             # Correlation reasoning
             if abs(correlation) >= 0.80:
-                reasons.append(f"🔥 Strong correlation ({correlation:.3f}) with {hedge}")
+                reasons.append(f"[HOT] Strong correlation ({correlation:.3f}) with {hedge}")
             elif abs(correlation) >= 0.60:
-                reasons.append(f"📊 Good correlation ({correlation:.3f}) with {hedge}")
+                reasons.append(f"[CHART] Good correlation ({correlation:.3f}) with {hedge}")
             
             # Type reasoning
             if correlation < 0:
-                reasons.append(f"✅ Negative correlation provides natural hedge")
+                reasons.append(f"[OK] Negative correlation provides natural hedge")
             else:
-                reasons.append(f"⚠️ Positive correlation requires opposite position")
+                reasons.append(f"[WARN] Positive correlation requires opposite position")
             
             # Action reasoning
             action_explanations = {
-                HedgeAction.FULL_HEDGE: "💯 Full hedge recommended for maximum protection",
-                HedgeAction.PARTIAL_HEDGE: "🔄 Partial hedge to balance risk/reward",
-                HedgeAction.REDUCE_EXPOSURE: "📉 Reduce exposure - too much same direction",
-                HedgeAction.CLOSE_CONFLICTING: "❌ Close conflicting positions",
-                HedgeAction.NO_HEDGE: "🚫 No hedge needed"
+                HedgeAction.FULL_HEDGE: "[EMOJI] Full hedge recommended for maximum protection",
+                HedgeAction.PARTIAL_HEDGE: "[REFRESH] Partial hedge to balance risk/reward",
+                HedgeAction.REDUCE_EXPOSURE: "[DOWN] Reduce exposure - too much same direction",
+                HedgeAction.CLOSE_CONFLICTING: "[ERR] Close conflicting positions",
+                HedgeAction.NO_HEDGE: "[EMOJI] No hedge needed"
             }
             
             if action in action_explanations:
@@ -770,7 +770,7 @@ class AdvancedCorrelationHedging:
             hedge_quote = hedge[3:6]
             
             if primary_base == hedge_base or primary_quote == hedge_quote:
-                reasons.append(f"💱 Currency overlap detected ({primary_base}/{primary_quote} vs {hedge_base}/{hedge_quote})")
+                reasons.append(f"[EMOJI] Currency overlap detected ({primary_base}/{primary_quote} vs {hedge_base}/{hedge_quote})")
             
             return reasons
             
@@ -1150,9 +1150,9 @@ class HedgeSystemIntegrator:
         self.hedge_system = AdvancedCorrelationHedging(trading_system)
         
         print("[TARGET] Correlation Hedging System Integrated!")
-        print("💱 Cross-Pair Risk Management Ready")
+        print("[EMOJI] Cross-Pair Risk Management Ready")
     def get_dashboard_data(self):
-        """🎯 ดึงข้อมูลสำหรับ dashboard - FIXED METHOD"""
+        """[TARGET] ดึงข้อมูลสำหรับ dashboard - FIXED METHOD"""
         try:
             # Portfolio Analysis
             portfolio_data = self._get_portfolio_analysis()
@@ -1197,7 +1197,7 @@ class HedgeSystemIntegrator:
             }
 
     def _get_portfolio_analysis(self):
-        """📊 วิเคราะห์ portfolio ปัจจุบัน"""
+        """[CHART] วิเคราะห์ portfolio ปัจจุบัน"""
         try:
             # ดึงข้อมูล positions จาก MT5
             positions = mt5.positions_get()
@@ -1261,7 +1261,7 @@ class HedgeSystemIntegrator:
             }
 
     def _get_current_hedge_opportunities(self):
-        """🔍 หาโอกาส hedge ปัจจุบัน"""
+        """[SEARCH] หาโอกาส hedge ปัจจุบัน"""
         try:
             positions = mt5.positions_get()
             
@@ -1319,7 +1319,7 @@ class HedgeSystemIntegrator:
             }
 
     def _get_correlation_summary(self):
-        """🔗 สรุปข้อมูล correlation"""
+        """[EMOJI] สรุปข้อมูล correlation"""
         try:
             # ตัวอย่าง correlation data
             major_correlations = {
@@ -1352,7 +1352,7 @@ class HedgeSystemIntegrator:
             }
 
     def _get_portfolio_risk_metrics(self):
-        """⚠️ คำนวณ portfolio risk metrics"""
+        """[WARN] คำนวณ portfolio risk metrics"""
         try:
             positions = mt5.positions_get()
             account_info = mt5.account_info()
@@ -1394,7 +1394,7 @@ class HedgeSystemIntegrator:
     # ========================= เพิ่ม Helper Methods =========================
 
     def get_hedge_statistics(self):
-        """📈 ดึงสถิติ hedging"""
+        """[UP] ดึงสถิติ hedging"""
         try:
             return {
                 'total_hedge_recommendations': 0,
@@ -1409,7 +1409,7 @@ class HedgeSystemIntegrator:
             return {'error': str(e)}
 
     def test_hedging_system(self):
-        """🧪 ทดสอบ hedging system"""
+        """[EMOJI] ทดสอบ hedging system"""
         try:
             test_results = {
                 'correlation_engine': 'PASS',
@@ -1505,6 +1505,6 @@ __all__ = [
 ]
 
 print("[TARGET] Advanced Correlation Hedging System Ready!")
-print("💱 Intelligent Cross-Pair Risk Management")
-print("🛡️ Dynamic Hedge Ratio Calculation")
-print("📊 Real-time Correlation Analysis")
+print("[EMOJI] Intelligent Cross-Pair Risk Management")
+print("[SHIELD] Dynamic Hedge Ratio Calculation")
+print("[CHART] Real-time Correlation Analysis")

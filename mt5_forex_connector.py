@@ -27,9 +27,9 @@ from trading_integration import EnhancedTradingSystemWithTrailing, add_trailing_
 try:
     from correlation_hedging_system import HedgeSystemIntegrator, AdvancedCorrelationHedging
     HEDGING_SYSTEM_AVAILABLE = True
-    print("✅ Correlation Hedging System Loaded Successfully!")
+    print("[OK] Correlation Hedging System Loaded Successfully!")
 except ImportError as e:
-    print(f"⚠️ Hedging system not available: {str(e)}")
+    print(f"[WARN] Hedging system not available: {str(e)}")
     HEDGING_SYSTEM_AVAILABLE = False
 
 # CRITICAL FIX: Add clean_data_for_json function
@@ -69,20 +69,20 @@ def clean_data_for_json(data):
 try:
     from enhanced_signal_system import MultiTimeframeSignalEngine
     ENHANCED_SIGNAL_AVAILABLE = True
-    print("✅ Enhanced Signal System Loaded Successfully!")
+    print("[OK] Enhanced Signal System Loaded Successfully!")
 except ImportError as e:
-    print(f"⚠️ Enhanced signal system not available: {str(e)}")
-    print("📋 Using standard signal system...")
+    print(f"[WARN] Enhanced signal system not available: {str(e)}")
+    print("[CLIPBOARD] Using standard signal system...")
     ENHANCED_SIGNAL_AVAILABLE = False
 
 # FIXED: Import advanced_features with error handling
 try:
     from advanced_features import UniversalAdvancedTradingIntegrator, MarketRegime
     ADVANCED_FEATURES_AVAILABLE = True
-    print("✅ Advanced Trading Features Loaded Successfully!")
+    print("[OK] Advanced Trading Features Loaded Successfully!")
 except ImportError as e:
-    print(f"⚠️ Advanced features not available: {str(e)}")
-    print("📋 Using standard trading system...")
+    print(f"[WARN] Advanced features not available: {str(e)}")
+    print("[CLIPBOARD] Using standard trading system...")
     ADVANCED_FEATURES_AVAILABLE = False
 
 class DataPersistenceManager:
@@ -359,48 +359,48 @@ class EnhancedSmartAutoTradingDashboard:
     def __init__(self):
         """Initialize Auto Trading Dashboard - COMPLETE"""
         
-        # 🔧 Core Flask Setup
+        # [TOOL] Core Flask Setup
         self.app = Flask(__name__)
         CORS(self.app)
         
-        # 🗄️ Data Management
+        # [EMOJI] Data Management
         self.persistence = DataPersistenceManager()
         
-        # 📊 Core Data Storage
+        # [CHART] Core Data Storage
         self.live_data = {}
         self.account_info = {}
         self.forex_pairs = []
         self.auto_trading_pairs = set()
         
-        # 💰 Account & Risk Settings
+        # [MONEY] Account & Risk Settings
         self.account_balance = 10000.0
         self.current_risk_profile = 'BALANCED'
         self.risk_per_trade = 1.5  # %
         self.max_total_exposure = 6.0  # %
         
-        # ⚙️ Trading Settings - MISSING ATTRIBUTES ADDED
+        # [GEAR] Trading Settings - MISSING ATTRIBUTES ADDED
         self.default_lot_size = 0.01
-        self.min_lot_size = 0.01        # ← FIX: เพิ่ม missing attribute
-        self.max_lot_size = 2.0         # ← FIX: เพิ่ม missing attribute
+        self.min_lot_size = 0.01        # <- FIX: เพิ่ม missing attribute
+        self.max_lot_size = 2.0         # <- FIX: เพิ่ม missing attribute
         self.auto_trading_enabled = False
         self.one_trade_per_pair = True
         
-        # 🕐 Trading Time & Cooldown Settings
-        self.global_cooldown = 60       # ← FIX: เพิ่ม missing attribute
+        # [1PM] Trading Time & Cooldown Settings
+        self.global_cooldown = 60       # <- FIX: เพิ่ม missing attribute
         self.last_global_trade_time = None
-        self.trade_cooldowns = {}       # ← FIX: เพิ่ม missing attribute
+        self.trade_cooldowns = {}       # <- FIX: เพิ่ม missing attribute
         
-        # 🏃‍♂️ System State
+        # [EMOJI]‍[EMOJI] System State
         self.is_running = False
         self.mt5_connected = False
         self.emergency_stop = False
         self.last_update = datetime.now()
         
-        # 📋 Position Tracking - COMPLETE TRACKING SYSTEM
-        self.active_trades_per_pair = {}   # ← Already exists
-        self.pair_trade_status = {}        # ← Already exists
+        # [CLIPBOARD] Position Tracking - COMPLETE TRACKING SYSTEM
+        self.active_trades_per_pair = {}   # <- Already exists
+        self.pair_trade_status = {}        # <- Already exists
         
-        # 📊 Portfolio Risk Management Profiles
+        # [CHART] Portfolio Risk Management Profiles
         self.portfolio_risk_profiles = {
             'CONSERVATIVE': {'risk_per_trade': 0.5, 'max_total_exposure': 2.0, 'max_daily_loss': 2.0},
             'MODERATE': {'risk_per_trade': 1.0, 'max_total_exposure': 4.0, 'max_daily_loss': 3.0},
@@ -419,12 +419,12 @@ class EnhancedSmartAutoTradingDashboard:
             'profit_secured': 0.0
         }
 
-        # 📈 Trading Execution Settings
+        # [UP] Trading Execution Settings
         self.slippage_tolerance = 3
         self.max_spread_threshold = 2.0
         self.trade_timeout = 30
         
-        # 🕰️ Trading Sessions
+        # [EMOJI] Trading Sessions
         self.trading_sessions = {
             'ASIAN': {'start': '00:00', 'end': '09:00', 'enabled': False},
             'LONDON': {'start': '08:00', 'end': '17:00', 'enabled': True},
@@ -444,16 +444,16 @@ class EnhancedSmartAutoTradingDashboard:
         self.hedging_enabled = False
         self.broker_symbols_mapped = False
         
-        # 🚀 Initialize Essential Components
+        # [GO] Initialize Essential Components
         self.setup_logging()
         self.setup_symbol_adapter()
         self.setup_routes()
         self.load_system_settings()
         self.setup_signal_engine()
 
-        # print("✅ Auto Trading Dashboard Initialized")
-        # print(f"💰 Account Balance: ${self.account_balance:,.2f}")
-        # print(f"🎯 Risk Profile: {self.current_risk_profile}")
+        # print("[OK] Auto Trading Dashboard Initialized")
+        # print(f"[MONEY] Account Balance: ${self.account_balance:,.2f}")
+        # print(f"[TARGET] Risk Profile: {self.current_risk_profile}")
 
     def add_enhanced_features(self):
         """เพิ่ม enhanced features แบบ optional"""
@@ -462,11 +462,11 @@ class EnhancedSmartAutoTradingDashboard:
         try:
             if ENHANCED_SIGNAL_AVAILABLE:
                 self.enhanced_signal_engine = MultiTimeframeSignalEngine()
-                print("✅ Enhanced Signal Engine: LOADED")
+                print("[OK] Enhanced Signal Engine: LOADED")
             else:
                 self.enhanced_signal_engine = None
         except Exception as e:
-            print(f"⚠️ Enhanced signal engine error: {str(e)}")
+            print(f"[WARN] Enhanced signal engine error: {str(e)}")
             self.enhanced_signal_engine = None
         
         # Advanced Features
@@ -474,20 +474,20 @@ class EnhancedSmartAutoTradingDashboard:
             if ADVANCED_FEATURES_AVAILABLE:
                 self.advanced_integrator = UniversalAdvancedTradingIntegrator(self)
                 self.use_advanced_features = True
-                print("✅ Advanced Features: LOADED")
+                print("[OK] Advanced Features: LOADED")
             else:
                 self.use_advanced_features = False
         except Exception as e:
-            print(f"⚠️ Advanced features error: {str(e)}")
+            print(f"[WARN] Advanced features error: {str(e)}")
             self.use_advanced_features = False
         
         # Trailing Stops
         try:
             self.enhanced_trading = EnhancedTradingSystemWithTrailing(self)
             self.trailing_enabled = True
-            print("✅ Trailing Stops: LOADED")
+            print("[OK] Trailing Stops: LOADED")
         except Exception as e:
-            print(f"⚠️ Trailing system error: {str(e)}")
+            print(f"[WARN] Trailing system error: {str(e)}")
             self.trailing_enabled = False
         
         # Hedging System
@@ -495,20 +495,20 @@ class EnhancedSmartAutoTradingDashboard:
             if HEDGING_SYSTEM_AVAILABLE:
                 self.hedge_integrator = HedgeSystemIntegrator(self)
                 self.hedging_enabled = True
-                print("✅ Hedging System: LOADED")
+                print("[OK] Hedging System: LOADED")
             else:
                 self.hedging_enabled = False
         except Exception as e:
-            print(f"⚠️ Hedging system error: {str(e)}")
+            print(f"[WARN] Hedging system error: {str(e)}")
             self.hedging_enabled = False
         
         # Pullback Protection
         try:
             self.pullback_protection = PullbackProtectionPlugin(self.logger)
             integrate_with_main_system(self, enable_on_start=True)
-            print("✅ Pullback Protection: LOADED")
+            print("[OK] Pullback Protection: LOADED")
         except Exception as e:
-            print(f"⚠️ Pullback protection error: {str(e)}")
+            print(f"[WARN] Pullback protection error: {str(e)}")
             self.pullback_protection = None
 
     def setup_signal_engine(self):
@@ -517,14 +517,14 @@ class EnhancedSmartAutoTradingDashboard:
             # Try to load enhanced signal engine
             if ENHANCED_SIGNAL_AVAILABLE:
                 self.signal_engine = MultiTimeframeSignalEngine()
-                print("✅ Enhanced Signal Engine: LOADED")
+                print("[OK] Enhanced Signal Engine: LOADED")
             else:
                 # Create fallback signal engine
                 self.signal_engine = self.create_fallback_signal_engine()
-                print("📊 Fallback Signal Engine: LOADED")
+                print("[CHART] Fallback Signal Engine: LOADED")
                 
         except Exception as e:
-            print(f"⚠️ Signal engine error: {str(e)}")
+            print(f"[WARN] Signal engine error: {str(e)}")
             self.signal_engine = self.create_fallback_signal_engine()
 
     def setup_symbol_adapter(self):
@@ -532,9 +532,9 @@ class EnhancedSmartAutoTradingDashboard:
             try:
                 self.symbol_adapter = BrokerSymbolAdapter()
                 self.broker_symbols_mapped = False
-                print("📊 Symbol adapter ready")
+                print("[CHART] Symbol adapter ready")
             except Exception as e:
-                print(f"⚠️ Symbol adapter error: {str(e)}")
+                print(f"[WARN] Symbol adapter error: {str(e)}")
                 self.symbol_adapter = None
 
     def clean_data_for_json(self, data):
@@ -610,15 +610,15 @@ class EnhancedSmartAutoTradingDashboard:
                 self.min_rr_ratio = settings.get('min_rr_ratio', 1.5)
                 self.account_balance = settings.get('account_balance', 10000.0)
                 
-                print("✅ System settings loaded successfully")
+                print("[OK] System settings loaded successfully")
                 self.persistence.log_system_event('INFO', 'System settings loaded from file', 'STARTUP')
             else:
                 # Use defaults
                 self.set_default_settings()
-                print("📋 Using default settings")
+                print("[CLIPBOARD] Using default settings")
                 
         except Exception as e:
-            print(f"❌ Error loading settings: {str(e)}")
+            print(f"[ERR] Error loading settings: {str(e)}")
             self.set_default_settings()
     
     def set_default_settings(self):
@@ -680,12 +680,12 @@ class EnhancedSmartAutoTradingDashboard:
             }
             
             if self.persistence.save_settings(settings):
-                print("💾 Settings config saved successfully")
+                print("[DISK] Settings config saved successfully")
                 return True
             return False
             
         except Exception as e:
-            print(f"❌ Error saving settings: {str(e)}")
+            print(f"[ERR] Error saving settings: {str(e)}")
             return False
     
     def load_pair_tracking_data(self):
@@ -720,10 +720,10 @@ class EnhancedSmartAutoTradingDashboard:
                     self.pair_trade_status[pair] = 'READY'
                     self.trade_cooldowns[pair] = None
             
-            print("✅ Pair tracking data loaded successfully")
+            print("[OK] Pair tracking data loaded successfully")
             
         except Exception as e:
-            print(f"❌ Error loading pair tracking data: {str(e)}")
+            print(f"[ERR] Error loading pair tracking data: {str(e)}")
             # Initialize with defaults
             self.active_trades_per_pair = {pair: [] for pair in self.forex_pairs}
             self.pair_trade_status = {pair: 'READY' for pair in self.forex_pairs}
@@ -745,7 +745,7 @@ class EnhancedSmartAutoTradingDashboard:
             return self.persistence.save_pair_status(pair_status_data)
             
         except Exception as e:
-            print(f"❌ Error saving pair tracking data: {str(e)}")
+            print(f"[ERR] Error saving pair tracking data: {str(e)}")
             return False
     
     def setup_auto_save(self):
@@ -761,16 +761,16 @@ class EnhancedSmartAutoTradingDashboard:
                         self.save_pair_tracking_data()
                         self.persistence.save_daily_stats(self.daily_stats)
                         
-                        print(f"💾 Auto-save completed at {datetime.now().strftime('%H:%M:%S')}")
+                        print(f"[DISK] Auto-save completed at {datetime.now().strftime('%H:%M:%S')}")
                         
                 except Exception as e:
-                    print(f"❌ Auto-save error: {str(e)}")
+                    print(f"[ERR] Auto-save error: {str(e)}")
                     time.sleep(60)  # Wait 1 minute before retry
         
         # Start auto-save thread
         auto_save_thread = threading.Thread(target=auto_save_loop, daemon=True)
         auto_save_thread.start()
-        print("🔄 Auto-save system started")
+        print("[REFRESH] Auto-save system started")
     
     def setup_logging(self):
         """Setup comprehensive logging"""
@@ -824,36 +824,36 @@ class EnhancedSmartAutoTradingDashboard:
                 self.logger.warning("Trading is not allowed on this account!")
                 self.auto_trading_enabled = False
             
-            # 🆕 AUTO-DETECT BROKER และ MAP SYMBOLS
-            self.logger.info("🔍 Auto-detecting broker symbols...")
+            # [EMOJI] AUTO-DETECT BROKER และ MAP SYMBOLS
+            self.logger.info("[SEARCH] Auto-detecting broker symbols...")
             
             try:
                 if self.symbol_adapter.detect_and_map_broker():
                     mapping_info = self.symbol_adapter.get_mapping_info()
-                    self.logger.info(f"✅ Broker auto-detected successfully!")
-                    self.logger.info(f"🏦 Server: {mapping_info.get('server', 'Unknown')}")  # ✅ FIX: ใช้ .get()
-                    self.logger.info(f"📊 Mapped: {mapping_info.get('mapped_symbols', 0)}/{mapping_info.get('total_system_symbols', 0)} symbols")
-                    self.logger.info(f"🔧 Success rate: {mapping_info.get('mapping_success_rate', '0%')}")
-                    self.logger.info(f"🎯 Detected suffix: '{mapping_info.get('detected_suffix', 'unknown')}'")
+                    self.logger.info(f"[OK] Broker auto-detected successfully!")
+                    self.logger.info(f"[BANK] Server: {mapping_info.get('server', 'Unknown')}")  # [OK] FIX: ใช้ .get()
+                    self.logger.info(f"[CHART] Mapped: {mapping_info.get('mapped_symbols', 0)}/{mapping_info.get('total_system_symbols', 0)} symbols")
+                    self.logger.info(f"[TOOL] Success rate: {mapping_info.get('mapping_success_rate', '0%')}")
+                    self.logger.info(f"[TARGET] Detected suffix: '{mapping_info.get('detected_suffix', 'unknown')}'")
                     
                     # อัพเดท forex_pairs ให้ใช้ broker symbols
                     self.forex_pairs = self.symbol_adapter.get_mapped_symbols()
                     
-                    # 🎯 CRITICAL: อัพเดท auto_trading_pairs ให้ใช้ broker symbols ด้วย
+                    # [TARGET] CRITICAL: อัพเดท auto_trading_pairs ให้ใช้ broker symbols ด้วย
                     self.auto_trading_pairs = set(self.forex_pairs)
                     
                     self.broker_symbols_mapped = True
                     
-                    self.logger.info(f"✅ Updated forex_pairs: {len(self.forex_pairs)} symbols")
-                    self.logger.info(f"✅ Updated auto_trading_pairs: {len(self.auto_trading_pairs)} symbols")
-                    self.logger.info(f"📋 Sample pairs: {list(self.forex_pairs)[:5]}")
+                    self.logger.info(f"[OK] Updated forex_pairs: {len(self.forex_pairs)} symbols")
+                    self.logger.info(f"[OK] Updated auto_trading_pairs: {len(self.auto_trading_pairs)} symbols")
+                    self.logger.info(f"[CLIPBOARD] Sample pairs: {list(self.forex_pairs)[:5]}")
                     
                     # แสดง sample mapping
                     sample_mapping = mapping_info.get('sample_mapping', {})
                     if sample_mapping:
-                        self.logger.info("📋 Sample Symbol Mapping:")
+                        self.logger.info("[CLIPBOARD] Sample Symbol Mapping:")
                         for base, broker in sample_mapping.items():
-                            self.logger.info(f"   {base} → {broker}")
+                            self.logger.info(f"   {base} -> {broker}")
                     
                     # Log event
                     self.persistence.log_system_event(
@@ -863,17 +863,17 @@ class EnhancedSmartAutoTradingDashboard:
                     )
                     
                 else:
-                    self.logger.warning("⚠️ Symbol mapping failed, using fallback")
+                    self.logger.warning("[WARN] Symbol mapping failed, using fallback")
                     self.broker_symbols_mapped = False
                     self._use_fallback_symbols()
                     
             except Exception as mapping_error:
-                self.logger.error(f"❌ Symbol mapping error: {str(mapping_error)}")
+                self.logger.error(f"[ERR] Symbol mapping error: {str(mapping_error)}")
                 self.broker_symbols_mapped = False
                 self._use_fallback_symbols()
             
             self.mt5_connected = True
-            self.logger.info(f"🎉 MT5 Connected Successfully!")
+            self.logger.info(f"[EMOJI] MT5 Connected Successfully!")
             return True
             
         except Exception as e:
@@ -883,7 +883,7 @@ class EnhancedSmartAutoTradingDashboard:
     def _use_fallback_symbols(self):
         """ใช้ symbols แบบ fallback เมื่อ auto-detection ไม่สำเร็จ"""
         try:
-            self.logger.info("🔄 Using fallback symbol detection...")
+            self.logger.info("[REFRESH] Using fallback symbol detection...")
             
             # ลองหา suffix ที่ใช้ได้
             test_suffixes = ['.v', '.c', '.raw', '.ecn', '.stp', '.pro', '.m', '']
@@ -912,10 +912,10 @@ class EnhancedSmartAutoTradingDashboard:
                 
                 self.forex_pairs = fallback_pairs
                 self.auto_trading_pairs = set(fallback_pairs)
-                self.logger.info(f"✅ Fallback successful with suffix '{best_suffix}': {len(fallback_pairs)} symbols")
+                self.logger.info(f"[OK] Fallback successful with suffix '{best_suffix}': {len(fallback_pairs)} symbols")
                 
             else:
-                self.logger.error("❌ Fallback failed, keeping original .c format")
+                self.logger.error("[ERR] Fallback failed, keeping original .c format")
                 
         except Exception as e:
             self.logger.error(f"Error in fallback: {str(e)}")
@@ -1050,7 +1050,7 @@ class EnhancedSmartAutoTradingDashboard:
             
             # CRITICAL FIX 3: Symbol-specific calculations with zero division protection
             try:
-                # 🥇 GOLD (XAUUSD) - Fixed calculation
+                # [EMOJI] GOLD (XAUUSD) - Fixed calculation
                 if 'XAU' in symbol or 'GOLD' in symbol:
                     pip_size = 0.1          # Gold: 1 pip = $0.10
                     money_per_pip = 1.0     # Gold: $1 per pip per 1 lot (100 oz)
@@ -1065,7 +1065,7 @@ class EnhancedSmartAutoTradingDashboard:
                     lot_size = risk_amount / pips_at_risk
                     actual_money_per_pip = money_per_pip
                     
-                # 💴 JPY Pairs - Fixed calculation
+                # [EMOJI] JPY Pairs - Fixed calculation
                 elif 'JPY' in symbol:
                     pip_size = 0.01         # JPY: 1 pip = 0.01
                     
@@ -1088,7 +1088,7 @@ class EnhancedSmartAutoTradingDashboard:
                     lot_size = risk_amount / (pips_at_risk * money_per_pip)
                     actual_money_per_pip = money_per_pip
                     
-                # 💱 Standard Forex Pairs - Fixed calculation
+                # [EMOJI] Standard Forex Pairs - Fixed calculation
                 else:
                     pip_size = 0.0001       # Forex: 1 pip = 0.0001
                     money_per_pip = 10.0    # $10 per pip per 1 standard lot
@@ -1106,7 +1106,7 @@ class EnhancedSmartAutoTradingDashboard:
                 if lot_size <= 0 or not np.isfinite(lot_size):
                     return self.get_default_position_info(symbol, f"Invalid lot size calculation result: {lot_size}")
                 
-                # ✅ Lot size constraints and rounding
+                # [OK] Lot size constraints and rounding
                 lot_size = max(self.min_lot_size, min(self.max_lot_size, lot_size))
                 
                 # Symbol-specific rounding
@@ -1279,7 +1279,7 @@ class EnhancedSmartAutoTradingDashboard:
                 validation_result['issues'].append(f'Pair status check error: {str(e)}')
                 return validation_result
             
-            # 🎯 ENHANCED SIGNAL STRENGTH CHECK
+            # [TARGET] ENHANCED SIGNAL STRENGTH CHECK
             signal_strength = signal_data.get('strength', 0)
             confluence_score = signal_data.get('enhanced_analysis', {}).get('confluence_score', 0)
             
@@ -1292,7 +1292,7 @@ class EnhancedSmartAutoTradingDashboard:
                 validation_result['confirmations'].append(f'Strong signal: {signal_strength}/10')
                 validation_result['score'] += 2
             
-            # 🎯 CONFLUENCE SCORE CHECK (Enhanced System)
+            # [TARGET] CONFLUENCE SCORE CHECK (Enhanced System)
             validation_result['validation_details']['checks_performed'].append('confluence_check')
             if abs(confluence_score) >= 6:
                 validation_result['confirmations'].append(f'Excellent confluence: {confluence_score}')
@@ -1385,7 +1385,7 @@ class EnhancedSmartAutoTradingDashboard:
             except Exception as e:
                 validation_result['issues'].append(f'Exposure check error: {str(e)}')
             
-            # 🚀 Advanced Features Validation (if available)
+            # [GO] Advanced Features Validation (if available)
             if self.use_advanced_features and 'enhanced_strength' in signal_data:
                 validation_result['validation_details']['checks_performed'].append('advanced_features_check')
                 
@@ -1480,65 +1480,75 @@ class EnhancedSmartAutoTradingDashboard:
             }
     
     def execute_trade(self, symbol: str, signal_data: Dict) -> Dict:
-        """Execute trade based on validated signal - with multi-broker support"""
+        """Execute trade with enhanced error handling for MT5 order_send"""
         try:
-            # 🔄 SYMBOL CONVERSION - ส่วนสำคัญที่สุด!
-            # ================================================
-            # Determine if we need symbol conversion
-            if hasattr(self, 'broker_symbols_mapped') and self.broker_symbols_mapped:
-                # symbol ที่ส่งเข้ามาคือ system symbol, ต้องแปลงเป็น broker symbol
-                system_symbol = symbol
-                broker_symbol = self.symbol_adapter.system_to_broker_symbol(symbol)
-                self.logger.info(f"🔄 Symbol mapping: {system_symbol} → {broker_symbol}")
-            else:
-                # ไม่มี mapping, ใช้ symbol เดิม
-                system_symbol = symbol
-                broker_symbol = symbol
+            # ตรวจสอบ MT5 connection ก่อน
+            if not self.mt5_connected:
+                error_msg = "MT5 not connected"
+                self.logger.error(f"[ERR] {error_msg}")
+                return {'success': False, 'error': error_msg}
             
-            # Verify broker symbol exists
-            if not self._verify_broker_symbol(broker_symbol):
-                return {
-                    'success': False, 
-                    'error': f'Symbol {broker_symbol} not available on this broker',
-                    'system_symbol': system_symbol,
-                    'broker_symbol': broker_symbol
-                }
-            # ================================================
+            # Verify MT5 is still responsive
+            if not mt5.terminal_info():
+                error_msg = "MT5 terminal not responsive"
+                self.logger.error(f"[ERR] {error_msg}")
+                return {'success': False, 'error': error_msg}
             
-            # Final validation (ใช้ system_symbol สำหรับ consistency)
-            validation = self.validate_trading_signal(system_symbol, signal_data)
-            if not validation['valid']:
-                return {
-                    'success': False,
-                    'error': 'Signal validation failed',
-                    'issues': validation['issues']
-                }
+            # Get broker symbol
+            broker_symbol = self.symbol_adapter.system_to_broker_symbol(symbol) if self.symbol_adapter else symbol
+            system_symbol = symbol
             
-            # Get signal details
-            signal_direction = signal_data.get('signal', 'NONE')
-            entry_price = signal_data.get('optimal_entry', 0)
-            stop_loss = signal_data.get('stop_loss', 0)
-            take_profit_1 = signal_data.get('take_profit_1', 0)
+            # Verify symbol exists and is available for trading
+            symbol_info = mt5.symbol_info(broker_symbol)
+            if symbol_info is None:
+                error_msg = f"Symbol {broker_symbol} not found in MT5"
+                self.logger.error(f"[ERR] {error_msg}")
+                return {'success': False, 'error': error_msg}
             
-            if signal_direction == 'NONE' or entry_price == 0:
-                return {'success': False, 'error': 'Invalid signal data'}
+            if not symbol_info.visible:
+                # Try to select symbol
+                if not mt5.symbol_select(broker_symbol, True):
+                    error_msg = f"Cannot select symbol {broker_symbol}"
+                    self.logger.error(f"[ERR] {error_msg}")
+                    return {'success': False, 'error': error_msg}
             
-            # Calculate position size (ใช้ system_symbol สำหรับ consistency)
-            position_info = self.calculate_position_size(entry_price, stop_loss, system_symbol)
-            lot_size = position_info['lot_size']
-            
-            # 🎯 MT5 OPERATIONS - ใช้ broker_symbol
-            # ================================================
-            # Get current market data - ใช้ broker_symbol กับ MT5
+            # Get market data
             tick = mt5.symbol_info_tick(broker_symbol)
-            if not tick:
-                return {
-                    'success': False, 
-                    'error': f'No tick data for {broker_symbol}',
-                    'broker_symbol': broker_symbol
-                }
+            if tick is None:
+                error_msg = f"No tick data for {broker_symbol}"
+                self.logger.error(f"[ERR] {error_msg}")
+                return {'success': False, 'error': error_msg}
             
-            # Determine order type - ใช้ broker_symbol กับ MT5
+            # Extract trade parameters
+            signal_direction = signal_data.get('signal', 'NONE')
+            if signal_direction == 'NONE':
+                return {'success': False, 'error': 'No valid signal'}
+            
+            # Get position sizing
+            position_info = self.calculate_position_size(
+                signal_data.get('stop_loss', tick.bid),
+                signal_data,
+                symbol
+            )
+            
+            lot_size = position_info.get('lot_size', self.default_lot_size)
+            stop_loss = signal_data.get('stop_loss', tick.bid)
+            take_profit_1 = signal_data.get('take_profit_1', tick.ask)
+            
+            # Validate lot size
+            min_lot = symbol_info.volume_min
+            max_lot = symbol_info.volume_max
+            lot_step = symbol_info.volume_step
+            
+            if lot_size < min_lot:
+                lot_size = min_lot
+            elif lot_size > max_lot:
+                lot_size = max_lot
+            else:
+                # Round to valid step
+                lot_size = round(lot_size / lot_step) * lot_step
+            
+            # Determine order type and price
             if signal_direction in ['BUY', 'STRONG_BUY']:
                 order_type = mt5.ORDER_TYPE_BUY
                 price = tick.ask
@@ -1548,47 +1558,111 @@ class EnhancedSmartAutoTradingDashboard:
             else:
                 return {'success': False, 'error': 'Invalid signal direction'}
             
-            # Prepare order request - ใช้ broker_symbol
-            request = {
+            # Check market hours
+            if not symbol_info.trade_mode in [mt5.SYMBOL_TRADE_MODE_FULL, mt5.SYMBOL_TRADE_MODE_LONGONLY, mt5.SYMBOL_TRADE_MODE_SHORTONLY]:
+                error_msg = f"Trading not allowed for {broker_symbol} (trade_mode: {symbol_info.trade_mode})"
+                self.logger.error(f"[ERR] {error_msg}")
+                return {'success': False, 'error': error_msg}
+            
+            # Prepare order request with multiple filling modes
+            filling_modes = [
+                mt5.ORDER_FILLING_IOC,  # Immediate or Cancel
+                mt5.ORDER_FILLING_FOK,  # Fill or Kill  
+                mt5.ORDER_FILLING_RETURN  # Return (default)
+            ]
+            
+            request_base = {
                 'action': mt5.TRADE_ACTION_DEAL,
-                'symbol': broker_symbol,  # 🎯 สำคัญ! ใช้ broker_symbol กับ MT5
+                'symbol': broker_symbol,
                 'volume': lot_size,
                 'type': order_type,
                 'price': price,
                 'sl': stop_loss,
                 'tp': take_profit_1,
                 'deviation': self.slippage_tolerance,
-                'magic': 12345,  # EA magic number
-                'comment': f'Auto-{signal_direction}-{system_symbol}',  # ใส่ system_symbol ใน comment
+                'magic': 12345,
+                'comment': f'Auto-{signal_direction}-{system_symbol}',
                 'type_time': mt5.ORDER_TIME_GTC,
-                'type_filling': mt5.ORDER_FILLING_IOC,
             }
-            # ================================================
             
-            # Execute order
-            self.trade_logger.info(f"Executing {signal_direction} order for {system_symbol} → {broker_symbol} - Lot: {lot_size}")
-            self.trade_logger.info(f"Entry Price: {price}, SL: {stop_loss}, TP: {take_profit_1}")
+            # Try different filling modes
+            result = None
+            last_error = None
             
-            result = mt5.order_send(request)
+            for filling_mode in filling_modes:
+                try:
+                    request = request_base.copy()
+                    request['type_filling'] = filling_mode
+                    
+                    self.trade_logger.info(f"[TARGET] Attempting order: {signal_direction} {broker_symbol} Lot: {lot_size} Fill: {filling_mode}")
+                    
+                    # Execute order
+                    result = mt5.order_send(request)
+                    
+                    # Check if result is valid
+                    if result is None:
+                        last_error = f"mt5.order_send returned None with filling mode {filling_mode}"
+                        self.logger.warning(f"[WARN] {last_error}")
+                        continue
+                    
+                    # Check if order was successful
+                    if result.retcode == mt5.TRADE_RETCODE_DONE:
+                        self.trade_logger.info(f"[OK] Order successful with filling mode {filling_mode}")
+                        break
+                    else:
+                        last_error = f"Order failed: {result.retcode} - {result.comment} (filling: {filling_mode})"
+                        self.logger.warning(f"[WARN] {last_error}")
+                        
+                        # Don't retry for certain error codes
+                        if result.retcode in [
+                            mt5.TRADE_RETCODE_INVALID_VOLUME,
+                            mt5.TRADE_RETCODE_INVALID_PRICE,
+                            mt5.TRADE_RETCODE_INVALID_STOPS,
+                            mt5.TRADE_RETCODE_TRADE_DISABLED,
+                            mt5.TRADE_RETCODE_MARKET_CLOSED
+                        ]:
+                            break
+                            
+                except Exception as e:
+                    last_error = f"Exception in order_send with filling {filling_mode}: {str(e)}"
+                    self.logger.error(f"[ERR] {last_error}")
+                    continue
+            
+            # Handle final result
+            if result is None:
+                error_msg = f"All order attempts failed. Last error: {last_error}"
+                self.logger.error(f"[ERR] {system_symbol} ({broker_symbol}): {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'system_symbol': system_symbol,
+                    'broker_symbol': broker_symbol,
+                    'debug_info': {
+                        'symbol_info_available': symbol_info is not None,
+                        'tick_available': tick is not None,
+                        'mt5_connected': self.mt5_connected,
+                        'filling_modes_tried': len(filling_modes)
+                    }
+                }
             
             if result.retcode != mt5.TRADE_RETCODE_DONE:
                 error_msg = f"Order failed: {result.retcode} - {result.comment}"
-                self.logger.error(f"❌ {system_symbol} ({broker_symbol}): {error_msg}")
+                self.logger.error(f"[ERR] {system_symbol} ({broker_symbol}): {error_msg}")
                 return {
-                    'success': False, 
-                    'error': error_msg, 
+                    'success': False,
+                    'error': error_msg,
                     'retcode': result.retcode,
+                    'comment': result.comment,
                     'system_symbol': system_symbol,
                     'broker_symbol': broker_symbol
                 }
             
-            # ✅ ORDER SUCCESSFUL - บันทึกข้อมูล
-            # ================================================
+            # [OK] Order successful - process result
             trade_info = {
                 'ticket': result.order,
-                'system_symbol': system_symbol,     # 🆕 เพิ่ม system symbol
-                'broker_symbol': broker_symbol,     # 🆕 เพิ่ม broker symbol
-                'symbol': system_symbol,            # เก็บไว้เพื่อ backward compatibility
+                'system_symbol': system_symbol,
+                'broker_symbol': broker_symbol,
+                'symbol': system_symbol,
                 'lot_size': lot_size,
                 'entry_price': result.price,
                 'stop_loss': stop_loss,
@@ -1599,23 +1673,22 @@ class EnhancedSmartAutoTradingDashboard:
                 'risk_amount': position_info['risk_amount'],
                 'risk_percentage': position_info['risk_percentage'],
                 'timestamp': datetime.now(),
-                'validation_score': validation['score'],
                 'requested_price': price,
                 'actual_price': result.price,
                 'slippage_pips': abs(result.price - price) * (10000 if 'JPY' not in broker_symbol else 100)
             }
             
-            # Update tracking - ใช้ system_symbol สำหรับ consistency
+            # Update tracking
             self.active_trades_per_pair[system_symbol].append(result.order)
             self.pair_trade_status[system_symbol] = 'TRADING'
             self.daily_stats['trades_executed'] += 1
             self.last_global_trade_time = datetime.now()
             
-            # Save trade to database - เพิ่ม broker_symbol
+            # Save to database
             self.persistence.save_trade_to_db({
                 'ticket': str(result.order),
-                'symbol': system_symbol,              # เก็บ system symbol
-                'broker_symbol': broker_symbol,       # 🆕 เพิ่ม broker symbol
+                'symbol': system_symbol,
+                'broker_symbol': broker_symbol,
                 'type': signal_direction,
                 'volume': lot_size,
                 'entry_price': result.price,
@@ -1627,73 +1700,64 @@ class EnhancedSmartAutoTradingDashboard:
                 'risk_percentage': position_info['risk_percentage'],
                 'slippage_pips': trade_info['slippage_pips']
             })
-            # ================================================
             
             # Enhanced logging
-            self.trade_logger.info(f"✅ TRADE EXECUTED SUCCESSFULLY!")
+            self.trade_logger.info(f"[OK] TRADE EXECUTED SUCCESSFULLY!")
             self.trade_logger.info(f"   System Symbol: {system_symbol}")
             self.trade_logger.info(f"   Broker Symbol: {broker_symbol}")
             self.trade_logger.info(f"   Ticket: {result.order}")
             self.trade_logger.info(f"   Direction: {signal_direction}")
             self.trade_logger.info(f"   Entry Price: {result.price} (Requested: {price})")
-            self.trade_logger.info(f"   Stop Loss: {stop_loss}")
-            self.trade_logger.info(f"   Take Profit: {take_profit_1}")
             self.trade_logger.info(f"   Lot Size: {lot_size}")
             self.trade_logger.info(f"   Risk: {position_info['risk_percentage']:.2f}%")
-            self.trade_logger.info(f"   Slippage: {trade_info['slippage_pips']:.1f} pips")
-            
-            self.persistence.log_system_event(
-                'INFO', 
-                f'Trade executed: {system_symbol}({broker_symbol}) {signal_direction} Ticket: {result.order} Entry: {result.price}', 
-                'TRADING'
-            )
-            
-            # Save updated tracking data
-            self.save_pair_tracking_data()
-            self.persistence.save_daily_stats(self.daily_stats)
             
             return {
                 'success': True,
                 'ticket': result.order,
                 'trade_info': trade_info,
-                'validation': validation,
                 'system_symbol': system_symbol,
                 'broker_symbol': broker_symbol,
                 'execution_summary': {
                     'requested_price': price,
                     'actual_price': result.price,
                     'slippage_pips': trade_info['slippage_pips'],
-                    'execution_time': datetime.now().isoformat()
+                    'execution_time': datetime.now().isoformat(),
+                    'filling_mode_used': request.get('type_filling', 'unknown')
                 }
             }
             
         except Exception as e:
             error_msg = f"Trade execution error for {symbol}: {str(e)}"
-            self.logger.error(f"❌ {error_msg}")
-            self.persistence.log_system_event('ERROR', error_msg, 'TRADING')
+            self.logger.error(f"[ERR] {error_msg}")
+            
             return {
-                'success': False, 
+                'success': False,
                 'error': error_msg,
                 'system_symbol': symbol,
-                'broker_symbol': broker_symbol if 'broker_symbol' in locals() else 'unknown'
+                'broker_symbol': broker_symbol if 'broker_symbol' in locals() else 'unknown',
+                'exception_type': type(e).__name__,
+                'debug_info': {
+                    'mt5_connected': getattr(self, 'mt5_connected', False),
+                    'error_location': 'trade_execution'
+                }
             }
-
+    
     def _verify_broker_symbol(self, broker_symbol: str) -> bool:
-        """🔍 ตรวจสอบว่า broker symbol มีอยู่จริงใน MT5"""
+        """[SEARCH] ตรวจสอบว่า broker symbol มีอยู่จริงใน MT5"""
         try:
             symbol_info = mt5.symbol_info(broker_symbol)
             if symbol_info is None:
-                self.logger.warning(f"❌ Symbol not found: {broker_symbol}")
+                self.logger.warning(f"[ERR] Symbol not found: {broker_symbol}")
                 return False
             
             # ตรวจสอบว่า symbol สามารถเทรดได้
             if not symbol_info.visible:
                 # พยายาม enable symbol
                 if mt5.symbol_select(broker_symbol, True):
-                    self.logger.info(f"✅ Symbol enabled: {broker_symbol}")
+                    self.logger.info(f"[OK] Symbol enabled: {broker_symbol}")
                     return True
                 else:
-                    self.logger.warning(f"❌ Cannot enable symbol: {broker_symbol}")
+                    self.logger.warning(f"[ERR] Cannot enable symbol: {broker_symbol}")
                     return False
             
             return True
@@ -1710,7 +1774,7 @@ class EnhancedSmartAutoTradingDashboard:
                 return
             
             for position in positions:
-                # 🔄 MULTI-BROKER SYMBOL CONVERSION
+                # [REFRESH] MULTI-BROKER SYMBOL CONVERSION
                 # ================================================
                 broker_symbol = position.symbol  # Symbol ที่ได้จาก MT5 (broker format)
                 system_symbol = broker_symbol    # Default fallback
@@ -1718,7 +1782,7 @@ class EnhancedSmartAutoTradingDashboard:
                 # แปลง broker_symbol กลับเป็น system_symbol ถ้ามี mapping
                 if hasattr(self, 'broker_symbols_mapped') and self.broker_symbols_mapped:
                     system_symbol = self.symbol_adapter.broker_to_system_symbol(broker_symbol)
-                    self.logger.info(f"🔄 Position monitoring: {broker_symbol} → {system_symbol}")
+                    self.logger.info(f"[REFRESH] Position monitoring: {broker_symbol} -> {system_symbol}")
                 # ================================================
                 
                 ticket = position.ticket
@@ -1770,7 +1834,7 @@ class EnhancedSmartAutoTradingDashboard:
                             }
                             self.persistence.save_trade_to_db(trade_data)
                             
-                            # 📊 Enhanced logging with symbol mapping info
+                            # [CHART] Enhanced logging with symbol mapping info
                             profit_status = "PROFIT" if deal.profit > 0 else "LOSS"
                             detailed_log = (
                                 f"TRADE_CLOSED: {profit_status} "
@@ -1788,7 +1852,7 @@ class EnhancedSmartAutoTradingDashboard:
         
         except Exception as e:
             self.logger.error(f"Error monitoring positions: {str(e)}")
-            # 🛡️ Enhanced error logging
+            # [SHIELD] Enhanced error logging
             try:
                 error_details = {
                     'error': str(e),
@@ -1874,7 +1938,7 @@ class EnhancedSmartAutoTradingDashboard:
                 # CRITICAL FIX 3: Verify thread started
                 time.sleep(2)
                 if trading_thread.is_alive():
-                    self.logger.info("✅ AUTO TRADING THREAD STARTED SUCCESSFULLY!")
+                    self.logger.info("[OK] AUTO TRADING THREAD STARTED SUCCESSFULLY!")
                     self.trade_logger.info("=== AUTO TRADING SESSION STARTED ===")
                     self.persistence.log_system_event('INFO', 'Auto trading started successfully', 'TRADING')
                     
@@ -1882,7 +1946,7 @@ class EnhancedSmartAutoTradingDashboard:
                     self.save_system_settings()
                     return True
                 else:
-                    self.logger.error("❌ AUTO TRADING THREAD FAILED TO START!")
+                    self.logger.error("[ERR] AUTO TRADING THREAD FAILED TO START!")
                     self.auto_trading_enabled = False
                     return False
                     
@@ -1899,7 +1963,7 @@ class EnhancedSmartAutoTradingDashboard:
     def stop_auto_trading(self):
         """Stop auto trading system - FIXED VERSION"""
         try:
-            self.logger.info("🛑 Stopping auto trading...")
+            self.logger.info("[EMOJI] Stopping auto trading...")
             
             # Set flags in correct order
             self.auto_trading_enabled = False
@@ -1915,12 +1979,12 @@ class EnhancedSmartAutoTradingDashboard:
             self.save_system_settings()
             
             # Update UI status
-            self.logger.info("✅ Auto trading stopped successfully")
+            self.logger.info("[OK] Auto trading stopped successfully")
             
             return True
             
         except Exception as e:
-            self.logger.error(f"❌ Error stopping auto trading: {str(e)}")
+            self.logger.error(f"[ERR] Error stopping auto trading: {str(e)}")
             return False
 
     def resolve_symbol(self, target_symbol):
@@ -1936,7 +2000,7 @@ class EnhancedSmartAutoTradingDashboard:
             # Look for any variant of this base symbol in live_data
             for symbol in self.live_data.keys():
                 if symbol.startswith(base_name + '.'):
-                    self.logger.info(f"🔄 Resolved {target_symbol} → {symbol}")
+                    self.logger.info(f"[REFRESH] Resolved {target_symbol} -> {symbol}")
                     return symbol
             
             # If not found, try to fetch with different suffixes
@@ -1948,10 +2012,10 @@ class EnhancedSmartAutoTradingDashboard:
                 # Check if this symbol exists in MT5
                 symbol_info = mt5.symbol_info(test_symbol)
                 if symbol_info and symbol_info.trade_mode == mt5.SYMBOL_TRADE_MODE_FULL:
-                    self.logger.info(f"✅ Found tradeable variant: {test_symbol}")
+                    self.logger.info(f"[OK] Found tradeable variant: {test_symbol}")
                     return test_symbol
             
-            self.logger.warning(f"❌ No tradeable variant found for {target_symbol}")
+            self.logger.warning(f"[ERR] No tradeable variant found for {target_symbol}")
             return None
             
         except Exception as e:
@@ -1960,7 +2024,7 @@ class EnhancedSmartAutoTradingDashboard:
         
     def _safe_auto_trading_loop(self):
         """Safe auto trading loop with symbol resolution"""
-        self.logger.info("🚀 Auto trading loop started")
+        self.logger.info("[GO] Auto trading loop started")
         consecutive_errors = 0
         max_consecutive_errors = 5
         
@@ -1993,19 +2057,19 @@ class EnhancedSmartAutoTradingDashboard:
                         actual_symbol = self.resolve_symbol(target_symbol)
                         
                         if not actual_symbol:
-                            self.logger.info(f"❌ No tradeable variant found for {target_symbol}")
+                            self.logger.info(f"[ERR] No tradeable variant found for {target_symbol}")
                             continue
                         
                         # Use the resolved symbol for data lookup
                         if actual_symbol not in self.live_data:
-                            self.logger.info(f"🔍 Fetching data for resolved symbol {actual_symbol}")
+                            self.logger.info(f"[SEARCH] Fetching data for resolved symbol {actual_symbol}")
                             try:
                                 symbol_data = self.get_symbol_data(actual_symbol)
                                 if symbol_data:
                                     self.live_data[actual_symbol] = symbol_data
-                                    self.logger.info(f"✅ Fetched data for {actual_symbol}")
+                                    self.logger.info(f"[OK] Fetched data for {actual_symbol}")
                                 else:
-                                    self.logger.warning(f"❌ Failed to fetch data for {actual_symbol}")
+                                    self.logger.warning(f"[ERR] Failed to fetch data for {actual_symbol}")
                                     continue
                             except Exception as fetch_error:
                                 self.logger.error(f"Error fetching {actual_symbol}: {str(fetch_error)}")
@@ -2015,33 +2079,33 @@ class EnhancedSmartAutoTradingDashboard:
                         
                         # Quick signal check
                         if signal_data.get('signal', 'NONE') == 'NONE':
-                            self.logger.info(f"📊 {actual_symbol}: No signal")
+                            self.logger.info(f"[CHART] {actual_symbol}: No signal")
                             continue
                         
                         signals_processed += 1
-                        self.logger.info(f"🎯 Processing signal for {actual_symbol}: {signal_data.get('signal')}")
+                        self.logger.info(f"[TARGET] Processing signal for {actual_symbol}: {signal_data.get('signal')}")
                         
                         # Check pair status (use actual symbol)
                         pair_status = self.check_pair_trading_status(actual_symbol)
                         if not pair_status['can_trade']:
-                            self.logger.info(f"❌ {actual_symbol}: {pair_status['reason']}")
+                            self.logger.info(f"[ERR] {actual_symbol}: {pair_status['reason']}")
                             continue
                         
                         # Validate signal
                         validation = self.validate_trading_signal(actual_symbol, signal_data)
                         if not validation['valid']:
-                            self.logger.info(f"❌ {actual_symbol}: Validation failed - {', '.join(validation['issues'])}")
+                            self.logger.info(f"[ERR] {actual_symbol}: Validation failed - {', '.join(validation['issues'])}")
                             continue
                         
                         # Execute trade (use actual symbol)
-                        self.logger.info(f"🎯 Executing trade for {actual_symbol}: {signal_data.get('signal')}")
+                        self.logger.info(f"[TARGET] Executing trade for {actual_symbol}: {signal_data.get('signal')}")
                         result = self.execute_trade(actual_symbol, signal_data)
                         
                         if result['success']:
                             trades_executed += 1
-                            self.logger.info(f"✅ Trade executed: {actual_symbol} Ticket: {result['ticket']}")
+                            self.logger.info(f"[OK] Trade executed: {actual_symbol} Ticket: {result['ticket']}")
                         else:
-                            self.logger.warning(f"❌ Trade failed: {actual_symbol} - {result.get('error')}")
+                            self.logger.warning(f"[ERR] Trade failed: {actual_symbol} - {result.get('error')}")
                         
                     except Exception as symbol_error:
                         self.logger.error(f"Error processing {target_symbol}: {str(symbol_error)}")
@@ -2049,9 +2113,9 @@ class EnhancedSmartAutoTradingDashboard:
                 
                 # Log iteration summary
                 if signals_processed > 0:
-                    self.logger.info(f"📊 Processed {signals_processed} signals, executed {trades_executed} trades")
+                    self.logger.info(f"[CHART] Processed {signals_processed} signals, executed {trades_executed} trades")
                 else:
-                    self.logger.info(f"📊 No signals to process in this iteration")
+                    self.logger.info(f"[CHART] No signals to process in this iteration")
                 
                 # Adaptive sleep
                 if trades_executed > 0:
@@ -2063,19 +2127,19 @@ class EnhancedSmartAutoTradingDashboard:
                     
             except Exception as e:
                 consecutive_errors += 1
-                self.logger.error(f"❌ Auto trading loop error ({consecutive_errors}/{max_consecutive_errors}): {str(e)}")
+                self.logger.error(f"[ERR] Auto trading loop error ({consecutive_errors}/{max_consecutive_errors}): {str(e)}")
                 
                 if consecutive_errors >= max_consecutive_errors:
-                    self.logger.critical(f"🚨 Too many consecutive errors, stopping auto trading")
+                    self.logger.critical(f"[ALERT] Too many consecutive errors, stopping auto trading")
                     self.auto_trading_enabled = False
                     self.emergency_stop = True
                     break
                 
                 sleep_time = min(60, 5 * (2 ** consecutive_errors))
-                self.logger.info(f"⏰ Sleeping {sleep_time} seconds after error")
+                self.logger.info(f"[TIME] Sleeping {sleep_time} seconds after error")
                 time.sleep(sleep_time)
         
-        self.logger.info("🛑 Auto trading loop stopped")
+        self.logger.info("[EMOJI] Auto trading loop stopped")
         self.auto_trading_enabled = False
         
     def emergency_stop_all(self):
@@ -2096,7 +2160,7 @@ class EnhancedSmartAutoTradingDashboard:
                     'magic': 12345,
                     'comment': 'Emergency Stop',
                     'type_time': mt5.ORDER_TIME_GTC,
-                    'type_filling': mt5.ORDER_FILLING_IOC,
+                    'type_filling': mt5.ORDER_FILLING_FOK,
                 }
                 mt5.order_send(close_request)
         
@@ -2196,12 +2260,12 @@ class EnhancedSmartAutoTradingDashboard:
             Using Professional Confluence System
             """
             try:
-                # 🔥 ตรวจสอบว่ามี signal engine หรือไม่
+                # [HOT] ตรวจสอบว่ามี signal engine หรือไม่
                 if not hasattr(self, 'signal_engine') or self.signal_engine is None:
                     # Fallback to old system
                     return self.old_analyze_entry_exit_points(indicators, current_price, symbol)
                 
-                # 🔥 Use the new multi-timeframe confluence system
+                # [HOT] Use the new multi-timeframe confluence system
                 confluence_result = self.signal_engine.get_multi_timeframe_confluence(symbol)
                 
                 # Check additional filters
@@ -2648,7 +2712,7 @@ class EnhancedSmartAutoTradingDashboard:
                 }
                 analysis_method = 'error_fallback'
             
-            # 🚀 ENHANCED ANALYSIS (Advanced Features)
+            # [GO] ENHANCED ANALYSIS (Advanced Features)
             if self.use_advanced_features and analysis_method != 'error_fallback':
                 try:
                     # Prepare timeframe data for advanced analysis
@@ -2683,7 +2747,7 @@ class EnhancedSmartAutoTradingDashboard:
                     #             f"Enhanced Strength: {enhanced_analysis.get('enhanced_strength', 0)}")
                     
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Enhanced analysis failed for {symbol}: {str(e)}")
+                    self.logger.warning(f"[WARN] Enhanced analysis failed for {symbol}: {str(e)}")
                     # Keep the basic analysis
                     pass
             
@@ -2940,11 +3004,11 @@ class EnhancedSmartAutoTradingDashboard:
 <html><head><title>Enhanced Auto Trading Dashboard</title></head>
 <body style="background:#000;color:#fff;font-family:monospace;padding:2rem;">
 <h1 style="color:#00ff00;">Enhanced Smart Auto Trading Dashboard</h1>
-<h2 style="color:#ffff00;">🔄 WITH DATA PERSISTENCE & STATE MANAGEMENT</h2>
-<p style="color:#00ccff;">✅ Settings auto-saved every 5 minutes</p>
-<p style="color:#00ccff;">✅ Positions tracking persistent</p>
-<p style="color:#00ccff;">✅ Daily statistics saved</p>
-<p style="color:#00ccff;">✅ Trade history database</p>
+<h2 style="color:#ffff00;">[REFRESH] WITH DATA PERSISTENCE & STATE MANAGEMENT</h2>
+<p style="color:#00ccff;">[OK] Settings auto-saved every 5 minutes</p>
+<p style="color:#00ccff;">[OK] Positions tracking persistent</p>
+<p style="color:#00ccff;">[OK] Daily statistics saved</p>
+<p style="color:#00ccff;">[OK] Trade history database</p>
 <p style="color:#ff6666;">Please save the HTML code as 'forex_dashboard.html' in the same directory.</p>
 <p style="color:#ff6666;">Current directory: ''' + os.getcwd() + '''</p>
 <br><a href="/api/market-data" style="color:#00ccff;">API Test - Market Data</a>
@@ -2958,7 +3022,7 @@ class EnhancedSmartAutoTradingDashboard:
                 formatted_data = {}
                 for symbol, data in self.live_data.items():
                     if data:
-                        # ✅ FIXED: Clean data for JSON serialization
+                        # [OK] FIXED: Clean data for JSON serialization
                         cleaned_data = self.clean_data_for_json(data)
                         
                         # เพิ่มข้อมูล Pullback Protection
@@ -2986,7 +3050,7 @@ class EnhancedSmartAutoTradingDashboard:
                     'max_exposure': self.max_total_exposure * 100,
                     'risk_profile': self.current_risk_profile,
                     'custom_risk': self.custom_risk_per_trade,
-                    # 🛡️ Pullback Protection Status
+                    # [SHIELD] Pullback Protection Status
                     'pullback_protection': {
                         'enabled': (hasattr(self, 'pullback_protection') and 
                                 self.pullback_protection is not None and 
@@ -3088,7 +3152,7 @@ class EnhancedSmartAutoTradingDashboard:
 
         @self.app.route('/api/broker-info')
         def get_broker_info():
-            """📊 API: ดึงข้อมูล broker และ symbol mapping"""
+            """[CHART] API: ดึงข้อมูล broker และ symbol mapping"""
             try:
                 if not self.mt5_connected:
                     return jsonify({
@@ -3169,7 +3233,7 @@ class EnhancedSmartAutoTradingDashboard:
         
         @self.app.route('/api/broker-mapping-test')
         def test_broker_mapping():
-            """🧪 API: ทดสอบ broker symbol mapping"""
+            """[EMOJI] API: ทดสอบ broker symbol mapping"""
             try:
                 if not self.mt5_connected:
                     return jsonify({
@@ -3591,13 +3655,13 @@ class EnhancedSmartAutoTradingDashboard:
                 return f'''<!DOCTYPE html>
     <html><head><title>Hedging Dashboard Error</title></head>
     <body style="background:#000;color:#fff;font-family:monospace;padding:2rem;">
-    <h1 style="color:#ff4444;">🎯 Hedging Dashboard</h1>
+    <h1 style="color:#ff4444;">[TARGET] Hedging Dashboard</h1>
     <p style="color:#ffaa00;">Please save the hedging dashboard HTML as 'hedging_dashboard.html'</p>
     <p style="color:#888;">Error: {str(e)}</p>
-    <a href="/" style="color:#00ccff;">← Back to Main Dashboard</a>
+    <a href="/" style="color:#00ccff;"><- Back to Main Dashboard</a>
     </body></html>'''
         
-        # 🎯 TRAILING STOP API ROUTES
+        # [TARGET] TRAILING STOP API ROUTES
         @self.app.route('/api/trailing-stops/status')
         def get_trailing_status():
             """Get trailing stop status"""
@@ -3618,7 +3682,7 @@ class EnhancedSmartAutoTradingDashboard:
                 if enabled:
                     print("🟢 Trailing Stops: ENABLED")
                 else:
-                    print("🔴 Trailing Stops: DISABLED")
+                    print("[EMOJI] Trailing Stops: DISABLED")
                 
                 return jsonify({'success': True, 'enabled': enabled})
             except Exception as e:
@@ -3633,7 +3697,7 @@ class EnhancedSmartAutoTradingDashboard:
                 
                 if profile in self.enhanced_trading.trailing_profiles:
                     self.current_trailing_profile = profile
-                    print(f"🎯 Trailing Profile Changed: {profile}")
+                    print(f"[TARGET] Trailing Profile Changed: {profile}")
                     return jsonify({'success': True, 'profile': profile})
                 else:
                     return jsonify({'success': False, 'error': 'Invalid profile'})
@@ -3656,12 +3720,12 @@ class EnhancedSmartAutoTradingDashboard:
                 return send_from_directory('.', 'trailing_dashboard.html')
             except:
                 return '''
-                <h1 style="color:#00ff00;">🎯 Trailing Stop Dashboard</h1>
+                <h1 style="color:#00ff00;">[TARGET] Trailing Stop Dashboard</h1>
                 <p style="color:#ffaa00;">Please save the trailing_dashboard.html file in the same directory.</p>
-                <a href="/" style="color:#00ccff;">← Back to Main Dashboard</a>
+                <a href="/" style="color:#00ccff;"><- Back to Main Dashboard</a>
                 '''
 
-        # 🛡️ Pullback Protection API Routes
+        # [SHIELD] Pullback Protection API Routes
         @self.app.route('/api/pullback-protection/status')
         def pullback_protection_status():
             """สถานะ Pullback Protection Plugin"""
@@ -3764,14 +3828,14 @@ class EnhancedSmartAutoTradingDashboard:
                 return '''<!DOCTYPE html>
         <html><head><title>Pullback Protection Dashboard</title></head>
         <body style="background:#000;color:#fff;font-family:monospace;padding:2rem;">
-        <h1 style="color:#cc0066;">🛡️ Pullback Protection Dashboard</h1>
+        <h1 style="color:#cc0066;">[SHIELD] Pullback Protection Dashboard</h1>
         <p style="color:#ff6666;">ไฟล์ pullback_dashboard.html ไม่พบ</p>
         <p style="color:#ffaa00;">กรุณาบันทึกไฟล์ pullback_dashboard.html ในโฟลเดอร์เดียวกับ mt5_forex_connector.py</p>
         <p style="color:#666;">Current directory: ''' + os.getcwd() + '''</p>
-        <br><a href="/" style="color:#00ccff;">← กลับสู่ Main Dashboard</a>
+        <br><a href="/" style="color:#00ccff;"><- กลับสู่ Main Dashboard</a>
         </body></html>'''
 
-        # 🔗 เพิ่ม Route สำหรับ Quick Access
+        # [EMOJI] เพิ่ม Route สำหรับ Quick Access
         @self.app.route('/pullback')
         def pullback_shortcut():
             """Quick access to Pullback Dashboard"""
@@ -3783,12 +3847,12 @@ class EnhancedSmartAutoTradingDashboard:
         <meta http-equiv="refresh" content="0;url=/pullback_dashboard.html">
         </head>
         <body style="background:#000;color:#fff;font-family:monospace;padding:2rem;">
-        <h1 style="color:#cc0066;">🛡️ Redirecting to Pullback Dashboard...</h1>
+        <h1 style="color:#cc0066;">[SHIELD] Redirecting to Pullback Dashboard...</h1>
         <p style="color:#00ccff;"><a href="/pullback_dashboard.html">Click here if not redirected</a></p>
         <script>window.location.href='/pullback_dashboard.html';</script>
         </body></html>'''
        
-        # 📊 เพิ่ม Route สำหรับ Pullback Status Widget
+        # [CHART] เพิ่ม Route สำหรับ Pullback Status Widget
         @self.app.route('/api/pullback-protection/widget')
         def pullback_widget_status():
             """Quick status for main dashboard widget"""
@@ -3829,16 +3893,16 @@ class EnhancedSmartAutoTradingDashboard:
         if hasattr(self, 'hedging_enabled') and self.hedging_enabled:
             self.setup_hedging_routes()
         
-        print("✅ All routes setup completed")
+        print("[OK] All routes setup completed")
 
-        # 🎯 Add Trailing Stop Routes
+        # [TARGET] Add Trailing Stop Routes
         if hasattr(self, 'enhanced_trading'):
             add_trailing_stop_routes(self.app, self.enhanced_trading)
-            print("✅ Trailing Stop API Routes: ACTIVATED")
+            print("[OK] Trailing Stop API Routes: ACTIVATED")
 
         @self.app.route('/api/account-info')
         def get_account_info():
-            """📊 API: ดึงข้อมูล account และ MT5 connection status"""
+            """[CHART] API: ดึงข้อมูล account และ MT5 connection status"""
             try:
                 if not self.mt5_connected:
                     return jsonify({
@@ -3933,10 +3997,10 @@ class EnhancedSmartAutoTradingDashboard:
                     }
                 })
         
-        # 2️⃣ เพิ่ม /api/symbol-data/<symbol> endpoint
+        # 2[EMOJI]⃣ เพิ่ม /api/symbol-data/<symbol> endpoint
         @self.app.route('/api/symbol-data/<symbol>')
         def get_specific_symbol_data(symbol):
-            """📈 API: ดึงข้อมูลเฉพาะ symbol ที่ระบุ"""
+            """[UP] API: ดึงข้อมูลเฉพาะ symbol ที่ระบุ"""
             try:
                 if not self.mt5_connected:
                     return jsonify({
@@ -4033,10 +4097,10 @@ class EnhancedSmartAutoTradingDashboard:
                     'symbol': symbol
                 })
         
-        # 3️⃣ เพิ่ม /api/test-advanced-features endpoint
+        # 3[EMOJI]⃣ เพิ่ม /api/test-advanced-features endpoint
         @self.app.route('/api/test-advanced-features')
         def test_advanced_features():
-            """🧪 API: ทดสอบ advanced features ของระบบ"""
+            """[EMOJI] API: ทดสอบ advanced features ของระบบ"""
             try:
                 test_results = {
                     'timestamp': datetime.now().isoformat(),
@@ -4198,10 +4262,10 @@ class EnhancedSmartAutoTradingDashboard:
                     'error': str(e)
                 })
         
-        # 4️⃣ เพิ่ม /api/test-signals endpoint
+        # 4[EMOJI]⃣ เพิ่ม /api/test-signals endpoint
         @self.app.route('/api/test-signals')
         def test_signals():
-            """🎯 API: ทดสอบการสร้าง signals สำหรับทุก trading pairs"""
+            """[TARGET] API: ทดสอบการสร้าง signals สำหรับทุก trading pairs"""
             try:
                 if not self.mt5_connected:
                     return jsonify({
@@ -4313,10 +4377,10 @@ class EnhancedSmartAutoTradingDashboard:
                     'error': str(e)
                 })
         
-        # 5️⃣ เพิ่ม /api/pullback-status endpoint
+        # 5[EMOJI]⃣ เพิ่ม /api/pullback-status endpoint
         @self.app.route('/api/pullback-status')
         def get_pullback_status():
-            """🛡️ API: ดึงสถานะ pullback protection system"""
+            """[SHIELD] API: ดึงสถานะ pullback protection system"""
             try:
                 if not hasattr(self, 'pullback_protection') or not self.pullback_protection:
                     return jsonify({
@@ -4409,7 +4473,7 @@ class EnhancedSmartAutoTradingDashboard:
         def force_restart_auto_trading():
             """Force restart auto trading with full cleanup"""
             try:
-                self.logger.info("🔄 Force restarting auto trading...")
+                self.logger.info("[REFRESH] Force restarting auto trading...")
                 
                 # Stop everything
                 self.auto_trading_enabled = False
@@ -4623,10 +4687,10 @@ class EnhancedSmartAutoTradingDashboard:
                         'error': str(e)
                     })
 
-            print("🎯 Hedging API routes added successfully!")
+            print("[TARGET] Hedging API routes added successfully!")
             
         except Exception as e:
-            print(f"❌ Error setting up hedging routes: {str(e)}")
+            print(f"[ERR] Error setting up hedging routes: {str(e)}")
             self.hedging_enabled = False
 
     def start_data_updates(self):
@@ -4647,14 +4711,14 @@ class EnhancedSmartAutoTradingDashboard:
     def graceful_shutdown(self):
         """Graceful shutdown with data saving"""
         try:
-            print("\n🔄 Shutting down gracefully...")
+            print("\n[REFRESH] Shutting down gracefully...")
             
             # Stop auto trading
             if self.auto_trading_enabled:
                 self.stop_auto_trading()
             
             # Save all data
-            print("💾 Saving system data...")
+            print("[DISK] Saving system data...")
             self.save_system_settings()
             self.save_pair_tracking_data()
             self.persistence.save_daily_stats(self.daily_stats)
@@ -4669,18 +4733,18 @@ class EnhancedSmartAutoTradingDashboard:
             if self.mt5_connected:
                 mt5.shutdown()
             
-            print("✅ Shutdown completed successfully")
-            print("💾 All data saved for next session")
+            print("[OK] Shutdown completed successfully")
+            print("[DISK] All data saved for next session")
             
         except Exception as e:
-            print(f"❌ Error during shutdown: {str(e)}")
+            print(f"[ERR] Error during shutdown: {str(e)}")
     
         if hasattr(self, 'enhanced_trading'):
                 self.enhanced_trading.stop_trailing_thread()
-                print("⏹️ Trailing Stop System: STOPPED")
+                print("[STOP] Trailing Stop System: STOPPED")
 
     def calculate_trailing_stop(self, position, market_data):
-        """🎯 คำนวณ Trailing Stop สำหรับ position"""
+        """[TARGET] คำนวณ Trailing Stop สำหรับ position"""
         try:
             symbol = position.symbol
             ticket = position.ticket
@@ -4763,11 +4827,11 @@ class EnhancedSmartAutoTradingDashboard:
             }
             
         except Exception as e:
-            print(f"❌ Error calculating trailing stop: {str(e)}")
+            print(f"[ERR] Error calculating trailing stop: {str(e)}")
             return {'should_update': False, 'error': str(e)}
 
     def update_position_trailing_stop(self, ticket, new_sl, symbol):
-        """🎯 อัพเดท Stop Loss ใน MT5"""
+        """[TARGET] อัพเดท Stop Loss ใน MT5"""
         try:
             position = mt5.positions_get(ticket=ticket)
             if not position:
@@ -4788,19 +4852,19 @@ class EnhancedSmartAutoTradingDashboard:
             result = mt5.order_send(request)
             
             if result.retcode == mt5.TRADE_RETCODE_DONE:
-                print(f"✅ Trailing SL Updated: {symbol} #{ticket} → SL: {new_sl:.5f}")
+                print(f"[OK] Trailing SL Updated: {symbol} #{ticket} -> SL: {new_sl:.5f}")
                 self.trailing_statistics['total_sl_updates'] += 1
                 return True
             else:
-                print(f"❌ SL Update Failed: {symbol} #{ticket} - {result.comment}")
+                print(f"[ERR] SL Update Failed: {symbol} #{ticket} - {result.comment}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Error updating SL: {str(e)}")
+            print(f"[ERR] Error updating SL: {str(e)}")
             return False
 
     def process_all_trailing_stops(self):
-        """🎯 ประมวลผล Trailing Stop ทุก positions"""
+        """[TARGET] ประมวลผล Trailing Stop ทุก positions"""
         if not self.trailing_system_enabled:
             return
         
@@ -4837,13 +4901,13 @@ class EnhancedSmartAutoTradingDashboard:
                                 self.trailing_statistics['trail_moves'] += 1
             
             if updates_made > 0:
-                print(f"🎯 Trailing Stop Updates: {updates_made}")
+                print(f"[TARGET] Trailing Stop Updates: {updates_made}")
                 
         except Exception as e:
-            print(f"❌ Error processing trailing stops: {str(e)}")
+            print(f"[ERR] Error processing trailing stops: {str(e)}")
 
     def get_trailing_dashboard_data(self):
-        """📊 ข้อมูลสำหรับ Dashboard"""
+        """[CHART] ข้อมูลสำหรับ Dashboard"""
         try:
             positions = mt5.positions_get()
             position_details = []
@@ -4878,7 +4942,7 @@ class EnhancedSmartAutoTradingDashboard:
             }
             
         except Exception as e:
-            print(f"❌ Error getting dashboard data: {str(e)}")
+            print(f"[ERR] Error getting dashboard data: {str(e)}")
             return {'error': str(e)}
 
     def run(self, host='0.0.0.0', port=5000):
@@ -4886,7 +4950,7 @@ class EnhancedSmartAutoTradingDashboard:
         try:
             print("Enhanced Smart Auto Trading Dashboard Starting...")
             print("=" * 60)
-            print("🔄 WITH DATA PERSISTENCE & STATE MANAGEMENT")
+            print("[REFRESH] WITH DATA PERSISTENCE & STATE MANAGEMENT")
             print("=" * 60)
             
             if not self.connect_mt5():
@@ -4897,17 +4961,17 @@ class EnhancedSmartAutoTradingDashboard:
             self.start_data_updates()
             self.update_all_data()
             
-            print(f"✅ SUCCESS: Enhanced Auto Trading Dashboard Started!")
-            print(f"🔄 FEATURES: Smart Auto Trading + Risk Management + Data Persistence")
-            print(f"💾 PERSISTENCE: Settings, Positions & Stats Auto-Saved")
+            print(f"[OK] SUCCESS: Enhanced Auto Trading Dashboard Started!")
+            print(f"[REFRESH] FEATURES: Smart Auto Trading + Risk Management + Data Persistence")
+            print(f"[DISK] PERSISTENCE: Settings, Positions & Stats Auto-Saved")
             print(f" DATABASE: Trade History & System Logs")
-            print(f"🛡️ RECOVERY: System state restored on restart")
-            print(f"🌐 DASHBOARD: http://{host}:{port}")
-            print(f"🔗 API: http://{host}:{port}/api/market-data")
-            print(f"📈 STATUS: http://{host}:{port}/api/system-status")
-            print(f"⚡ AUTO TRADING: Currently {('ENABLED' if self.auto_trading_enabled else 'DISABLED')}")
-            print("💾 DATA SAVED: Every 5 minutes + on changes")
-            print("🔄 STOP: Press Ctrl+C for graceful shutdown")
+            print(f"[SHIELD] RECOVERY: System state restored on restart")
+            print(f"[WEB] DASHBOARD: http://{host}:{port}")
+            print(f"[EMOJI] API: http://{host}:{port}/api/market-data")
+            print(f"[UP] STATUS: http://{host}:{port}/api/system-status")
+            print(f"[LIGHTNING] AUTO TRADING: Currently {('ENABLED' if self.auto_trading_enabled else 'DISABLED')}")
+            print("[DISK] DATA SAVED: Every 5 minutes + on changes")
+            print("[REFRESH] STOP: Press Ctrl+C for graceful shutdown")
             print("=" * 60)
             
             # Log startup
@@ -4918,7 +4982,7 @@ class EnhancedSmartAutoTradingDashboard:
         except KeyboardInterrupt:
             self.graceful_shutdown()
         except Exception as e:
-            print(f"❌ ERROR: {str(e)}")
+            print(f"[ERR] ERROR: {str(e)}")
             self.graceful_shutdown()
 
 # CLEAN MAIN FUNCTION
@@ -4930,14 +4994,14 @@ def main():
     
     # เชื่อมต่อ MT5
     if dashboard.connect_mt5():
-        print("🎉 MT5 Connected Successfully!")
+        print("[EMOJI] MT5 Connected Successfully!")
         
         # เริ่มระบบ
         dashboard.start_data_updates()
         dashboard.run()
         
     else:
-        print("❌ MT5 connection failed!")
+        print("[ERR] MT5 connection failed!")
 
 if __name__ == "__main__":
     main()

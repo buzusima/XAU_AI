@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Professional Auto Trading Dashboard</title>
+    <title>[GO] Professional Auto Trading Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -623,7 +623,7 @@
 
         /* Price Direction */
         .price-up::before {
-            content: '▲';
+            content: '[EMOJI]';
             color: #00ff00;
             font-size: 7px;
             position: absolute;
@@ -632,7 +632,7 @@
         }
 
         .price-down::before {
-            content: '▼';
+            content: '[EMOJI]';
             color: #ff4444;
             font-size: 7px;
             position: absolute;
@@ -824,7 +824,7 @@
     <div class="dashboard-container">
         <!-- Header -->
         <div class="dashboard-header">
-            <div class="header-title">🚀 Professional Auto Trading Dashboard</div>
+            <div class="header-title">[GO] Professional Auto Trading Dashboard</div>
             <div class="header-info">
                 <div class="info-item">
                     Account: <span class="info-value" id="accountInfo">Connecting...</span>
@@ -856,7 +856,7 @@
             <div class="engine-status">
                 <div class="engine-indicator" id="engineIndicator"></div>
                 <div>
-                    <div style="color: #00ff00; font-weight: bold; font-size: 13px;">🔥 ENHANCED SIGNAL ENGINE</div>
+                    <div style="color: #00ff00; font-weight: bold; font-size: 13px;">[HOT] ENHANCED SIGNAL ENGINE</div>
                     <div style="color: #aaa; font-size: 10px;" id="engineStatus">Multi-Timeframe Confluence Active</div>
                 </div>
             </div>
@@ -885,17 +885,17 @@
             <div class="trading-status">
                 <div class="status-indicator" style="background: #6600cc;"></div>
                 <div>
-                    <div style="color: #cc66ff; font-weight: bold; font-size: 13px;">🎯 HEDGING SYSTEM</div>
+                    <div style="color: #cc66ff; font-weight: bold; font-size: 13px;">[TARGET] HEDGING SYSTEM</div>
                     <div style="color: #aaa; font-size: 10px;">Advanced Correlation-Based Risk Management</div>
                 </div>
             </div>
             <div class="trading-controls">
                 <button class="control-btn" onclick="openHedgingDashboard()"
                     style="background: #663399; color: #cc99ff;">
-                    🎯 OPEN HEDGING DASHBOARD
+                    [TARGET] OPEN HEDGING DASHBOARD
                 </button>
                 <button class="control-btn" onclick="testHedgingQuick()" style="background: #663399; color: #cc99ff;">
-                    🧪 QUICK TEST
+                    [EMOJI] QUICK TEST
                 </button>
             </div>
         </div>
@@ -905,7 +905,7 @@
             <div class="trading-status">
                 <div class="status-indicator" id="advancedIndicator" style="background: #cc66ff;"></div>
                 <div>
-                    <div style="color: #cc99ff; font-weight: bold; font-size: 13px;">⚡ ADVANCED FEATURES</div>
+                    <div style="color: #cc99ff; font-weight: bold; font-size: 13px;">[LIGHTNING] ADVANCED FEATURES</div>
                     <div style="color: #aaa; font-size: 10px;" id="advancedStatus">Market Regime Detection • Enhanced
                         Scoring • Dynamic Sizing</div>
                 </div>
@@ -923,7 +923,7 @@
             <div class="trading-status">
                 <div class="status-indicator status-inactive" id="autoTradingIndicator"></div>
                 <div>
-                    <div style="color: #00ccff; font-weight: bold; font-size: 13px;">🤖 AUTO TRADING</div>
+                    <div style="color: #00ccff; font-weight: bold; font-size: 13px;">[EMOJI] AUTO TRADING</div>
                     <div style="color: #aaa; font-size: 10px;" id="autoTradingStatus">DISABLED</div>
                 </div>
                 <div style="margin-left: 1.5rem;">
@@ -945,7 +945,7 @@
             <div class="trading-status">
                 <div class="status-indicator" id="trailingIndicator" style="background: #666;"></div>
                 <div>
-                    <div style="color: #00ff00; font-weight: bold; font-size: 13px;">🎯 TRAILING STOPS</div>
+                    <div style="color: #00ff00; font-weight: bold; font-size: 13px;">[TARGET] TRAILING STOPS</div>
                     <div style="color: #aaa; font-size: 10px;" id="trailingStatus">DISABLED</div>
                 </div>
                 <div style="margin-left: 1.5rem;">
@@ -968,7 +968,7 @@
             <div class="trading-status">
                 <div class="status-indicator" id="pullbackIndicator" style="background: #666;"></div>
                 <div>
-                    <div style="color: #cc6699; font-weight: bold; font-size: 13px;">🛡️ PULLBACK PROTECTION</div>
+                    <div style="color: #cc6699; font-weight: bold; font-size: 13px;">[SHIELD] PULLBACK PROTECTION</div>
                     <div style="color: #aaa; font-size: 10px;" id="pullbackStatus">SYSTEM MONITORING</div>
                 </div>
                 <div style="margin-left: 1.5rem;">
@@ -980,7 +980,7 @@
                 <button class="control-btn" onclick="togglePullbackSystem()" id="pullbackToggleBtn"
                     style="background: #cc0066; color: #ff99cc;">ENABLE PROTECTION</button>
                 <button class="control-btn" onclick="openPullbackDashboard()"
-                    style="background: #663399; color: #cc99ff;">🛡️ OPEN DASHBOARD</button>
+                    style="background: #663399; color: #cc99ff;">[SHIELD] OPEN DASHBOARD</button>
                 <button class="control-btn" onclick="cyclePullbackMode()" id="pullbackModeBtn"
                     style="background: #006633; color: #99ff99;">BALANCED</button>
             </div>
@@ -989,7 +989,7 @@
         <!-- Signal Settings Panel -->
         <div class="auto-trading-panel" style="background: #332200; border-color: #ffcc00;">
             <div class="trading-status">
-                <div style="color: #ffcc00; font-weight: bold; font-size: 13px;">📊 SIGNAL SETTINGS</div>
+                <div style="color: #ffcc00; font-weight: bold; font-size: 13px;">[CHART] SIGNAL SETTINGS</div>
                 <button class="control-btn" onclick="toggleSignalSettings()" id="toggleSignalBtn"
                     style="background: #444; color: #ffcc00;">SHOW SETTINGS</button>
             </div>
@@ -999,13 +999,13 @@
         <div id="signalSettingsContent" class="signal-settings-panel" style="display: none;">
             <div class="settings-grid">
                 <div class="setting-item">
-                    <label class="setting-label">🎯 Min Signal Strength:</label>
+                    <label class="setting-label">[TARGET] Min Signal Strength:</label>
                     <input type="range" id="minSignalStrength" min="1" max="10" step="0.5" value="6"
                         onchange="updateSignalSettings()" class="setting-input">
                     <span class="setting-value"><span id="signalStrengthValue">6.0</span>/10</span>
                 </div>
                 <div class="setting-item">
-                    <label class="setting-label">✨ Min Entry Quality:</label>
+                    <label class="setting-label">[EMOJI] Min Entry Quality:</label>
                     <select id="minEntryQuality" onchange="updateSignalSettings()" class="setting-input">
                         <option value="POOR">POOR</option>
                         <option value="FAIR">FAIR</option>
@@ -1014,13 +1014,13 @@
                     </select>
                 </div>
                 <div class="setting-item">
-                    <label class="setting-label">💎 Min R/R Ratio:</label>
+                    <label class="setting-label">[DIAMOND] Min R/R Ratio:</label>
                     <input type="range" id="minRRRatio" min="1" max="5" step="0.1" value="1.5"
                         onchange="updateSignalSettings()" class="setting-input">
                     <span class="setting-value">1:<span id="rrRatioValue">1.5</span></span>
                 </div>
                 <div class="setting-item">
-                    <label class="setting-label">🔥 Min Confluence Score:</label>
+                    <label class="setting-label">[HOT] Min Confluence Score:</label>
                     <input type="range" id="minConfluenceScore" min="2" max="10" step="0.5" value="4"
                         onchange="updateSignalSettings()" class="setting-input">
                     <span class="setting-value"><span id="confluenceScoreValue">4.0</span>/10</span>
@@ -1029,26 +1029,26 @@
             <div class="settings-grid">
                 <label class="checkbox-item">
                     <input type="checkbox" id="requireTrend" checked onchange="updateSignalSettings()">
-                    📈 Require Trend Alignment
+                    [UP] Require Trend Alignment
                 </label>
                 <label class="checkbox-item">
                     <input type="checkbox" id="requireVolume" checked onchange="updateSignalSettings()">
-                    📊 Require Volume Confirmation
+                    [CHART] Require Volume Confirmation
                 </label>
                 <label class="checkbox-item">
                     <input type="checkbox" id="requireRSI" checked onchange="updateSignalSettings()">
-                    📉 RSI Filter (avoid extremes)
+                    [DOWN] RSI Filter (avoid extremes)
                 </label>
                 <label class="checkbox-item">
                     <input type="checkbox" id="requireMultiTF" checked onchange="updateSignalSettings()">
-                    🔄 Multi-Timeframe Check
+                    [REFRESH] Multi-Timeframe Check
                 </label>
             </div>
             <div class="preset-buttons">
                 <button class="preset-btn" onclick="setPreset('EASY')">🟢 EASY MODE</button>
                 <button class="preset-btn" onclick="setPreset('NORMAL')">🟡 NORMAL</button>
-                <button class="preset-btn" onclick="setPreset('STRICT')">🔴 STRICT</button>
-                <button class="preset-btn apply-btn" onclick="applySignalSettings()">✅ APPLY SETTINGS</button>
+                <button class="preset-btn" onclick="setPreset('STRICT')">[EMOJI] STRICT</button>
+                <button class="preset-btn apply-btn" onclick="applySignalSettings()">[OK] APPLY SETTINGS</button>
             </div>
         </div>
 
@@ -1056,7 +1056,7 @@
         <div class="risk-profile-panel">
             <div class="risk-controls">
                 <div class="risk-selector">
-                    <label style="color: #ffaaaa;">🛡️ Risk Profile:</label>
+                    <label style="color: #ffaaaa;">[SHIELD] Risk Profile:</label>
                     <select class="risk-dropdown" id="riskProfile" onchange="updateRiskProfile()">
                         <option value="CONSERVATIVE">CONSERVATIVE (0.5%)</option>
                         <option value="MODERATE">MODERATE (1.0%)</option>
@@ -1132,7 +1132,7 @@
         <!-- Main Grid -->
         <div class="main-grid">
             <div id="loadingIndicator" class="loading">
-                🚀 Loading Professional Auto Trading Data
+                [GO] Loading Professional Auto Trading Data
             </div>
 
             <table class="grid-table" id="dataTable" style="display: none;">
@@ -1179,7 +1179,7 @@
 
         <!-- Positions Panel -->
         <div class="positions-panel" id="positionsPanel">
-            <div class="positions-header">💼 CURRENT POSITIONS</div>
+            <div class="positions-header">[EMOJI] CURRENT POSITIONS</div>
             <div id="positionsList">
                 <div style="color: #888; font-style: italic;">No open positions</div>
             </div>
@@ -1189,33 +1189,33 @@
         <div class="status-bar">
             <div class="status-left">
                 <div class="status-item">
-                    <span class="status-label">🤖 Auto Trading:</span>
+                    <span class="status-label">[EMOJI] Auto Trading:</span>
                     <span class="status-value" id="autoTradingStatusBar">DISABLED</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">🎯 Eligible Signals:</span>
+                    <span class="status-label">[TARGET] Eligible Signals:</span>
                     <span class="status-value" id="eligibleSignals">0</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">🔥 Confluence Signals:</span>
+                    <span class="status-label">[HOT] Confluence Signals:</span>
                     <span class="status-value" id="eligibleConfluenceSignals">0</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">📊 Portfolio Exposure:</span>
+                    <span class="status-label">[CHART] Portfolio Exposure:</span>
                     <span class="status-value" id="portfolioExposure">0.0%</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">🛡️ Risk Profile:</span>
+                    <span class="status-label">[SHIELD] Risk Profile:</span>
                     <span class="status-value" id="currentRiskProfile">BALANCED</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">📡 Data Source:</span>
+                    <span class="status-label">[SATELLITE] Data Source:</span>
                     <span class="status-value" id="dataSource">LIVE MT5</span>
                 </div>
             </div>
             <div class="status-right">
                 <div class="status-item">
-                    <span class="status-label">🕒 Last Update:</span>
+                    <span class="status-label">[3PM] Last Update:</span>
                     <span class="status-value" id="lastUpdate">--:--:--</span>
                 </div>
             </div>
@@ -1237,7 +1237,7 @@
         let brokerInfo = {};
         // Enhanced Signal Settings Management
         let signalSettingsVisible = false;
-        // 🎯 Trailing Stop Functions
+        // [TARGET] Trailing Stop Functions
         let trailingSystemEnabled = false;
         let currentTrailingProfile = 'MODERATE';
         let pullbackEnabled = false;
@@ -1254,7 +1254,7 @@
             // popup.focus();
             
             window.location.href = '/pullback-dashboard'
-            // addToLog('info', '🛡️ เปิด Pullback Protection Dashboard');
+            // addToLog('info', '[SHIELD] เปิด Pullback Protection Dashboard');
         }
 
         // เปิด/ปิด Pullback Protection System
@@ -1275,13 +1275,13 @@
                         pullbackEnabled ? 'success' : 'warning', 
                         `Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`
                     );
-                    // addToLog('info', `🛡️ Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`);
+                    // addToLog('info', `[SHIELD] Pullback Protection ${pullbackEnabled ? 'เปิด' : 'ปิด'}ใช้งาน`);
                 } else {
                     showNotification('error', result.error || 'เกิดข้อผิดพลาด');
                 }
             } catch (error) {
                 showNotification('error', 'ไม่สามารถเชื่อมต่อได้');
-                // addToLog('error', `❌ Pullback toggle error: ${error.message}`);
+                // addToLog('error', `[ERR] Pullback toggle error: ${error.message}`);
             }
         }
 
@@ -1308,7 +1308,7 @@
             // ส่งไปยัง API
             setPullbackMode(pullbackMode.toLowerCase());
             
-            // addToLog('info', `🛡️ เปลี่ยน Pullback Mode เป็น ${pullbackMode}`);
+            // addToLog('info', `[SHIELD] เปลี่ยน Pullback Mode เป็น ${pullbackMode}`);
         }
 
         // ตั้งค่า Pullback Mode ผ่าน API
@@ -1352,7 +1352,7 @@
                     showNotification('success', `ตั้งค่า ${mode.toUpperCase()} mode เรียบร้อย`);
                 }
             } catch (error) {
-                // addToLog('error', `❌ Error setting pullback mode: ${error.message}`);
+                // addToLog('error', `[ERR] Error setting pullback mode: ${error.message}`);
             }
         }
 
@@ -1514,16 +1514,16 @@
                 
                 if (result.success) {
                     showNotification(
-                        trailingSystemEnabled ? '⏹️ Trailing Stops Disabled' : '🚀 Trailing Stops Enabled',
+                        trailingSystemEnabled ? '[STOP] Trailing Stops Disabled' : '[GO] Trailing Stops Enabled',
                         'success'
                     );
                     await updateTrailingStatus();
                 } else {
-                    showNotification('❌ Failed to toggle trailing system', 'error');
+                    showNotification('[ERR] Failed to toggle trailing system', 'error');
                 }
             } catch (error) {
                 console.error('Error toggling trailing system:', error);
-                showNotification('❌ Error toggling trailing system', 'error');
+                showNotification('[ERR] Error toggling trailing system', 'error');
             }
         }
 
@@ -1544,7 +1544,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification(`⚙️ Trailing Profile: ${profile}`, 'info');
+                    showNotification(`[GEAR] Trailing Profile: ${profile}`, 'info');
                     await updateTrailingStatus();
                 }
             } catch (error) {
@@ -1616,23 +1616,23 @@
             // หรือเปิดใน tab เดียวกัน
             window.location.href = '/hedging';
 
-            showNotification('🎯 Opening Hedging Dashboard...', 'info');
+            showNotification('[TARGET] Opening Hedging Dashboard...', 'info');
         }
 
         async function testHedgingQuick() {
             try {
-                showNotification('🧪 Testing hedging system...', 'info');
+                showNotification('[EMOJI] Testing hedging system...', 'info');
 
                 const response = await fetch('/api/hedge/test');
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification(`✅ Hedging test passed! Correlation: ${result.test_correlation}`, 'success');
+                    showNotification(`[OK] Hedging test passed! Correlation: ${result.test_correlation}`, 'success');
                 } else {
-                    showNotification('❌ Hedging test failed', 'error');
+                    showNotification('[ERR] Hedging test failed', 'error');
                 }
             } catch (error) {
-                showNotification('❌ Hedging system error', 'error');
+                showNotification('[ERR] Hedging system error', 'error');
             }
         }
 
@@ -1718,15 +1718,15 @@
 
                 if (result.success) {
                     console.log('Enhanced signal settings updated successfully');
-                    showNotification('🎯 Signal Settings Updated!', 'success');
+                    showNotification('[TARGET] Signal Settings Updated!', 'success');
                     await updateData();
                 } else {
                     console.error('Failed to update signal settings:', result.error);
-                    showNotification('❌ Failed to update settings: ' + result.error, 'error');
+                    showNotification('[ERR] Failed to update settings: ' + result.error, 'error');
                 }
             } catch (error) {
                 console.error('Error updating signal settings:', error);
-                showNotification('❌ Error updating settings: ' + error.message, 'error');
+                showNotification('[ERR] Error updating settings: ' + error.message, 'error');
             }
         }
 
@@ -1744,20 +1744,20 @@
                     updateAdvancedFeaturesUI(advancedFeaturesEnabled);
 
                     const status = advancedFeaturesEnabled ? 'ENABLED' : 'DISABLED';
-                    showNotification(`⚡ Advanced Features ${status}`, 'info');
+                    showNotification(`[LIGHTNING] Advanced Features ${status}`, 'info');
                 } else {
-                    showNotification('❌ Failed to toggle advanced features: ' + result.error, 'error');
+                    showNotification('[ERR] Failed to toggle advanced features: ' + result.error, 'error');
                 }
             } catch (error) {
                 console.error('Error toggling advanced features:', error);
-                showNotification('❌ Error toggling advanced features: ' + error.message, 'error');
+                showNotification('[ERR] Error toggling advanced features: ' + error.message, 'error');
             }
         }
 
         async function showMarketRegime() {
             try {
                 const testPairs = ['EURUSD.v', 'GBPUSD.v', 'USDJPY.v'];
-                let message = '📊 Current Market Regimes:\n\n';
+                let message = '[CHART] Current Market Regimes:\n\n';
 
                 for (const symbol of testPairs) {
                     try {
@@ -1776,7 +1776,7 @@
                 alert(message);
             } catch (error) {
                 console.error('Error showing market regime:', error);
-                showNotification('❌ Error getting market regime data', 'error');
+                showNotification('[ERR] Error getting market regime data', 'error');
             }
         }
 
@@ -1809,14 +1809,14 @@
                 if (result.success) {
                     console.log('Auto trading started successfully');
                     updateAutoTradingUI(true);
-                    showNotification('🚀 Auto Trading Started!', 'success');
+                    showNotification('[GO] Auto Trading Started!', 'success');
                 } else {
                     console.error('Failed to start auto trading:', result.error);
-                    showNotification('❌ Failed to start auto trading: ' + result.error, 'error');
+                    showNotification('[ERR] Failed to start auto trading: ' + result.error, 'error');
                 }
             } catch (error) {
                 console.error('Error starting auto trading:', error);
-                showNotification('❌ Error starting auto trading: ' + error.message, 'error');
+                showNotification('[ERR] Error starting auto trading: ' + error.message, 'error');
             }
         }
 
@@ -1831,7 +1831,7 @@
                 if (result.success) {
                     console.log('Auto trading stopped successfully');
                     updateAutoTradingUI(false);
-                    showNotification('⏹️ Auto Trading Stopped', 'info');
+                    showNotification('[STOP] Auto Trading Stopped', 'info');
                 } else {
                     console.error('Failed to stop auto trading:', result.error);
                 }
@@ -1841,7 +1841,7 @@
         }
 
         async function emergencyStop() {
-            if (!confirm('🚨 EMERGENCY STOP: This will stop auto trading and close ALL open positions. Are you sure?')) {
+            if (!confirm('[ALERT] EMERGENCY STOP: This will stop auto trading and close ALL open positions. Are you sure?')) {
                 return;
             }
 
@@ -1855,7 +1855,7 @@
                 if (result.success) {
                     console.log('Emergency stop activated');
                     updateAutoTradingUI(false);
-                    showNotification('🚨 EMERGENCY STOP ACTIVATED', 'warning');
+                    showNotification('[ALERT] EMERGENCY STOP ACTIVATED', 'warning');
                 } else {
                     console.error('Failed to activate emergency stop:', result.error);
                 }
@@ -1879,7 +1879,7 @@
         async function setCustomRisk() {
             const customRisk = parseFloat(document.getElementById('customRisk').value);
             if (customRisk < 0.1 || customRisk > 10) {
-                showNotification('❌ Custom risk must be between 0.1% and 10%', 'error');
+                showNotification('[ERR] Custom risk must be between 0.1% and 10%', 'error');
                 return;
             }
 
@@ -1894,14 +1894,14 @@
                 if (result.success) {
                     console.log('Custom risk updated:', customRisk);
                     document.getElementById('riskPerTrade').textContent = `${customRisk}%`;
-                    showNotification(`🛡️ Custom risk set to ${customRisk}%`, 'success');
+                    showNotification(`[SHIELD] Custom risk set to ${customRisk}%`, 'success');
                 } else {
                     console.error('Failed to update custom risk:', result.error);
-                    showNotification('❌ Failed to update custom risk: ' + result.error, 'error');
+                    showNotification('[ERR] Failed to update custom risk: ' + result.error, 'error');
                 }
             } catch (error) {
                 console.error('Error updating custom risk:', error);
-                showNotification('❌ Error updating custom risk: ' + error.message, 'error');
+                showNotification('[ERR] Error updating custom risk: ' + error.message, 'error');
             }
         }
 
@@ -1916,14 +1916,14 @@
                 const result = await response.json();
                 if (result.success) {
                     console.log('Risk profile updated:', profileName);
-                    showNotification(`🛡️ Risk profile set to ${profileName}`, 'success');
+                    showNotification(`[SHIELD] Risk profile set to ${profileName}`, 'success');
                 } else {
                     console.error('Failed to update risk profile:', result.error);
-                    showNotification('❌ Failed to update risk profile: ' + result.error, 'error');
+                    showNotification('[ERR] Failed to update risk profile: ' + result.error, 'error');
                 }
             } catch (error) {
                 console.error('Error updating risk profile:', error);
-                showNotification('❌ Error updating risk profile: ' + error.message, 'error');
+                showNotification('[ERR] Error updating risk profile: ' + error.message, 'error');
             }
         }
 
@@ -2172,7 +2172,7 @@
                 }
             }, 4000);
 
-            const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const emoji = type === 'success' ? '[OK]' : type === 'error' ? '[ERR]' : type === 'warning' ? '[WARN]' : 'ℹ[EMOJI]';
             console.log(`${emoji} ${message}`);
         }
 
@@ -2310,23 +2310,23 @@
         }
 
         async function manualRefresh() {
-            console.log('🔄 Manual refresh initiated...');
+            console.log('[REFRESH] Manual refresh initiated...');
             document.getElementById('lastUpdate').textContent = 'Refreshing...';
 
             try {
-                showNotification('🔄 Refreshing data...', 'info');
+                showNotification('[REFRESH] Refreshing data...', 'info');
 
                 const response = await fetch('/api/refresh');
                 if (response.ok) {
-                    console.log('✅ Backend refresh completed');
+                    console.log('[OK] Backend refresh completed');
                 }
 
                 await updateData();
-                console.log('✅ Manual refresh completed');
-                showNotification('✅ Data refreshed!', 'success');
+                console.log('[OK] Manual refresh completed');
+                showNotification('[OK] Data refreshed!', 'success');
             } catch (error) {
-                console.error('❌ Manual refresh failed:', error);
-                showNotification('❌ Refresh failed', 'error');
+                console.error('[ERR] Manual refresh failed:', error);
+                showNotification('[ERR] Refresh failed', 'error');
             }
         }
 
@@ -2335,7 +2335,7 @@
         }
 
         function init() {
-            console.log('🚀 Initializing Professional Auto Trading Dashboard');
+            console.log('[GO] Initializing Professional Auto Trading Dashboard');
 
             updateTime();
             updateData();
@@ -2343,10 +2343,10 @@
             setInterval(updateData, 15000);
             setInterval(updateTime, 1000);
 
-            console.log('✅ Dashboard initialized successfully');
+            console.log('[OK] Dashboard initialized successfully');
 
             setTimeout(() => {
-                showNotification('🚀 Professional Dashboard Ready!', 'success');
+                showNotification('[GO] Professional Dashboard Ready!', 'success');
             }, 2000);
         }
         
@@ -2361,14 +2361,14 @@
                     
                 if (result.symbol_mapping.available_pairs) {
                     forexPairs = result.symbol_mapping.available_pairs;
-                    console.log('✅ Loaded pairs:', forexPairs);
+                    console.log('[OK] Loaded pairs:', forexPairs);
                 } else {
-                    console.log('⚠️ No available_pairs in response');
+                    console.log('[WARN] No available_pairs in response');
                 }                    
-                    console.log('✅ Loaded', forexPairs.length, 'pairs from broker');
+                    console.log('[OK] Loaded', forexPairs.length, 'pairs from broker');
                     return true;
                 } else {
-                    console.warn('⚠️ Using fallback symbols');
+                    console.warn('[WARN] Using fallback symbols');
                     forexPairs = [
                         'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
                         'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
@@ -2380,7 +2380,7 @@
                     return false;
                 }
             } catch (error) {
-                console.error('❌ Error loading broker info:', error);
+                console.error('[ERR] Error loading broker info:', error);
                 forexPairs = [
                     'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
                     'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
@@ -2424,7 +2424,7 @@
         }
         
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Professional Auto Trading Dashboard Starting...');
+            console.log('[GO] Professional Auto Trading Dashboard Starting...');
             
             // โหลด broker info ก่อน
             await loadBrokerInfo();
@@ -2435,7 +2435,7 @@
             
             startUpdateLoop();
             
-            console.log('📊 Dashboard initialized with', forexPairs.length, 'pairs');
+            console.log('[CHART] Dashboard initialized with', forexPairs.length, 'pairs');
         });
 
         document.addEventListener('keydown', function (e) {
@@ -2463,13 +2463,13 @@
 
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) {
-                console.log('🔄 Tab visible - refreshing data');
+                console.log('[REFRESH] Tab visible - refreshing data');
                 updateData();
             }
         });
 
-        console.log('🎯 Professional Forex Dashboard JavaScript Loaded!');
-        console.log('🚀 All features operational and ready for trading!');
+        console.log('[TARGET] Professional Forex Dashboard JavaScript Loaded!');
+        console.log('[GO] All features operational and ready for trading!');
     </script>
 </body>
 
