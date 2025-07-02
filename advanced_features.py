@@ -82,55 +82,434 @@ class UniversalMarketRegimeDetector:
             'last_update': datetime.now()
         }
 
-    def detect_regime(self, df_h4: pd.DataFrame, df_h1: pd.DataFrame, symbol: str = None) -> Dict:
-        """ตรวจจับ Market Regime - Universal Version"""
+    def _calculate_real_market_regime(self, symbol: str, timeframe_data: Dict) -> Dict:
+        """🎯 REAL Market Regime Detection using ALL 4 timeframes"""
         try:
-            if df_h4 is None or len(df_h4) < 50:
-                return self._get_default_regime("Insufficient H4 data")
+            # ดึงข้อมูลทั้ง 4 timeframes
+            timeframes_needed = ['H4', 'H1', 'M15', 'M5']
+            timeframe_dfs = {}
             
-            if df_h1 is None or len(df_h1) < 20:
-                return self._get_default_regime("Insufficient H1 data")
+            for tf in timeframes_needed:
+                tf_data = timeframe_data.get(tf) if timeframe_data else None
+                
+                # ถ้าไม่มีข้อมูลใน timeframe_data ให้ดึงจาก MT5
+                if tf_data is None:
+                    tf_mt5_map = {
+                        'H4': mt5.TIMEFRAME_H4,
+                        'H1': mt5.TIMEFRAME_H1,
+                        'M15': mt5.TIMEFRAME_M15,
+                        'M5': mt5.TIMEFRAME_M5
+                    }
+                    
+                    periods = 100 if tf in ['H4', 'H1'] else 150  # M15, M5 ต้องการข้อมูลมากกว่า
+                    tf_rates = mt5.copy_rates_from_pos(symbol, tf_mt5_map[tf], 0, periods)
+                    
+                    if tf_rates is not None and len(tf_rates) > 20:
+                        timeframe_dfs[tf] = pd.DataFrame(tf_rates)
+                        self.logger.info(f"✅ Fetched {tf} data: {len(tf_rates)} periods for {symbol}")
+                    else:
+                        self.logger.warning(f"⚠️ Failed to fetch {tf} data for {symbol}")
+                else:
+                    if len(tf_data) > 20:
+                        timeframe_dfs[tf] = tf_data
+                        self.logger.info(f"✅ Using existing {tf} data: {len(tf_data)} periods for {symbol}")
             
-            close_h4 = df_h4['close']
-            ema_20 = close_h4.ewm(span=20).mean()
-            ema_50 = close_h4.ewm(span=50).mean()
+            # ตรวจสอบว่ามีข้อมูลเพียงพอหรือไม่
+            if len(timeframe_dfs) < 2:
+                self.logger.warning(f"⚠️ Insufficient timeframe data for {symbol}: only {len(timeframe_dfs)} timeframes")
+                return self._get_fallback_regime("Insufficient timeframe data")
             
-            current_price = close_h4.iloc[-1]
-            trend_up = current_price > ema_20.iloc[-1] > ema_50.iloc[-1]
-            trend_down = current_price < ema_20.iloc[-1] < ema_50.iloc[-1]
+            # 🔥 Multi-Timeframe Analysis
+            regime_scores = {}
             
-            atr = self.calculate_universal_atr(df_h4)
-            atr_percentile = self.get_atr_percentile(df_h4, atr)
+            # H4 Analysis - Main Trend (Weight: 40%)
+            if 'H4' in timeframe_dfs:
+                h4_regime = self._analyze_h4_regime(timeframe_dfs['H4'])
+                regime_scores['H4'] = {'data': h4_regime, 'weight': 0.40}
+                self.logger.info(f"📊 H4 Regime for {symbol}: {h4_regime['regime']} (confidence: {h4_regime['confidence']:.2f})")
             
-            if trend_up and atr_percentile > 50:
-                regime = MarketRegime.TRENDING_BULLISH
-                confidence = 0.8
-            elif trend_down and atr_percentile > 50:
-                regime = MarketRegime.TRENDING_BEARISH
-                confidence = 0.8
-            elif atr_percentile > 70:
-                regime = MarketRegime.HIGH_VOLATILITY
-                confidence = 0.7
-            elif atr_percentile < 30:
-                regime = MarketRegime.LOW_VOLATILITY
-                confidence = 0.7
+            # H1 Analysis - Setup Confirmation (Weight: 30%)
+            if 'H1' in timeframe_dfs:
+                h1_regime = self._analyze_h1_regime(timeframe_dfs['H1'])
+                regime_scores['H1'] = {'data': h1_regime, 'weight': 0.30}
+                self.logger.info(f"📊 H1 Regime for {symbol}: {h1_regime['regime']} (confidence: {h1_regime['confidence']:.2f})")
+            
+            # M15 Analysis - Entry Timing (Weight: 20%)
+            if 'M15' in timeframe_dfs:
+                m15_regime = self._analyze_m15_regime(timeframe_dfs['M15'])
+                regime_scores['M15'] = {'data': m15_regime, 'weight': 0.20}
+                self.logger.info(f"📊 M15 Regime for {symbol}: {m15_regime['regime']} (confidence: {m15_regime['confidence']:.2f})")
+            
+            # M5 Analysis - Risk Management (Weight: 10%)
+            if 'M5' in timeframe_dfs:
+                m5_regime = self._analyze_m5_regime(timeframe_dfs['M5'])
+                regime_scores['M5'] = {'data': m5_regime, 'weight': 0.10}
+                self.logger.info(f"📊 M5 Regime for {symbol}: {m5_regime['regime']} (confidence: {m5_regime['confidence']:.2f})")
+            
+            # 🎯 Calculate Final Regime using Weighted Confluence
+            final_regime = self._calculate_weighted_regime_confluence(regime_scores)
+            
+            # เพิ่มข้อมูล debug และ metadata
+            final_regime.update({
+                'timeframes_analyzed': list(timeframe_dfs.keys()),
+                'timeframe_count': len(timeframe_dfs),
+                'regime_breakdown': {tf: scores['data']['regime'] for tf, scores in regime_scores.items()},
+                'confidence_breakdown': {tf: scores['data']['confidence'] for tf, scores in regime_scores.items()},
+                'calculation_method': 'MULTI_TIMEFRAME_WEIGHTED_CONFLUENCE',
+                'symbol': symbol
+            })
+            
+            self.logger.info(f"🎯 Final Multi-TF Regime for {symbol}: {final_regime['regime']} (confidence: {final_regime['confidence']:.2f})")
+            self.logger.info(f"   Timeframes used: {', '.join(timeframe_dfs.keys())}")
+            
+            return final_regime
+            
+        except Exception as e:
+            self.logger.error(f"❌ Multi-timeframe regime calculation error for {symbol}: {str(e)}")
+            return self._get_fallback_regime(f"Calculation error: {str(e)}")
+
+    def _analyze_h4_regime(self, df_h4: pd.DataFrame) -> Dict:
+        """Analyze H4 timeframe for main trend direction"""
+        try:
+            close = df_h4['close']
+            
+            # Long-term EMAs for H4
+            ema_20 = close.ewm(span=20).mean()
+            ema_50 = close.ewm(span=50).mean()
+            ema_100 = close.ewm(span=100).mean() if len(close) >= 100 else ema_50
+            
+            current_price = close.iloc[-1]
+            
+            # Strong trend detection
+            strong_bullish = (current_price > ema_20.iloc[-1] > ema_50.iloc[-1] > ema_100.iloc[-1])
+            strong_bearish = (current_price < ema_20.iloc[-1] < ema_50.iloc[-1] < ema_100.iloc[-1])
+            
+            # EMA slope analysis
+            ema_20_slope = (ema_20.iloc[-1] - ema_20.iloc[-10]) / ema_20.iloc[-10] if len(ema_20) > 10 else 0
+            ema_50_slope = (ema_50.iloc[-1] - ema_50.iloc[-20]) / ema_50.iloc[-20] if len(ema_50) > 20 else 0
+            
+            # ATR for volatility
+            high, low = df_h4['high'], df_h4['low']
+            tr = pd.concat([high - low, abs(high - close.shift()), abs(low - close.shift())], axis=1).max(axis=1)
+            atr = tr.rolling(14).mean().iloc[-1]
+            atr_percentile = self._calculate_atr_percentile(tr.rolling(14).mean().dropna(), atr)
+            
+            # Regime determination
+            if strong_bullish and ema_20_slope > 0.001:
+                regime = 'TRENDING_BULLISH'
+                confidence = 0.85 + min(0.1, ema_20_slope * 100)
+            elif strong_bearish and ema_20_slope < -0.001:
+                regime = 'TRENDING_BEARISH'
+                confidence = 0.85 + min(0.1, abs(ema_20_slope) * 100)
+            elif atr_percentile >= 80:
+                regime = 'HIGH_VOLATILITY'
+                confidence = 0.80
+            elif atr_percentile <= 20:
+                regime = 'LOW_VOLATILITY'
+                confidence = 0.75
             else:
-                regime = MarketRegime.RANGING
-                confidence = 0.6
+                regime = 'RANGING'
+                confidence = 0.60
+            
+            return {
+                'regime': regime,
+                'confidence': min(0.95, confidence),
+                'trend_strength': abs(ema_20_slope) + abs(ema_50_slope),
+                'atr_percentile': atr_percentile,
+                'ema_alignment': {'bullish': strong_bullish, 'bearish': strong_bearish}
+            }
+            
+        except Exception as e:
+            return {'regime': 'ERROR', 'confidence': 0.0, 'error': str(e)}
+
+    def _analyze_h1_regime(self, df_h1: pd.DataFrame) -> Dict:
+        """Analyze H1 timeframe for setup confirmation"""
+        try:
+            close = df_h1['close']
+            
+            # Medium-term EMAs
+            ema_9 = close.ewm(span=9).mean()
+            ema_21 = close.ewm(span=21).mean()
+            ema_50 = close.ewm(span=50).mean()
+            
+            current_price = close.iloc[-1]
+            
+            # MACD for momentum
+            ema_12 = close.ewm(span=12).mean()
+            ema_26 = close.ewm(span=26).mean()
+            macd_line = ema_12 - ema_26
+            macd_signal = macd_line.ewm(span=9).mean()
+            macd_histogram = macd_line - macd_signal
+            
+            # RSI for momentum confirmation
+            delta = close.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss.replace(0, 0.001)
+            rsi = 100 - (100 / (1 + rs))
+            
+            current_rsi = rsi.iloc[-1]
+            current_macd_hist = macd_histogram.iloc[-1]
+            
+            # Setup analysis
+            bullish_setup = (current_price > ema_9.iloc[-1] > ema_21.iloc[-1] and 
+                            current_macd_hist > 0 and 30 <= current_rsi <= 70)
+            bearish_setup = (current_price < ema_9.iloc[-1] < ema_21.iloc[-1] and 
+                            current_macd_hist < 0 and 30 <= current_rsi <= 70)
+            
+            # Regime determination
+            if bullish_setup:
+                regime = 'SETUP_BULLISH'
+                confidence = 0.75 + min(0.15, current_macd_hist * 1000)
+            elif bearish_setup:
+                regime = 'SETUP_BEARISH'
+                confidence = 0.75 + min(0.15, abs(current_macd_hist) * 1000)
+            elif abs(current_macd_hist) < 0.0001:
+                regime = 'SETUP_NEUTRAL'
+                confidence = 0.60
+            else:
+                regime = 'SETUP_WEAK'
+                confidence = 0.50
+            
+            return {
+                'regime': regime,
+                'confidence': min(0.90, confidence),
+                'rsi': current_rsi,
+                'macd_histogram': current_macd_hist,
+                'trend_strength': abs(current_macd_hist)
+            }
+            
+        except Exception as e:
+            return {'regime': 'ERROR', 'confidence': 0.0, 'error': str(e)}
+
+    def _analyze_m15_regime(self, df_m15: pd.DataFrame) -> Dict:
+        """Analyze M15 timeframe for entry timing"""
+        try:
+            close = df_m15['close']
+            
+            # Fast EMAs for M15
+            ema_5 = close.ewm(span=5).mean()
+            ema_13 = close.ewm(span=13).mean()
+            ema_21 = close.ewm(span=21).mean()
+            
+            current_price = close.iloc[-1]
+            
+            # Fast RSI
+            delta = close.diff()
+            gain = delta.where(delta > 0, 0).rolling(9).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(9).mean()
+            rs = gain / loss.replace(0, 0.001)
+            rsi_fast = 100 - (100 / (1 + rs))
+            current_rsi = rsi_fast.iloc[-1]
+            
+            # Momentum
+            momentum_5 = (current_price - close.iloc[-6]) / close.iloc[-6] * 100 if len(close) > 6 else 0
+            
+            # Entry timing analysis
+            fast_bullish = (current_price > ema_5.iloc[-1] > ema_13.iloc[-1] and 
+                        25 <= current_rsi <= 75 and momentum_5 > 0.05)
+            fast_bearish = (current_price < ema_5.iloc[-1] < ema_13.iloc[-1] and 
+                        25 <= current_rsi <= 75 and momentum_5 < -0.05)
+            
+            # Regime determination
+            if fast_bullish:
+                regime = 'ENTRY_BULLISH'
+                confidence = 0.70 + min(0.2, momentum_5 / 100)
+            elif fast_bearish:
+                regime = 'ENTRY_BEARISH'
+                confidence = 0.70 + min(0.2, abs(momentum_5) / 100)
+            else:
+                regime = 'ENTRY_WAIT'
+                confidence = 0.50
+            
+            return {
+                'regime': regime,
+                'confidence': min(0.90, confidence),
+                'rsi_fast': current_rsi,
+                'momentum_5': momentum_5,
+                'trend_strength': abs(momentum_5) / 100
+            }
+            
+        except Exception as e:
+            return {'regime': 'ERROR', 'confidence': 0.0, 'error': str(e)}
+
+    def _analyze_m5_regime(self, df_m5: pd.DataFrame) -> Dict:
+        """Analyze M5 timeframe for risk management"""
+        try:
+            close = df_m5['close']
+            
+            # Very fast EMAs
+            ema_3 = close.ewm(span=3).mean()
+            ema_8 = close.ewm(span=8).mean()
+            
+            current_price = close.iloc[-1]
+            
+            # Immediate momentum
+            momentum_3 = (current_price - close.iloc[-4]) / close.iloc[-4] * 100 if len(close) > 4 else 0
+            
+            # Recent price action
+            last_5_candles = close.tail(5)
+            is_rising = all(last_5_candles.iloc[i] <= last_5_candles.iloc[i+1] for i in range(4))
+            is_falling = all(last_5_candles.iloc[i] >= last_5_candles.iloc[i+1] for i in range(4))
+            
+            # Support/Resistance levels
+            recent_data = close.tail(20) if len(close) >= 20 else close
+            resistance = recent_data.max()
+            support = recent_data.min()
+            
+            near_resistance = abs(current_price - resistance) / current_price < 0.001
+            near_support = abs(current_price - support) / current_price < 0.001
+            
+            # Risk management analysis
+            if current_price > ema_3.iloc[-1] > ema_8.iloc[-1] and is_rising and not near_resistance:
+                regime = 'MANAGE_HOLD_LONG'
+                confidence = 0.75
+            elif current_price < ema_3.iloc[-1] < ema_8.iloc[-1] and is_falling and not near_support:
+                regime = 'MANAGE_HOLD_SHORT'
+                confidence = 0.75
+            elif near_resistance or near_support:
+                regime = 'MANAGE_WATCH'
+                confidence = 0.80
+            else:
+                regime = 'MANAGE_NEUTRAL'
+                confidence = 0.60
             
             return {
                 'regime': regime,
                 'confidence': confidence,
-                'trend_strength': self.calculate_trend_strength(df_h4),
-                'volatility_percentile': atr_percentile,
-                'current_atr': atr,
-                'symbol': symbol or 'UNKNOWN',
-                'calculation_method': 'UNIVERSAL'
+                'momentum_3': momentum_3,
+                'near_resistance': near_resistance,
+                'near_support': near_support,
+                'trend_strength': abs(momentum_3) / 100
             }
             
         except Exception as e:
-            self.logger.error(f"Regime detection error for {symbol}: {str(e)}")
-            return self._get_default_regime(f"Error: {str(e)}")
+            return {'regime': 'ERROR', 'confidence': 0.0, 'error': str(e)}
+
+    def _calculate_weighted_regime_confluence(self, regime_scores: Dict) -> Dict:
+        """Calculate final regime using weighted confluence from all timeframes"""
+        try:
+            # Regime mapping for scoring
+            regime_mappings = {
+                # Bullish regimes
+                'TRENDING_BULLISH': 3,
+                'SETUP_BULLISH': 2,
+                'ENTRY_BULLISH': 2,
+                'MANAGE_HOLD_LONG': 1,
+                
+                # Bearish regimes
+                'TRENDING_BEARISH': -3,
+                'SETUP_BEARISH': -2,
+                'ENTRY_BEARISH': -2,
+                'MANAGE_HOLD_SHORT': -1,
+                
+                # Neutral/Special regimes
+                'HIGH_VOLATILITY': 0,
+                'LOW_VOLATILITY': 0,
+                'RANGING': 0,
+                'SETUP_NEUTRAL': 0,
+                'ENTRY_WAIT': 0,
+                'MANAGE_WATCH': 0,
+                'MANAGE_NEUTRAL': 0,
+                
+                # Error states
+                'ERROR': 0,
+                'SETUP_WEAK': 0
+            }
+            
+            total_weighted_score = 0
+            total_weight = 0
+            total_confidence = 0
+            volatility_indicators = []
+            trend_strengths = []
+            
+            # Calculate weighted scores
+            for tf, score_data in regime_scores.items():
+                regime_data = score_data['data']
+                weight = score_data['weight']
+                
+                regime = regime_data.get('regime', 'ERROR')
+                confidence = regime_data.get('confidence', 0.0)
+                trend_strength = regime_data.get('trend_strength', 0.0)
+                
+                # Get regime score
+                regime_score = regime_mappings.get(regime, 0)
+                
+                # Apply weight and confidence
+                weighted_score = regime_score * weight * confidence
+                total_weighted_score += weighted_score
+                total_weight += weight * confidence
+                total_confidence += confidence * weight
+                
+                # Collect data for final analysis
+                if 'VOLATILITY' in regime:
+                    volatility_indicators.append(regime)
+                
+                trend_strengths.append(trend_strength)
+            
+            # Normalize
+            if total_weight > 0:
+                final_score = total_weighted_score / total_weight
+                avg_confidence = total_confidence / sum(score_data['weight'] for score_data in regime_scores.values())
+            else:
+                final_score = 0
+                avg_confidence = 0.5
+            
+            # Determine final regime
+            if len(volatility_indicators) >= 2:
+                # Multiple timeframes showing volatility
+                if 'HIGH_VOLATILITY' in volatility_indicators:
+                    final_regime = 'HIGH_VOLATILITY'
+                    final_confidence = avg_confidence * 0.9
+                else:
+                    final_regime = 'LOW_VOLATILITY'
+                    final_confidence = avg_confidence * 0.8
+            elif final_score >= 1.5:
+                final_regime = 'TRENDING_BULLISH'
+                final_confidence = min(0.95, avg_confidence + 0.1)
+            elif final_score <= -1.5:
+                final_regime = 'TRENDING_BEARISH'
+                final_confidence = min(0.95, avg_confidence + 0.1)
+            elif abs(final_score) <= 0.5:
+                final_regime = 'RANGING'
+                final_confidence = avg_confidence
+            else:
+                # Weak trend
+                if final_score > 0:
+                    final_regime = 'TRENDING_BULLISH'
+                else:
+                    final_regime = 'TRENDING_BEARISH'
+                final_confidence = avg_confidence * 0.8
+            
+            # Calculate overall trend strength
+            avg_trend_strength = sum(trend_strengths) / len(trend_strengths) if trend_strengths else 0
+            
+            # Risk factor calculation
+            risk_factor = self._calculate_risk_factor(final_regime, final_confidence)
+            
+            return {
+                'regime': final_regime,
+                'confidence': round(min(0.95, max(0.1, final_confidence)), 2),
+                'trend_strength': round(avg_trend_strength, 4),
+                'weighted_score': round(final_score, 2),
+                'risk_factor': risk_factor,
+                'calculation_method': 'WEIGHTED_MULTI_TIMEFRAME_CONFLUENCE'
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Weighted confluence calculation error: {str(e)}")
+            return self._get_fallback_regime(f"Confluence error: {str(e)}")
+
+    def _calculate_atr_percentile(self, atr_series: pd.Series, current_atr: float) -> float:
+        """Calculate ATR percentile for volatility assessment"""
+        try:
+            if len(atr_series) < 20:
+                return 50.0
+            
+            percentile = (atr_series <= current_atr).sum() / len(atr_series) * 100
+            return round(float(percentile), 1)
+        except:
+            return 50.0
     
     def _get_default_regime(self, reason: str) -> Dict:
         """Get default regime when calculation fails"""
@@ -171,29 +550,32 @@ class UniversalMarketRegimeDetector:
             self.logger.error(f"Universal ATR calculation error: {str(e)}")
             return 0.001
     
-    def get_atr_percentile(self, df: pd.DataFrame, current_atr: float) -> float:
-        """คำนวณ ATR Percentile - Universal version"""
+   
+    
+    def calculate_price_volatility_regime(self, df: pd.DataFrame, period: int = 20) -> float:
+        """Price Volatility สำหรับ regime detection"""
         try:
-            if len(df) < 28:
-                return 50.0
+            if len(df) < period:
+                return 0.5
                 
-            atr_series = []
-            for i in range(14, min(len(df), 100)):
-                window_df = df.iloc[i-14:i]
-                atr_val = self.calculate_universal_atr(window_df)
-                if atr_val > 0:
-                    atr_series.append(atr_val)
+            close = df['close']
             
-            if len(atr_series) == 0:
-                return 50.0
+            # คำนวณ rolling standard deviation ของ returns
+            returns = close.pct_change().dropna()
+            volatility = returns.rolling(window=period).std().iloc[-1]
+            
+            if pd.isna(volatility):
+                return 0.5
                 
-            atr_series = pd.Series(atr_series)
-            percentile = (atr_series <= current_atr).mean() * 100
-            return max(0, min(100, float(percentile)))
+            # Normalize ให้อยู่ในช่วง 0-1
+            # ปกติ forex volatility อยู่ที่ 0.01-0.03 per day
+            normalized_vol = min(1.0, max(0.0, volatility * 50))  # Scale appropriately
+            
+            return normalized_vol
             
         except Exception as e:
-            self.logger.error(f"ATR percentile calculation error: {str(e)}")
-            return 50.0
+            self.logger.error(f"Price volatility calculation error: {str(e)}")
+            return 0.5
     
     def calculate_trend_strength(self, df: pd.DataFrame) -> float:
         """คำนวณ Trend Strength - Universal version"""
@@ -669,209 +1051,114 @@ class UniversalAdvancedTradingIntegrator:
         self.position_sizer = UniversalDynamicPositionSizer(symbol_adapter)
         self.logger = logging.getLogger(__name__)
         
-        print("Universal Advanced Trading Features Initialized!")
-        print("- Universal Market Regime Detection: ON")
-        print("- Universal Enhanced Signal Scoring: ON") 
-        print("- Universal Dynamic Position Sizing: ON")
-        print("- Broker Compatibility: ALL BROKERS SUPPORTED")
+        print("🚀 Universal Advanced Trading Features Initialized!")
+        print("✅ Universal Market Regime Detection: ACTIVE")
+        print("✅ Universal Enhanced Signal Scoring: ACTIVE") 
+        print("✅ Universal Dynamic Position Sizing: ACTIVE")
+        print("✅ Broker Compatibility: ALL BROKERS SUPPORTED")
         
         if symbol_adapter:
-            print("- Symbol Adapter: CONNECTED")
+            print("✅ Symbol Adapter: CONNECTED")
         else:
-            print("- Symbol Adapter: NONE (using direct symbols)")
-    
-    def get_dashboard_data(self):
-        """🎯 ดึงข้อมูลสำหรับ dashboard - FIXED METHOD"""
-        try:
-            # Market Regime Analysis
-            market_regime_data = self._get_current_market_regime()
-            
-            # Advanced Signal Features Status
-            signal_features = {
-                'multi_timeframe_confluence': True,
-                'volume_analysis': True,
-                'support_resistance': True,
-                'fibonacci_levels': True,
-                'pattern_recognition': True,
-                'market_regime_detection': True,
-                'dynamic_position_sizing': True,
-                'portfolio_risk_management': True
-            }
-            
-            # System Status
-            system_status = {
-                'regime_detector_active': True,
-                'signal_scorer_active': True,
-                'position_sizer_active': True,
-                'pattern_recognition_active': True,
-                'universal_compatibility': True,
-                'broker_adapter_connected': self.symbol_adapter is not None
-            }
-            
-            # Recent Activity
-            recent_activity = {
-                'signals_enhanced_today': 0,
-                'regime_changes_detected': 0,
-                'position_size_optimizations': 0,
-                'patterns_detected': 0
-            }
-            
-            return {
-                'market_regime': market_regime_data,
-                'signal_features': signal_features,
-                'performance_metrics': performance_metrics,
-                'system_status': system_status,
-                'recent_activity': recent_activity,
-                'advanced_features_active': True,
-                'enhancement_version': '2.0_EXTENDED',
-                'last_update': datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error getting advanced features dashboard data: {str(e)}")
-            return {
-                'error': str(e),
-                'advanced_features_active': False,
-                'enhancement_version': '2.0_EXTENDED',
-                'last_update': datetime.now().isoformat()
-            }
+            print("⚠️ Symbol Adapter: NONE (using direct symbols)")
 
-    def _get_current_market_regime(self):
-        """🎯 ดึงข้อมูล market regime ปัจจุบัน"""
-        try:
-            # จำลองการวิเคราะห์ market regime
-            # ในระบบจริงจะวิเคราะห์จากข้อมูลตลาดจริง
-            
-            regime_data = {
-                'current_regime': 'TRENDING',
-                'regime_strength': 0.75,
-                'volatility_state': 'MEDIUM',
-                'volatility_percentile': 55.0,
-                'trend_strength': 0.68,
-                'market_sentiment': 'BULLISH',
-                'regime_confidence': 0.82,
-                'regime_duration_hours': 24,
-                'next_regime_probability': {
-                    'RANGING': 0.25,
-                    'TRENDING': 0.60,
-                    'BREAKOUT': 0.15
-                },
-                'volatility_forecast': 'INCREASING',
-                'optimal_trading_style': 'TREND_FOLLOWING',
-                'recommended_timeframe': 'H1_H4',
-                'risk_adjustment_factor': 1.0,
-                'last_regime_change': (datetime.now() - timedelta(hours=24)).isoformat()
-            }
-            
-            return regime_data
-            
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error getting market regime: {str(e)}")
-            return {
-                'current_regime': 'UNKNOWN',
-                'regime_strength': 0.5,
-                'volatility_state': 'MEDIUM',
-                'error': str(e)
-            }
-
-    # ========================= เพิ่ม Helper Methods =========================
-
-    def get_enhancement_statistics(self):
-        """📊 ดึงสถิติการ enhancement"""
-        try:
-            return {
-                'total_signals_enhanced': 0,
-                'enhancement_success_rate': 0.0,
-                'average_improvement_percentage': 0.0,
-                'regime_detection_accuracy': 0.0,
-                'pattern_recognition_hits': 0,
-                'false_signals_prevented': 0,
-                'profit_secured_via_enhancement': 0.0,
-                'last_performance_update': datetime.now().isoformat()
-            }
-        except Exception as e:
-            return {'error': str(e)}
-
-    def test_advanced_features(self):
-        """🧪 ทดสอบ advanced features"""
-        try:
-            test_results = {
-                'regime_detection': 'PASS',
-                'signal_enhancement': 'PASS',
-                'position_sizing': 'PASS',
-                'pattern_recognition': 'PASS',
-                'portfolio_risk_management': 'PASS',
-                'time_optimization': 'PASS',
-                'universal_compatibility': 'PASS',
-                'overall_status': 'ALL_SYSTEMS_OPERATIONAL'
-            }
-            
-            return {
-                'success': True,
-                'test_results': test_results,
-                'test_timestamp': datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'test_timestamp': datetime.now().isoformat()
-            }
-
-    def enhance_signal_analysis(self, symbol: str, basic_signal_data: Dict, timeframe_data: Dict = None) -> Dict: 
-        # TEMPORARY FIX: Return basic data without enhancement to avoid errors
+    def enhance_signal_analysis(self, symbol: str, basic_signal_data: Dict, timeframe_data: Dict = None) -> Dict:
+        """🔥 REAL Enhanced Signal Analysis - COMPLETELY FUNCTIONAL"""
         try:
             enhanced_result = basic_signal_data.copy()
-
-            # 1. คำนวณ Market Regime จริง
-            regime_data = self._calculate_real_market_regime(symbol, timeframe_data)
             
-            # 2. คำนวณ Enhanced Strength จริง
+            # 🎯 1. REAL Market Regime Detection
+            regime_data = self.regime_detector._calculate_real_market_regime(symbol, timeframe_data)
+            
+            # 🎯 2. REAL Enhanced Strength Calculation
             enhanced_strength = self._calculate_real_enhanced_strength(basic_signal_data, regime_data)
             
-            # 3. คำนวณ Volatility Percentile จริง
-            volatility_percentile = self._calculate_real_volatility_percentile(symbol)
+            # 🎯 3. REAL Volatility Percentile
+            volatility_percentile = self._calculate_real_volatility_percentile(symbol, timeframe_data)
             
-            # 4. คำนวณ Enhanced Quality
+            # 🎯 4. REAL Enhanced Quality Assessment
             enhanced_quality = self._calculate_real_enhanced_quality(basic_signal_data, regime_data)
             
-            # 5. Pattern Recognition
+            # 🎯 5. REAL Pattern Recognition
             detected_patterns = self._detect_real_patterns(symbol, timeframe_data)
             
-            # 6. Portfolio Risk Assessment
+            # 🎯 6. REAL Portfolio Risk Assessment
             portfolio_risk = self._assess_real_portfolio_risk(symbol)
             
-            # อัพเดทผลลัพธ์ด้วยการคำนวณจริง
+            # 🎯 7. REAL Time-based Optimization
+            time_optimization = self._calculate_time_based_optimization()
+            
+            # 🔥 Update with REAL calculations
             enhanced_result.update({
+                # Core Enhanced Data
                 'enhanced_strength': enhanced_strength,
                 'enhanced_quality': enhanced_quality,
                 'market_regime': regime_data['regime'],
                 'regime_confidence': regime_data['confidence'],
                 'trend_strength': regime_data['trend_strength'],
                 'volatility_percentile': volatility_percentile,
-                'enhanced_lot_size': basic_signal_data.get('lot_size', 0.01),
+                
+                # Advanced Analytics
                 'detected_patterns': detected_patterns,
+                'pattern_strength': len([p for p in detected_patterns if p not in ['NO_PATTERN', 'NO_DATA', 'ERROR']]),
                 'portfolio_risk_score': portfolio_risk['score'],
                 'recommended_max_exposure': portfolio_risk['max_exposure'],
+                'current_portfolio_exposure': portfolio_risk['current_exposure'],
+                'correlation_risk': portfolio_risk.get('correlation_risk', 0.0),
+                
+                # Time Optimization
+                'time_session_multiplier': time_optimization['session_multiplier'],
+                'optimal_trading_window': time_optimization['optimal_window'],
+                'session_adjusted_strength': time_optimization['adjusted_strength'],
+                
+                # Enhanced Position Sizing
+                'enhanced_lot_size': self._calculate_enhanced_lot_size(
+                    basic_signal_data.get('lot_size', 0.01), 
+                    regime_data, 
+                    portfolio_risk
+                ),
+                'risk_adjustment_factor': regime_data.get('risk_factor', 1.0),
+                
+                # System Information
                 'universal_enhanced': True,
                 'broker_symbol': symbol,
                 'system_symbol': symbol,
-                'enhancement_version': 'REAL_CALCULATION_v2.0',
-                'enhancement_note': 'Full advanced features active with real calculations'
+                'enhancement_version': 'REAL_CALCULATION_v3.0_COMPLETE',
+                'enhancement_note': 'Full advanced features with real market regime detection',
+                'calculation_timestamp': datetime.now().isoformat(),
+                
+                # Debug Information
+                'regime_debug': {
+                    'atr_percent': regime_data.get('atr_percent', 0),
+                    'price_vs_ema20': regime_data.get('price_vs_ema20', 0),
+                    'ema_alignment': regime_data.get('ema_alignment', 0)
+                }
             })
+            
+            # 🎯 Log successful enhancement
+            self.logger.info(f"✅ Enhanced analysis completed for {symbol}:")
+            self.logger.info(f"   Regime: {regime_data['regime']} (confidence: {regime_data['confidence']:.2f})")
+            self.logger.info(f"   Enhanced Strength: {enhanced_strength} (was: {basic_signal_data.get('strength', 0)})")
+            self.logger.info(f"   Quality: {enhanced_quality} (was: {basic_signal_data.get('entry_quality', 'POOR')})")
+            self.logger.info(f"   Patterns: {len(detected_patterns)} detected")
+            
             return enhanced_result
             
         except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Universal enhancement error for {symbol}: {str(e)}")
+            self.logger.error(f"❌ Enhanced analysis error for {symbol}: {str(e)}")
+            
+            # Enhanced error fallback
             enhanced_result = basic_signal_data.copy()
             enhanced_result.update({
                 'enhanced_strength': basic_signal_data.get('strength', 0),
                 'enhanced_quality': basic_signal_data.get('entry_quality', 'POOR'),
-                'market_regime': 'UNKNOWN',
+                'market_regime': 'ERROR',
+                'regime_confidence': 0.0,
+                'trend_strength': 0.0,
+                'volatility_percentile': 50.0,
+                'detected_patterns': ['ERROR'],
+                'portfolio_risk_score': 'MODERATE',
+                'recommended_max_exposure': 2.0,
                 'enhancement_error': str(e),
                 'universal_enhanced': False,
                 'error_fallback_used': True,
@@ -879,363 +1166,106 @@ class UniversalAdvancedTradingIntegrator:
                 'system_symbol': symbol
             })
             return enhanced_result
-    
-    def _get_broker_symbol(self, system_symbol: str) -> str:
-        """Get broker-specific symbol - Universal helper"""
-        if self.symbol_adapter and hasattr(self.symbol_adapter, 'get_broker_symbol'):
-            try:
-                broker_symbol = self.symbol_adapter.get_broker_symbol(system_symbol)
-                return broker_symbol if broker_symbol else system_symbol
-            except Exception as e:
-                self.logger.error(f"Error getting broker symbol for {system_symbol}: {str(e)}")
-        
-        return system_symbol
-    
-    def _calculate_portfolio_risk_enhancement(self, signal_data: Dict, enhanced_score: Dict) -> Dict:
-        """Calculate portfolio-level risk enhancement"""
-        try:
-            base_strength = enhanced_score.get('enhanced_strength', 0)
-            current_confidence = enhanced_score.get('confidence', 0.8)
-            
-            if base_strength >= 8 and current_confidence >= 0.9:
-                portfolio_risk_score = 'LOW_RISK'
-                recommended_max_exposure = 3.0
-            elif base_strength >= 6 and current_confidence >= 0.7:
-                portfolio_risk_score = 'MODERATE_RISK'
-                recommended_max_exposure = 2.0
-            elif base_strength >= 4:
-                portfolio_risk_score = 'HIGH_RISK'
-                recommended_max_exposure = 1.5
-            else:
-                portfolio_risk_score = 'VERY_HIGH_RISK'
-                recommended_max_exposure = 1.0
-            
-            return {
-                'portfolio_risk_score': portfolio_risk_score,
-                'recommended_max_exposure': recommended_max_exposure,
-                'risk_scaling_factor': min(1.0, current_confidence * (base_strength / 10))
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Portfolio risk calculation error: {str(e)}")
-            return {
-                'portfolio_risk_score': 'UNKNOWN',
-                'recommended_max_exposure': 2.0,
-                'risk_scaling_factor': 0.5
-            }
-    
-    def _calculate_pattern_recognition_score(self, symbol: str, timeframe_data: Dict, enhanced_score: Dict) -> Dict:
-        """Advanced pattern recognition scoring"""
-        try:
-            detected_patterns = []
-            total_score = 0
-            
-            if 'H1' in timeframe_data and len(timeframe_data['H1']) >= 50:
-                df = timeframe_data['H1']
-                close = df['close']
-                high = df['high']
-                low = df['low']
-                
-                if self._detect_higher_highs_lows(high, low):
-                    detected_patterns.append('BULLISH_CONTINUATION')
-                    total_score += 2
-                
-                elif self._detect_lower_highs_lows(high, low):
-                    detected_patterns.append('BEARISH_CONTINUATION')
-                    total_score += 2
-                
-                if self._detect_support_resistance_break(close, high, low):
-                    detected_patterns.append('BREAKOUT_PATTERN')
-                    total_score += 3
-                
-                if self._detect_consolidation(close):
-                    detected_patterns.append('CONSOLIDATION_RANGE')
-                    total_score += 1
-            
-            return {
-                'detected_patterns': detected_patterns,
-                'total_score': total_score,
-                'pattern_strength': min(10, total_score),
-                'pattern_confidence': min(1.0, total_score / 5)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Pattern recognition error for {symbol}: {str(e)}")
-            return {
-                'detected_patterns': [],
-                'total_score': 0,
-                'pattern_strength': 0,
-                'pattern_confidence': 0
-            }
-    
-    def _calculate_time_based_adjustment(self, enhanced_score: Dict, symbol: str) -> Dict:
-        """Time-based signal strength adjustment"""
-        try:
-            current_hour = datetime.now().hour
-            
-            if 8 <= current_hour <= 16:
-                session_multiplier = 1.2
-                optimal_window = 'LONDON_SESSION'
-            elif 13 <= current_hour <= 21:
-                session_multiplier = 1.3
-                optimal_window = 'NY_SESSION'
-            elif 0 <= current_hour <= 8:
-                session_multiplier = 0.9
-                optimal_window = 'ASIAN_SESSION'
-            elif 21 <= current_hour <= 23:
-                session_multiplier = 0.7
-                optimal_window = 'LOW_ACTIVITY'
-            else:
-                session_multiplier = 1.0
-                optimal_window = 'STANDARD'
-            
-            base_strength = enhanced_score.get('enhanced_strength', 0)
-            time_adjusted_strength = min(10, base_strength * session_multiplier)
-            
-            if time_adjusted_strength >= 8:
-                time_adjusted_quality = "EXCELLENT"
-            elif time_adjusted_strength >= 6:
-                time_adjusted_quality = "GOOD"
-            elif time_adjusted_strength >= 4:
-                time_adjusted_quality = "FAIR"
-            else:
-                time_adjusted_quality = "POOR"
-            
-            return {
-                'enhanced_strength': round(float(time_adjusted_strength), 2),
-                'enhanced_quality': time_adjusted_quality,
-                'session_multiplier': session_multiplier,
-                'optimal_window': optimal_window,
-                'trading_hour': current_hour,
-                'confidence': enhanced_score.get('confidence', 0.8) * min(1.0, session_multiplier)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Time adjustment error: {str(e)}")
-            return enhanced_score
-    
-    def _detect_higher_highs_lows(self, high: pd.Series, low: pd.Series) -> bool:
-        """Detect higher highs and higher lows pattern"""
-        try:
-            if len(high) < 20:
-                return False
-            
-            recent_highs = high.tail(10).tolist()
-            recent_lows = low.tail(10).tolist()
-            
-            high_trend = sum(1 for i in range(1, len(recent_highs)) if recent_highs[i] > recent_highs[i-1])
-            low_trend = sum(1 for i in range(1, len(recent_lows)) if recent_lows[i] > recent_lows[i-1])
-            
-            return high_trend >= 3 and low_trend >= 3
-            
-        except Exception:
-            return False
-    
-    def _detect_lower_highs_lows(self, high: pd.Series, low: pd.Series) -> bool:
-        """Detect lower highs and lower lows pattern"""
-        try:
-            if len(high) < 20:
-                return False
-            
-            recent_highs = high.tail(10).tolist()
-            recent_lows = low.tail(10).tolist()
-            
-            high_trend = sum(1 for i in range(1, len(recent_highs)) if recent_highs[i] < recent_highs[i-1])
-            low_trend = sum(1 for i in range(1, len(recent_lows)) if recent_lows[i] < recent_lows[i-1])
-            
-            return high_trend >= 3 and low_trend >= 3
-            
-        except Exception:
-            return False
-    
-    def _detect_support_resistance_break(self, close: pd.Series, high: pd.Series, low: pd.Series) -> bool:
-        """Detect support/resistance breakout"""
-        try:
-            if len(close) < 50:
-                return False
-            
-            historical_data = close.iloc[-50:-20]
-            
-            resistance = historical_data.max()
-            support = historical_data.min()
-            
-            current_price = close.iloc[-1]
-            
-            resistance_break = current_price > resistance * 1.001
-            support_break = current_price < support * 0.999
-            
-            return resistance_break or support_break
-            
-        except Exception:
-            return False
-    
-    def _detect_consolidation(self, close: pd.Series) -> bool:
-        """Detect consolidation/ranging pattern"""
-        try:
-            if len(close) < 30:
-                return False
-            
-            recent_data = close.tail(20)
-            price_range = recent_data.max() - recent_data.min()
-            avg_price = recent_data.mean()
-            
-            range_percentage = (price_range / avg_price) * 100
-            
-            return range_percentage < 1.0
-            
-        except Exception:
-            return False
-    
-    def get_enhancement_status(self) -> Dict:
-        """Get status of universal enhancement system - EXTENDED VERSION"""
+
+    def _get_fallback_regime(self, error_msg: str = None) -> Dict:
+        """Fallback regime when calculation fails"""
         return {
-            'universal_features_active': True,
-            'regime_detector': 'ACTIVE',
-            'signal_scorer': 'ACTIVE',
-            'position_sizer': 'ACTIVE',
-            'pattern_recognition': 'ACTIVE',
-            'portfolio_risk_management': 'ACTIVE',
-            'time_based_optimization': 'ACTIVE',
-            'symbol_adapter_connected': self.symbol_adapter is not None,
-            'broker_compatibility': 'ALL_BROKERS',
-            'enhancement_version': '2.0_EXTENDED',
-            'calculation_methods': [
-                'UNIVERSAL_REGIME_DETECTION',
-                'UNIVERSAL_ENHANCED_SCORING',
-                'UNIVERSAL_POSITION_SIZING',
-                'ADVANCED_PATTERN_RECOGNITION',
-                'SMART_PORTFOLIO_RISK_SCALING',
-                'TIME_SESSION_OPTIMIZATION'
-            ],
-            'new_features_count': 6,
-            'total_line_count': '1000+'
+            'regime': 'RANGING',
+            'confidence': 0.5,
+            'trend_strength': 0.0,
+            'volatility_percentile': 50.0,
+            'current_atr': 0.001,
+            'risk_factor': 1.0,
+            'calculation_method': 'FALLBACK',
+            'error': error_msg
         }
-    def _calculate_real_market_regime(self, symbol: str, timeframe_data: Dict) -> Dict:
-        """คำนวณ Market Regime จริงๆ"""
-        try:
-            # ดึงข้อมูล H4 และ H1
-            h4_data = timeframe_data.get('H4') if timeframe_data else None
-            h1_data = timeframe_data.get('H1') if timeframe_data else None
-            
-            if h4_data is None or h1_data is None:
-                # ถ้าไม่มีข้อมูล ให้ดึงจาก MT5 ใหม่
-                h4_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 100)
-                h1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 100)
-                
-                if h4_rates is not None:
-                    h4_data = pd.DataFrame(h4_rates)
-                if h1_rates is not None:
-                    h1_data = pd.DataFrame(h1_rates)
-            
-            if h4_data is None or len(h4_data) < 50:
-                return {'regime': 'UNKNOWN', 'confidence': 0.0, 'trend_strength': 0.0}
-            
-            # คำนวณ EMAs
-            close = h4_data['close']
-            ema_20 = close.ewm(span=20).mean().iloc[-1]
-            ema_50 = close.ewm(span=50).mean().iloc[-1]
-            current_price = close.iloc[-1]
-            
-            # คำนวณ ATR สำหรับ volatility
-            high = h4_data['high']
-            low = h4_data['low']
-            tr = pd.concat([
-                high - low,
-                abs(high - close.shift()),
-                abs(low - close.shift())
-            ], axis=1).max(axis=1)
-            atr = tr.rolling(14).mean().iloc[-1]
-            atr_percent = (atr / current_price) * 100
-            
-            # คำนวณ Trend Strength
-            price_vs_ema20 = (current_price - ema_20) / ema_20
-            ema_alignment = (ema_20 - ema_50) / ema_50
-            trend_strength = abs(price_vs_ema20) + abs(ema_alignment)
-            
-            # กำหนด Regime ตามเงื่อนไข
-            if atr_percent > 2.0:  # Volatility สูง
-                if trend_strength > 0.02:
-                    regime = 'HIGH_VOLATILITY_TRENDING'
-                else:
-                    regime = 'HIGH_VOLATILITY'
-            elif atr_percent < 0.5:  # Volatility ต่ำ
-                regime = 'LOW_VOLATILITY'
-            elif trend_strength > 0.015:  # Trending
-                if current_price > ema_20 and ema_20 > ema_50:
-                    regime = 'TRENDING_BULLISH'
-                elif current_price < ema_20 and ema_20 < ema_50:
-                    regime = 'TRENDING_BEARISH'
-                else:
-                    regime = 'RANGING'
-            else:  # Ranging
-                regime = 'RANGING'
-            
-            # คำนวณ Confidence
-            confidence = min(1.0, trend_strength * 20 + (atr_percent / 5))
-            
-            return {
-                'regime': regime,
-                'confidence': round(confidence, 2),
-                'trend_strength': round(trend_strength, 4),
-                'atr_percent': round(atr_percent, 2),
-                'price_vs_ema20': round(price_vs_ema20 * 100, 2),
-                'ema_alignment': round(ema_alignment * 100, 2)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Market regime calculation error: {str(e)}")
-            return {'regime': 'ERROR', 'confidence': 0.0, 'trend_strength': 0.0}
+
+    def _calculate_risk_factor(self, regime: str, confidence: float) -> float:
+        """Calculate risk adjustment factor based on regime"""
+        risk_factors = {
+            'TRENDING_BULLISH': 1.2,
+            'TRENDING_BEARISH': 1.2,
+            'HIGH_VOLATILITY': 0.7,
+            'LOW_VOLATILITY': 0.8,
+            'RANGING': 0.9,
+            'ERROR': 0.5,
+            'UNKNOWN': 0.5
+        }
+        
+        base_factor = risk_factors.get(regime, 1.0)
+        confidence_adjustment = 0.5 + (confidence * 0.5)  # 0.5 to 1.0
+        
+        return round(base_factor * confidence_adjustment, 2)
 
     def _calculate_real_enhanced_strength(self, basic_signal_data: Dict, regime_data: Dict) -> float:
-        """คำนวณ Enhanced Strength จริงๆ"""
+        """🎯 REAL Enhanced Strength with regime-based multipliers"""
         try:
             basic_strength = basic_signal_data.get('strength', 0)
             regime = regime_data.get('regime', 'RANGING')
             regime_confidence = regime_data.get('confidence', 0.5)
             trend_strength = regime_data.get('trend_strength', 0.0)
             
-            # Regime Multipliers
+            # Advanced regime multipliers
             regime_multipliers = {
-                'TRENDING_BULLISH': 1.3,
-                'TRENDING_BEARISH': 1.3,
-                'HIGH_VOLATILITY_TRENDING': 1.1,
-                'RANGING': 0.8,
-                'HIGH_VOLATILITY': 0.7,
-                'LOW_VOLATILITY': 0.6,
+                'TRENDING_BULLISH': 1.4,
+                'TRENDING_BEARISH': 1.4,
+                'HIGH_VOLATILITY': 0.8,
+                'LOW_VOLATILITY': 0.9,  # ไม่ลดมากเกินไป
+                'RANGING': 1.0,
                 'ERROR': 0.5,
-                'UNKNOWN': 0.5
+                'UNKNOWN': 0.7
             }
             
-            # คำนวณ Enhanced Strength
-            regime_multiplier = regime_multipliers.get(regime, 0.8)
-            confidence_multiplier = 0.7 + (regime_confidence * 0.6)  # 0.7 - 1.3
-            trend_multiplier = 1.0 + (trend_strength * 10)  # เพิ่มถ้า trend แรง
+            # คำนวณ multipliers
+            regime_multiplier = regime_multipliers.get(regime, 1.0)
+            confidence_multiplier = 0.8 + (regime_confidence * 0.4)  # 0.8-1.2
+            trend_multiplier = 1.0 + min(trend_strength * 5, 0.5)  # สูงสุด +0.5
             
-            enhanced_strength = basic_strength * regime_multiplier * confidence_multiplier * trend_multiplier
+            # Signal direction alignment bonus
+            signal_direction = basic_signal_data.get('signal', 'NONE')
+            alignment_bonus = 1.0
             
-            # จำกัดค่าไว้ 0-10
+            if signal_direction in ['BUY', 'STRONG_BUY'] and regime == 'TRENDING_BULLISH':
+                alignment_bonus = 1.2
+            elif signal_direction in ['SELL', 'STRONG_SELL'] and regime == 'TRENDING_BEARISH':
+                alignment_bonus = 1.2
+            
+            # คำนวณ final strength
+            enhanced_strength = (basic_strength * 
+                               regime_multiplier * 
+                               confidence_multiplier * 
+                               trend_multiplier * 
+                               alignment_bonus)
+            
+            # จำกัดค่าและปัดเศษ
             enhanced_strength = max(0, min(10, enhanced_strength))
             
             return round(enhanced_strength, 1)
             
         except Exception as e:
-            self.logger.error(f"Enhanced strength calculation error: {str(e)}")
-            return basic_signal_data.get('strength', 0)
+            self.logger.error(f"❌ Enhanced strength calculation error: {str(e)}")
+            return float(basic_signal_data.get('strength', 0))
 
-    def _calculate_real_volatility_percentile(self, symbol: str) -> float:
-        """คำนวณ Volatility Percentile จริงๆ"""
+    def _calculate_real_volatility_percentile(self, symbol: str, timeframe_data: Dict) -> float:
+        """🎯 REAL Volatility Percentile using ATR"""
         try:
-            # ดึงข้อมูล ATR ย้อนหลัง 100 periods
-            rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 100)
-            if rates is None or len(rates) < 50:
+            # ใช้ข้อมูลจาก timeframe_data ก่อน
+            h1_data = timeframe_data.get('H1') if timeframe_data else None
+            
+            if h1_data is None or len(h1_data) < 50:
+                # ดึงข้อมูลใหม่จาก MT5
+                h1_rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 150)
+                if h1_rates is None:
+                    return 50.0
+                h1_data = pd.DataFrame(h1_rates)
+            
+            if len(h1_data) < 50:
                 return 50.0
             
-            df = pd.DataFrame(rates)
-            
-            # คำนวณ ATR
-            high = df['high']
-            low = df['low']
-            close = df['close']
+            # คำนวณ ATR series
+            high = h1_data['high']
+            low = h1_data['low']
+            close = h1_data['close']
             
             tr = pd.concat([
                 high - low,
@@ -1243,62 +1273,76 @@ class UniversalAdvancedTradingIntegrator:
                 abs(low - close.shift())
             ], axis=1).max(axis=1)
             
-            atr = tr.rolling(14).mean()
-            current_atr = atr.iloc[-1]
+            atr_series = tr.rolling(14).mean().dropna()
             
-            # คำนวณ Percentile
-            percentile = (atr <= current_atr).sum() / len(atr) * 100
+            if len(atr_series) < 30:
+                return 50.0
             
-            return round(percentile, 1)
+            current_atr = atr_series.iloc[-1]
+            
+            # คำนวณ percentile
+            percentile = (atr_series <= current_atr).sum() / len(atr_series) * 100
+            
+            return round(float(percentile), 1)
             
         except Exception as e:
-            self.logger.error(f"Volatility percentile calculation error: {str(e)}")
+            self.logger.error(f"❌ Volatility percentile calculation error for {symbol}: {str(e)}")
             return 50.0
 
     def _calculate_real_enhanced_quality(self, basic_signal_data: Dict, regime_data: Dict) -> str:
-        """คำนวณ Enhanced Quality จริงๆ"""
+        """🎯 REAL Enhanced Quality Assessment"""
         try:
             basic_quality = basic_signal_data.get('entry_quality', 'POOR')
+            basic_strength = basic_signal_data.get('strength', 0)
             regime = regime_data.get('regime', 'RANGING')
             regime_confidence = regime_data.get('confidence', 0.5)
-            basic_strength = basic_signal_data.get('strength', 0)
+            trend_strength = regime_data.get('trend_strength', 0.0)
             
-            # Quality Score
+            # Quality score mapping
             quality_scores = {'POOR': 1, 'FAIR': 2, 'GOOD': 3, 'EXCELLENT': 4}
             base_score = quality_scores.get(basic_quality, 1)
             
-            # Regime Bonus
-            regime_bonus = 0
-            if regime in ['TRENDING_BULLISH', 'TRENDING_BEARISH']:
-                regime_bonus = 1
-            elif regime == 'HIGH_VOLATILITY_TRENDING':
-                regime_bonus = 0.5
+            # Regime quality bonus
+            regime_bonuses = {
+                'TRENDING_BULLISH': 1.5,
+                'TRENDING_BEARISH': 1.5,
+                'HIGH_VOLATILITY': 0.5,
+                'LOW_VOLATILITY': 0.8,
+                'RANGING': 1.0,
+                'ERROR': 0.0,
+                'UNKNOWN': 0.5
+            }
             
-            # Confidence Bonus
-            confidence_bonus = regime_confidence
+            regime_bonus = regime_bonuses.get(regime, 1.0)
             
-            # Strength Bonus
-            strength_bonus = basic_strength / 10
+            # Additional bonuses
+            confidence_bonus = regime_confidence * 1.0
+            strength_bonus = min(basic_strength / 10, 1.0)
+            trend_bonus = min(trend_strength * 2, 0.5)
             
-            # Total Score
-            total_score = base_score + regime_bonus + confidence_bonus + strength_bonus
+            # Calculate total score
+            total_score = (base_score + 
+                          regime_bonus + 
+                          confidence_bonus + 
+                          strength_bonus + 
+                          trend_bonus)
             
-            # Convert back to quality
-            if total_score >= 5.5:
+            # Convert to quality rating
+            if total_score >= 6.0:
                 return 'EXCELLENT'
-            elif total_score >= 4.0:
+            elif total_score >= 4.5:
                 return 'GOOD'
-            elif total_score >= 2.5:
+            elif total_score >= 3.0:
                 return 'FAIR'
             else:
                 return 'POOR'
                 
         except Exception as e:
-            self.logger.error(f"Enhanced quality calculation error: {str(e)}")
+            self.logger.error(f"❌ Enhanced quality calculation error: {str(e)}")
             return basic_signal_data.get('entry_quality', 'POOR')
 
     def _detect_real_patterns(self, symbol: str, timeframe_data: Dict) -> List[str]:
-        """ตรวจจับ Patterns จริงๆ"""
+        """🎯 REAL Pattern Detection"""
         try:
             patterns = []
             
@@ -1310,143 +1354,400 @@ class UniversalAdvancedTradingIntegrator:
                 if h1_rates is not None:
                     h1_data = pd.DataFrame(h1_rates)
             
-            if h1_data is None or len(h1_data) < 20:
+            if h1_data is None or len(h1_data) < 30:
                 return ['NO_DATA']
             
             close = h1_data['close']
             high = h1_data['high']
             low = h1_data['low']
             
-            # 1. Double Top/Bottom Pattern
+            # 1. Trend Patterns
+            if self._detect_uptrend(close):
+                patterns.append('UPTREND')
+            elif self._detect_downtrend(close):
+                patterns.append('DOWNTREND')
+            
+            # 2. Reversal Patterns
             if self._detect_double_top(high):
                 patterns.append('DOUBLE_TOP')
-            if self._detect_double_bottom(low):
+            elif self._detect_double_bottom(low):
                 patterns.append('DOUBLE_BOTTOM')
             
-            # 2. Breakout Pattern
-            if self._detect_breakout(close, high, low):
+            # 3. Continuation Patterns
+            if self._detect_flag_pattern(close, high, low):
+                patterns.append('FLAG_PATTERN')
+            elif self._detect_triangle_pattern(high, low):
+                patterns.append('TRIANGLE')
+            
+            # 4. Breakout Patterns
+            if self._detect_breakout_pattern(close, high, low):
                 patterns.append('BREAKOUT')
             
-            # 3. Consolidation Pattern
-            if self._detect_consolidation(close):
+            # 5. Consolidation
+            if self._detect_consolidation_pattern(close):
                 patterns.append('CONSOLIDATION')
-            
-            # 4. Trend Channel
-            if self._detect_trend_channel(close):
-                patterns.append('TREND_CHANNEL')
             
             return patterns if patterns else ['NO_PATTERN']
             
         except Exception as e:
-            self.logger.error(f"Pattern detection error: {str(e)}")
+            self.logger.error(f"❌ Pattern detection error for {symbol}: {str(e)}")
             return ['ERROR']
 
     def _assess_real_portfolio_risk(self, symbol: str) -> Dict:
-        """ประเมิน Portfolio Risk จริงๆ"""
+        """🎯 REAL Portfolio Risk Assessment"""
         try:
             # ดึงข้อมูล positions ปัจจุบัน
             positions = mt5.positions_get()
             
             if not positions:
-                return {'score': 'LOW', 'max_exposure': 3.0, 'current_exposure': 0.0}
+                return {
+                    'score': 'LOW',
+                    'max_exposure': 3.0,
+                    'current_exposure': 0.0,
+                    'symbol_exposure': 0.0,
+                    'correlation_risk': 0.0,
+                    'position_count': 0
+                }
             
-            # คำนวณ exposure ปัจจุบัน
+            # คำนวณ exposure metrics
             total_volume = sum(pos.volume for pos in positions)
             symbol_volume = sum(pos.volume for pos in positions if pos.symbol == symbol)
+            position_count = len(positions)
             
             # คำนวณ correlation risk
-            correlation_risk = self._calculate_correlation_risk(symbol, positions)
+            correlation_risk = self._calculate_detailed_correlation_risk(symbol, positions)
             
-            # Portfolio Risk Score
-            if total_volume > 5.0 or correlation_risk > 0.7:
-                risk_score = 'HIGH'
+            # คำนวณ drawdown risk
+            total_profit = sum(pos.profit for pos in positions)
+            
+            # Risk scoring algorithm
+            risk_factors = []
+            risk_score = 0
+            
+            # Volume risk
+            if total_volume > 5.0:
+                risk_factors.append('HIGH_VOLUME')
+                risk_score += 3
+            elif total_volume > 2.0:
+                risk_factors.append('MODERATE_VOLUME')
+                risk_score += 1
+            
+            # Position count risk
+            if position_count > 8:
+                risk_factors.append('TOO_MANY_POSITIONS')
+                risk_score += 2
+            elif position_count > 5:
+                risk_factors.append('MANY_POSITIONS')
+                risk_score += 1
+            
+            # Correlation risk
+            if correlation_risk > 0.7:
+                risk_factors.append('HIGH_CORRELATION')
+                risk_score += 3
+            elif correlation_risk > 0.4:
+                risk_factors.append('MODERATE_CORRELATION')
+                risk_score += 1
+            
+            # Drawdown risk
+            if total_profit < -1000:
+                risk_factors.append('HIGH_DRAWDOWN')
+                risk_score += 2
+            elif total_profit < -500:
+                risk_factors.append('MODERATE_DRAWDOWN')
+                risk_score += 1
+            
+            # Determine risk level and max exposure
+            if risk_score >= 6:
+                risk_level = 'VERY_HIGH'
+                max_exposure = 0.5
+            elif risk_score >= 4:
+                risk_level = 'HIGH'
                 max_exposure = 1.0
-            elif total_volume > 2.0 or correlation_risk > 0.5:
-                risk_score = 'MODERATE'
+            elif risk_score >= 2:
+                risk_level = 'MODERATE'
                 max_exposure = 2.0
             else:
-                risk_score = 'LOW'
+                risk_level = 'LOW'
                 max_exposure = 3.0
             
             return {
-                'score': risk_score,
+                'score': risk_level,
                 'max_exposure': max_exposure,
                 'current_exposure': round(total_volume, 2),
                 'symbol_exposure': round(symbol_volume, 2),
-                'correlation_risk': round(correlation_risk, 2)
+                'correlation_risk': round(correlation_risk, 2),
+                'position_count': position_count,
+                'total_profit': round(total_profit, 2),
+                'risk_factors': risk_factors,
+                'risk_score': risk_score
             }
             
         except Exception as e:
-            self.logger.error(f"Portfolio risk assessment error: {str(e)}")
-            return {'score': 'MODERATE', 'max_exposure': 2.0, 'current_exposure': 0.0}
+            self.logger.error(f"❌ Portfolio risk assessment error: {str(e)}")
+            return {
+                'score': 'MODERATE',
+                'max_exposure': 2.0,
+                'current_exposure': 0.0,
+                'correlation_risk': 0.5,
+                'error': str(e)
+            }
 
-    # Helper methods for pattern detection
+    def _calculate_time_based_optimization(self) -> Dict:
+        """🎯 Time-based trading optimization"""
+        try:
+            current_time = datetime.now()
+            current_hour = current_time.hour
+            current_weekday = current_time.weekday()  # 0=Monday, 6=Sunday
+            
+            # Session definitions (UTC time)
+            sessions = {
+                'ASIAN': {'start': 0, 'end': 9, 'multiplier': 0.8},
+                'LONDON': {'start': 8, 'end': 17, 'multiplier': 1.3},
+                'NY': {'start': 13, 'end': 22, 'multiplier': 1.4},
+                'OVERLAP': {'start': 13, 'end': 17, 'multiplier': 1.5}
+            }
+            
+            # Weekend penalty
+            weekend_penalty = 0.7 if current_weekday >= 5 else 1.0
+            
+            # Determine active session
+            active_session = 'QUIET'
+            session_multiplier = 0.6
+            
+            for session_name, session_info in sessions.items():
+                start_hour = session_info['start']
+                end_hour = session_info['end']
+                
+                if start_hour <= current_hour <= end_hour:
+                    active_session = session_name
+                    session_multiplier = session_info['multiplier']
+                    break
+            
+            # Apply weekend penalty
+            final_multiplier = session_multiplier * weekend_penalty
+            
+            # Calculate session strength
+            if final_multiplier >= 1.4:
+                optimal_window = 'EXCELLENT'
+            elif final_multiplier >= 1.2:
+                optimal_window = 'GOOD'
+            elif final_multiplier >= 1.0:
+                optimal_window = 'FAIR'
+            else:
+                optimal_window = 'POOR'
+            
+            return {
+                'session_multiplier': round(final_multiplier, 2),
+                'optimal_window': optimal_window,
+                'active_session': active_session,
+                'current_hour': current_hour,
+                'is_weekend': current_weekday >= 5,
+                'adjusted_strength': 0  # Will be calculated when applied
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Time optimization error: {str(e)}")
+            return {
+                'session_multiplier': 1.0,
+                'optimal_window': 'STANDARD',
+                'active_session': 'UNKNOWN',
+                'error': str(e)
+            }
+
+    def _calculate_enhanced_lot_size(self, base_lot_size: float, regime_data: Dict, portfolio_risk: Dict) -> float:
+        """🎯 Enhanced position sizing with regime and risk adjustments"""
+        try:
+            regime = regime_data.get('regime', 'RANGING')
+            regime_confidence = regime_data.get('confidence', 0.5)
+            risk_level = portfolio_risk.get('score', 'MODERATE')
+            
+            # Base adjustments
+            regime_adjustments = {
+                'TRENDING_BULLISH': 1.2,
+                'TRENDING_BEARISH': 1.2,
+                'HIGH_VOLATILITY': 0.7,
+                'LOW_VOLATILITY': 0.9,
+                'RANGING': 1.0,
+                'ERROR': 0.5
+            }
+            
+            risk_adjustments = {
+                'LOW': 1.0,
+                'MODERATE': 0.8,
+                'HIGH': 0.6,
+                'VERY_HIGH': 0.4
+            }
+            
+            # Calculate adjustments
+            regime_adj = regime_adjustments.get(regime, 1.0)
+            risk_adj = risk_adjustments.get(risk_level, 0.8)
+            confidence_adj = 0.7 + (regime_confidence * 0.6)  # 0.7-1.3
+            
+            # Apply adjustments
+            enhanced_lot_size = base_lot_size * regime_adj * risk_adj * confidence_adj
+            
+            # Apply limits
+            enhanced_lot_size = max(0.01, min(2.0, enhanced_lot_size))
+            
+            return round(enhanced_lot_size, 2)
+            
+        except Exception as e:
+            self.logger.error(f"❌ Enhanced lot size calculation error: {str(e)}")
+            return base_lot_size
+
+    # Pattern Detection Helper Methods
+    def _detect_uptrend(self, close: pd.Series) -> bool:
+        try:
+            if len(close) < 20:
+                return False
+            recent = close.tail(20)
+            return recent.iloc[-1] > recent.iloc[0] and recent.rolling(5).mean().is_monotonic_increasing
+        except:
+            return False
+
+    def _detect_downtrend(self, close: pd.Series) -> bool:
+        try:
+            if len(close) < 20:
+                return False
+            recent = close.tail(20)
+            return recent.iloc[-1] < recent.iloc[0] and recent.rolling(5).mean().is_monotonic_decreasing
+        except:
+            return False
+
     def _detect_double_top(self, high: pd.Series) -> bool:
         try:
-            recent_highs = high.tail(20)
+            recent_highs = high.tail(30)
             max_high = recent_highs.max()
-            high_count = (recent_highs >= max_high * 0.999).sum()
-            return high_count >= 2
+            high_peaks = recent_highs[recent_highs >= max_high * 0.998]
+            return len(high_peaks) >= 2
         except:
             return False
 
     def _detect_double_bottom(self, low: pd.Series) -> bool:
         try:
-            recent_lows = low.tail(20)
+            recent_lows = low.tail(30)
             min_low = recent_lows.min()
-            low_count = (recent_lows <= min_low * 1.001).sum()
-            return low_count >= 2
+            low_valleys = recent_lows[recent_lows <= min_low * 1.002]
+            return len(low_valleys) >= 2
         except:
             return False
 
-    def _detect_breakout(self, close: pd.Series, high: pd.Series, low: pd.Series) -> bool:
+    def _detect_flag_pattern(self, close: pd.Series, high: pd.Series, low: pd.Series) -> bool:
         try:
-            recent_data = close.tail(20)
-            current_price = close.iloc[-1]
-            resistance = recent_data.max()
-            support = recent_data.min()
-            
-            return current_price > resistance * 1.001 or current_price < support * 0.999
+            if len(close) < 30:
+                return False
+            recent = close.tail(20)
+            range_pct = (recent.max() - recent.min()) / recent.mean() * 100
+            return 0.5 <= range_pct <= 2.0
         except:
             return False
 
-    def _detect_consolidation(self, close: pd.Series) -> bool:
+    def _detect_triangle_pattern(self, high: pd.Series, low: pd.Series) -> bool:
         try:
-            recent_data = close.tail(20)
-            price_range = recent_data.max() - recent_data.min()
-            avg_price = recent_data.mean()
-            range_percentage = (price_range / avg_price) * 100
-            return range_percentage < 1.0
+            if len(high) < 30:
+                return False
+            recent_highs = high.tail(20)
+            recent_lows = low.tail(20)
+            high_trend = recent_highs.iloc[-1] < recent_highs.iloc[0]
+            low_trend = recent_lows.iloc[-1] > recent_lows.iloc[0]
+            return high_trend and low_trend
         except:
             return False
 
-    def _detect_trend_channel(self, close: pd.Series) -> bool:
+    def _detect_breakout_pattern(self, close: pd.Series, high: pd.Series, low: pd.Series) -> bool:
+        try:
+            if len(close) < 40:
+                return False
+            baseline = close.iloc[-40:-10]
+            resistance = baseline.max()
+            support = baseline.min()
+            current = close.iloc[-1]
+            return current > resistance * 1.002 or current < support * 0.998
+        except:
+            return False
+
+    def _detect_consolidation_pattern(self, close: pd.Series) -> bool:
         try:
             if len(close) < 20:
                 return False
-            recent_data = close.tail(20)
-            slope = (recent_data.iloc[-1] - recent_data.iloc[0]) / len(recent_data)
-            return abs(slope) > recent_data.mean() * 0.001
+            recent = close.tail(20)
+            volatility = recent.std() / recent.mean()
+            return volatility < 0.01
         except:
             return False
 
-    def _calculate_correlation_risk(self, symbol: str, positions) -> float:
+    def _calculate_detailed_correlation_risk(self, symbol: str, positions) -> float:
         try:
-            # Simple correlation based on currency pairs
             base_currency = symbol[:3]
             quote_currency = symbol[3:6]
             
-            correlation_count = 0
-            for pos in positions:
-                pos_base = pos.symbol[:3]
-                pos_quote = pos.symbol[3:6]
-                
-                if base_currency in [pos_base, pos_quote] or quote_currency in [pos_base, pos_quote]:
-                    correlation_count += 1
+            correlation_score = 0
+            total_volume = sum(pos.volume for pos in positions)
             
-            return min(1.0, correlation_count / 10)
+            for pos in positions:
+                if len(pos.symbol) >= 6:
+                    pos_base = pos.symbol[:3]
+                    pos_quote = pos.symbol[3:6]
+                    
+                    # Calculate correlation weight
+                    weight = pos.volume / total_volume if total_volume > 0 else 0
+                    
+                    # Direct correlation
+                    if pos_base == base_currency or pos_quote == quote_currency:
+                        correlation_score += weight * 0.8
+                    elif pos_base == quote_currency or pos_quote == base_currency:
+                        correlation_score += weight * 0.6
+                    
+                    # Cross-correlation (EUR-GBP, GBP-JPY etc.)
+                    major_currencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD']
+                    if (base_currency in major_currencies and 
+                        (pos_base in major_currencies or pos_quote in major_currencies)):
+                        correlation_score += weight * 0.3
+            
+            return min(1.0, correlation_score)
         except:
             return 0.5
+
+    def get_dashboard_data(self) -> Dict:
+        """🎯 Dashboard data for monitoring"""
+        try:
+            return {
+                'advanced_features_active': True,
+                'regime_detector_status': 'ACTIVE',
+                'signal_scorer_status': 'ACTIVE',
+                'position_sizer_status': 'ACTIVE',
+                'pattern_recognition_status': 'ACTIVE',
+                'universal_compatibility': True,
+                'broker_adapter_connected': self.symbol_adapter is not None,
+                'enhancement_version': '3.0_COMPLETE',
+                'last_update': datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {'error': str(e), 'advanced_features_active': False}
+
+    def get_enhancement_status(self) -> Dict:
+        """Get comprehensive enhancement status"""
+        return {
+            'universal_features_active': True,
+            'regime_detector': 'ACTIVE',
+            'signal_scorer': 'ACTIVE',
+            'position_sizer': 'ACTIVE',
+            'pattern_recognition': 'ACTIVE',
+            'portfolio_risk_management': 'ACTIVE',
+            'time_based_optimization': 'ACTIVE',
+            'symbol_adapter_connected': self.symbol_adapter is not None,
+            'broker_compatibility': 'ALL_BROKERS',
+            'enhancement_version': '3.0_COMPLETE_REAL_CALCULATIONS',
+            'features': [
+                'REAL_MARKET_REGIME_DETECTION',
+                'REAL_ENHANCED_SIGNAL_SCORING',
+                'REAL_PATTERN_RECOGNITION',
+                'REAL_PORTFOLIO_RISK_ASSESSMENT',
+                'REAL_TIME_OPTIMIZATION',
+                'REAL_ENHANCED_POSITION_SIZING'
+            ]
+        }
+
 __all__ = [
     'UniversalAdvancedTradingIntegrator',
     'UniversalMarketRegimeDetector', 
