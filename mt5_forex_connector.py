@@ -455,7 +455,9 @@ class EnhancedSmartAutoTradingDashboard:
         # Trailing Stops
         try:
             self.enhanced_trading = EnhancedTradingSystemWithTrailing(self)
+            self.trailing_profiles = self.enhanced_trading.trailing_profiles
             self.trailing_enabled = True
+            add_trailing_stop_routes(self.app, self.enhanced_trading)
             print("[OK] Trailing Stops: LOADED")
         except Exception as e:
             print(f"[WARN] Trailing system error: {str(e)}")
@@ -543,7 +545,7 @@ class EnhancedSmartAutoTradingDashboard:
                 self.max_daily_loss = settings.get('max_daily_loss', 0.04)
                 
                 # Auto trading settings
-                # self.auto_trading_enabled = settings.get('auto_trading_enabled', False)
+                self.auto_trading_enabled = settings.get('auto_trading_enabled', False)
                 self.auto_trading_pairs = set(settings.get('auto_trading_pairs', self.forex_pairs))
                 self.min_signal_strength = settings.get('min_signal_strength', 6.0)
                 self.min_entry_quality = settings.get('min_entry_quality', 'GOOD')
@@ -619,7 +621,7 @@ class EnhancedSmartAutoTradingDashboard:
                 'max_total_exposure': self.max_total_exposure,
                 'max_daily_loss': self.max_daily_loss,
                 
-                # 'auto_trading_enabled': self.auto_trading_enabled,
+                'auto_trading_enabled': self.auto_trading_enabled,
                 'auto_trading_pairs': list(self.auto_trading_pairs),
                 'min_signal_strength': self.min_signal_strength,
                 'min_entry_quality': self.min_entry_quality,
@@ -3611,58 +3613,7 @@ class EnhancedSmartAutoTradingDashboard:
     <p style="color:#888;">Error: {str(e)}</p>
     <a href="/" style="color:#00ccff;"><- Back to Main Dashboard</a>
     </body></html>'''
-        
-        # [TARGET] TRAILING STOP API ROUTES
-        @self.app.route('/api/trailing-stops/status')
-        def get_trailing_status():
-            """Get trailing stop status"""
-            try:
-                data = self.get_trailing_dashboard_data()
-                return jsonify({'success': True, 'data': data})
-            except Exception as e:
-                return jsonify({'success': False, 'error': str(e)})
-        
-        @self.app.route('/api/trailing-stops/toggle', methods=['POST'])
-        def toggle_trailing():
-            """Toggle trailing stops on/off"""
-            try:
-                data = request.get_json()
-                enabled = data.get('enabled', False)
-                self.trailing_system_enabled = enabled
-                
-                if enabled:
-                    print("🟢 Trailing Stops: ENABLED")
-                else:
-                    print("[EMOJI] Trailing Stops: DISABLED")
-                
-                return jsonify({'success': True, 'enabled': enabled})
-            except Exception as e:
-                return jsonify({'success': False, 'error': str(e)})
-        
-        @self.app.route('/api/trailing-stops/profile', methods=['POST'])
-        def set_trailing_profile():
-            """Set trailing stop profile"""
-            try:
-                data = request.get_json()
-                profile = data.get('profile', 'MODERATE')
-                
-                if profile in self.enhanced_trading.trailing_profiles:
-                    self.current_trailing_profile = profile
-                    print(f"[TARGET] Trailing Profile Changed: {profile}")
-                    return jsonify({'success': True, 'profile': profile})
-                else:
-                    return jsonify({'success': False, 'error': 'Invalid profile'})
-            except Exception as e:
-                return jsonify({'success': False, 'error': str(e)})
-        
-        @self.app.route('/api/trailing-stops/manual-update', methods=['POST'])
-        def manual_trailing_update():
-            """Manually trigger trailing stop update"""
-            try:
-                self.process_all_trailing_stops()
-                return jsonify({'success': True, 'message': 'Trailing stops updated'})
-            except Exception as e:
-                return jsonify({'success': False, 'error': str(e)})
+    
 
         @self.app.route('/trailing-dashboard')
         def trailing_dashboard():
@@ -3845,10 +3796,7 @@ class EnhancedSmartAutoTradingDashboard:
         
         print("[OK] All routes setup completed")
 
-        # [TARGET] Add Trailing Stop Routes
-        if hasattr(self, 'enhanced_trading'):
-            add_trailing_stop_routes(self.app, self.enhanced_trading)
-            print("[OK] Trailing Stop API Routes: ACTIVATED")
+        
 
         @self.app.route('/api/account-info')
         def get_account_info():

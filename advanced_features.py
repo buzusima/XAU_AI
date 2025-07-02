@@ -126,25 +126,25 @@ class UniversalMarketRegimeDetector:
             if 'H4' in timeframe_dfs:
                 h4_regime = self._analyze_h4_regime(timeframe_dfs['H4'])
                 regime_scores['H4'] = {'data': h4_regime, 'weight': 0.40}
-                self.logger.info(f"[CHART] H4 Regime for {symbol}: {h4_regime['regime']} (confidence: {h4_regime['confidence']:.2f})")
+                # self.logger.info(f"[CHART] H4 Regime for {symbol}: {h4_regime['regime']} (confidence: {h4_regime['confidence']:.2f})")
             
             # H1 Analysis - Setup Confirmation (Weight: 30%)
             if 'H1' in timeframe_dfs:
                 h1_regime = self._analyze_h1_regime(timeframe_dfs['H1'])
                 regime_scores['H1'] = {'data': h1_regime, 'weight': 0.30}
-                self.logger.info(f"[CHART] H1 Regime for {symbol}: {h1_regime['regime']} (confidence: {h1_regime['confidence']:.2f})")
+                # self.logger.info(f"[CHART] H1 Regime for {symbol}: {h1_regime['regime']} (confidence: {h1_regime['confidence']:.2f})")
             
             # M15 Analysis - Entry Timing (Weight: 20%)
             if 'M15' in timeframe_dfs:
                 m15_regime = self._analyze_m15_regime(timeframe_dfs['M15'])
                 regime_scores['M15'] = {'data': m15_regime, 'weight': 0.20}
-                self.logger.info(f"[CHART] M15 Regime for {symbol}: {m15_regime['regime']} (confidence: {m15_regime['confidence']:.2f})")
+                # self.logger.info(f"[CHART] M15 Regime for {symbol}: {m15_regime['regime']} (confidence: {m15_regime['confidence']:.2f})")
             
             # M5 Analysis - Risk Management (Weight: 10%)
             if 'M5' in timeframe_dfs:
                 m5_regime = self._analyze_m5_regime(timeframe_dfs['M5'])
                 regime_scores['M5'] = {'data': m5_regime, 'weight': 0.10}
-                self.logger.info(f"[CHART] M5 Regime for {symbol}: {m5_regime['regime']} (confidence: {m5_regime['confidence']:.2f})")
+                # self.logger.info(f"[CHART] M5 Regime for {symbol}: {m5_regime['regime']} (confidence: {m5_regime['confidence']:.2f})")
             
             # [TARGET] Calculate Final Regime using Weighted Confluence
             final_regime = self._calculate_weighted_regime_confluence(regime_scores)
@@ -159,8 +159,8 @@ class UniversalMarketRegimeDetector:
                 'symbol': symbol
             })
             
-            self.logger.info(f"[TARGET] Final Multi-TF Regime for {symbol}: {final_regime['regime']} (confidence: {final_regime['confidence']:.2f})")
-            self.logger.info(f"   Timeframes used: {', '.join(timeframe_dfs.keys())}")
+            # self.logger.info(f"[TARGET] Final Multi-TF Regime for {symbol}: {final_regime['regime']} (confidence: {final_regime['confidence']:.2f})")
+            # self.logger.info(f"   Timeframes used: {', '.join(timeframe_dfs.keys())}")
             
             return final_regime
             
@@ -1155,11 +1155,11 @@ class UniversalAdvancedTradingIntegrator:
             })
             
             # [TARGET] Log successful enhancement
-            self.logger.info(f"[OK] Enhanced analysis completed for {symbol}:")
-            self.logger.info(f"   Regime: {regime_data['regime']} (confidence: {regime_data['confidence']:.2f})")
-            self.logger.info(f"   Enhanced Strength: {enhanced_strength} (was: {basic_signal_data.get('strength', 0)})")
-            self.logger.info(f"   Quality: {enhanced_quality} (was: {basic_signal_data.get('entry_quality', 'POOR')})")
-            self.logger.info(f"   Patterns: {len(detected_patterns)} detected")
+            # self.logger.info(f"[OK] Enhanced analysis completed for {symbol}:")
+            # self.logger.info(f"   Regime: {regime_data['regime']} (confidence: {regime_data['confidence']:.2f})")
+            # self.logger.info(f"   Enhanced Strength: {enhanced_strength} (was: {basic_signal_data.get('strength', 0)})")
+            # self.logger.info(f"   Quality: {enhanced_quality} (was: {basic_signal_data.get('entry_quality', 'POOR')})")
+            # self.logger.info(f"   Patterns: {len(detected_patterns)} detected")
             
             return enhanced_result
             
