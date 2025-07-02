@@ -465,6 +465,7 @@ class EnhancedSmartAutoTradingDashboard:
         try:
             self.hedge_integrator = HedgeSystemIntegrator(self)
             self.hedging_enabled = True
+            self.setup_hedging_routes()
             print("[OK] Hedging System: LOADED")
         except Exception as e:
             print(f"[WARN] Hedging system error: {str(e)}")
@@ -3840,7 +3841,7 @@ class EnhancedSmartAutoTradingDashboard:
                     'status_text': 'ERROR'
                 })
 
-        self.setup_hedging_routes()
+        
         
         print("[OK] All routes setup completed")
 
