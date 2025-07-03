@@ -28,29 +28,29 @@ class IntelligentTrailingStop:
         # 📊 Trailing Stop Profiles
         self.trailing_profiles = {
             'CONSERVATIVE': {
-                'initial_distance_atr': 2.5,      # Initial distance = 2.5 * ATR
-                'min_trail_distance_atr': 1.5,    # Minimum trailing = 1.5 * ATR
-                'breakeven_trigger_atr': 1.0,     # Move to BE when profit = 1.0 * ATR
-                'trail_step_atr': 0.3,            # Trail every 0.3 * ATR price move
-                'acceleration_factor': 0.02,       # Slow acceleration
-                'max_acceleration': 0.2           # Max acceleration
+                'initial_distance_atr': 3.0,      # เพิ่มจาก 2.5 เป็น 3.0
+                'min_trail_distance_atr': 2.0,    # เพิ่มจาก 1.5 เป็น 2.0
+                'breakeven_trigger_atr': 1.5,     # เพิ่มจาก 1.0 เป็น 1.5
+                'trail_step_atr': 0.5,            # เพิ่มจาก 0.3 เป็น 0.5
+                'acceleration_factor': 0.015,     # ลดจาก 0.02 เป็น 0.015
+                'max_acceleration': 0.15          # ลดจาก 0.2 เป็น 0.15
             },
             'MODERATE': {
-                'initial_distance_atr': 2.0,      # Initial distance = 2.0 * ATR
-                'min_trail_distance_atr': 1.2,    # Minimum trailing = 1.2 * ATR
-                'breakeven_trigger_atr': 0.8,     # Move to BE when profit = 0.8 * ATR
-                'trail_step_atr': 0.25,           # Trail every 0.25 * ATR price move
-                'acceleration_factor': 0.03,       # Moderate acceleration
-                'max_acceleration': 0.25          # Max acceleration
+                'initial_distance_atr': 2.5,      # เพิ่มจาก 2.0 เป็น 2.5
+                'min_trail_distance_atr': 1.5,    # เพิ่มจาก 1.2 เป็น 1.5
+                'breakeven_trigger_atr': 1.2,     # เพิ่มจาก 0.8 เป็น 1.2
+                'trail_step_atr': 0.4,            # เพิ่มจาก 0.25 เป็น 0.4
+                'acceleration_factor': 0.02,      # ลดจาก 0.03 เป็น 0.02
+                'max_acceleration': 0.2           # ลดจาก 0.25 เป็น 0.2
             },
             'AGGRESSIVE': {
-                'initial_distance_atr': 1.5,      # Initial distance = 1.5 * ATR
-                'min_trail_distance_atr': 0.8,    # Minimum trailing = 0.8 * ATR
-                'breakeven_trigger_atr': 0.5,     # Move to BE when profit = 0.5 * ATR
-                'trail_step_atr': 0.2,            # Trail every 0.2 * ATR price move
-                'acceleration_factor': 0.04,       # Fast acceleration
-                'max_acceleration': 0.3           # Max acceleration
-            }
+                'initial_distance_atr': 2.0,      # เพิ่มจาก 1.5 เป็น 2.0
+                'min_trail_distance_atr': 1.0,    # เพิ่มจาก 0.8 เป็น 1.0
+                'breakeven_trigger_atr': 0.8,     # เพิ่มจาก 0.5 เป็น 0.8
+                'trail_step_atr': 0.3,            # เพิ่มจาก 0.2 เป็น 0.3
+                'acceleration_factor': 0.025,     # ลดจาก 0.04 เป็น 0.025
+                'max_acceleration': 0.25          # ลดจาก 0.3 เป็น 0.25
+            },
         }
         
         # 🎯 Current Settings
