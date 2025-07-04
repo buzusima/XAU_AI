@@ -96,79 +96,6 @@ class PullbackProtectionPlugin:
         self.logger.info("🛡️ Pullback Protection Plugin เริ่มต้นเรียบร้อย")
         self.logger.info(f"📊 เป้าหมาย: เพิ่ม Win Rate จาก 55% → 65%+")
     
-    def integrate_with_main_system(main_dashboard, enable_on_start=True):
-        """
-        🔧 ติดตั้ง Pullback Protection เข้ากับระบบหลัก
-        
-        Args:
-            main_dashboard: Instance ของระบบหลัก
-            enable_on_start: เปิดใช้งานทันทีหรือไม่
-        
-        Returns:
-            bool: สำเร็จหรือไม่
-        """
-        try:
-            print("🛡️ Installing Pullback Protection Plugin...")
-            
-            # ตรวจสอบว่า main_dashboard มี method ที่จำเป็น
-            if not hasattr(main_dashboard, 'get_symbol_data'):
-                print("❌ Main dashboard missing required method: get_symbol_data")
-                return False
-            
-            # เก็บ method เดิมไว้
-            original_get_symbol_data = main_dashboard.get_symbol_data
-            
-            # สร้าง enhanced method ที่ทำงานกับ pullback protection
-            def enhanced_get_symbol_data(symbol):
-                """Enhanced get_symbol_data with Pullback Protection"""
-                try:
-                    # ดึงข้อมูล signal เดิม
-                    original_data = original_get_symbol_data(symbol)
-                    
-                    # ตรวจสอบว่ามี pullback_protection
-                    if not hasattr(main_dashboard, 'pullback_protection') or not main_dashboard.pullback_protection:
-                        return original_data
-                    
-                    if not main_dashboard.pullback_protection.enabled:
-                        return original_data
-                    
-                    # อัพเดตสถิติ
-                    main_dashboard.pullback_protection.statistics['total_signals_checked'] += 1
-                    
-                    # ประมวลผลผ่าน Pullback Protection
-                    protected_data = main_dashboard.pullback_protection.process_signal(symbol, original_data)
-                    
-                    # ตรวจสอบว่า signal ถูกบล็อก
-                    original_signal = original_data.get('signal', 'NONE')
-                    protected_signal = protected_data.get('signal', 'NONE')
-                    
-                    if original_signal != 'NONE' and protected_signal == 'WAIT':
-                        main_dashboard.pullback_protection.statistics['signals_blocked'] += 1
-                        print(f"🛡️ {symbol}: Signal blocked by Pullback Protection ({original_signal} -> WAIT)")
-                    
-                    return protected_data
-                    
-                except Exception as e:
-                    main_dashboard.logger.error(f"❌ Pullback protection error for {symbol}: {str(e)}")
-                    return original_data
-            
-            # แทนที่ method เดิม
-            main_dashboard.get_symbol_data = enhanced_get_symbol_data
-            
-            # เปิดใช้งาน pullback protection
-            if enable_on_start and hasattr(main_dashboard, 'pullback_protection'):
-                main_dashboard.pullback_protection.enabled = True
-                
-            print("✅ Pullback Protection Plugin installed successfully")
-            print("🎯 Expected Result: Win Rate 55% → 65%+")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error integrating Pullback Protection: {str(e)}")
-            return False
-
-
     def _init_database(self):
         """🗄️ เริ่มต้น Database สำหรับเก็บข้อมูล"""
         try:
@@ -232,101 +159,97 @@ class PullbackProtectionPlugin:
             self.logger.error(f"❌ Error initializing database: {str(e)}")
     
     def analyze_pullback_risk(self, symbol: str, market_data: Dict) -> Dict:
-        """🔧 FIXED: วิเคราะห์ความเสี่ยง Pullback ที่ปรับปรุงแล้ว"""
+        """
+        🔍 วิเคราะห์ความเสี่ยง Pullback
+        
+        Args:
+            symbol: คู่เงิน เช่น 'EURUSD'
+            market_data: ข้อมูลตลาดจาก get_symbol_data()
+        
+        Returns:
+            {
+                'risk_score': int,           # คะแนนความเสี่ยง 0-10
+                'risk_level': str,           # 'LOW', 'MEDIUM', 'HIGH'
+                'recommendation': str,       # 'TRADE', 'WAIT', 'AVOID'
+                'risk_factors': List[str],   # รายการปัจจัยเสี่ยง
+                'wait_conditions': Dict,     # เงื่อนไขที่ต้องรอ
+                'timeout_minutes': int       # เวลา timeout
+            }
+        """
         try:
-            # อัพเดตสถิติ
             self.statistics['total_signals_checked'] += 1
             
             # ดึงข้อมูลจาก market_data
-            signal = market_data.get('signal', 'NONE')
-            current_price = market_data.get('bid', market_data.get('current_price', 0))
             rsi = market_data.get('rsi', 50)
+            current_price = market_data.get('current_price', 0)
             ema_21 = market_data.get('ema_21', current_price)
-            volume_ratio = market_data.get('volumeRatio', market_data.get('volume_ratio', 1.0))
-            atr_percent = market_data.get('atrPercent', market_data.get('atr_percent', 0.001))
+            volume_ratio = market_data.get('volumeRatio', 1.0)
+            atr_percent = market_data.get('atrPercent', 0.001)
+            signal = market_data.get('signal', 'NONE')
             
-            # ถ้าไม่มี signal = ไม่ต้องวิเคราะห์
-            if signal == 'NONE':
-                return {
-                    'risk_score': 0,
-                    'risk_level': 'LOW',
-                    'recommendation': 'TRADE',
-                    'risk_factors': [],
-                    'wait_conditions': {},
-                    'timeout_minutes': 0
-                }
-            
-            # 🔧 FIX: ปรับปรุงการคำนวณ Risk Score
+            # เริ่มต้นการวิเคราะห์
             risk_score = 0
             risk_factors = []
             wait_conditions = {}
             
-            print(f"🔍 {symbol}: Analyzing pullback risk...")
-            print(f"      Signal: {signal}, RSI: {rsi:.1f}, Volume: {volume_ratio:.2f}")
-            
-            # 🎯 RISK FACTOR 1: RSI Extreme (เข้มงวดขึ้น)
-            if signal in ['BUY', 'STRONG_BUY']:
-                if rsi <= self.pullback_settings['rsi_extreme_buy']:  # RSI ต่ำมาก
-                    risk_score += 4  # เพิ่มคะแนนเสี่ยง
-                    risk_factors.append(f'RSI oversold extreme: {rsi:.1f}')
-                    wait_conditions['rsi_recovery'] = f'RSI > {self.pullback_settings["rsi_extreme_buy"] + 10}'
-                elif rsi <= 35:  # RSI ต่ำ
-                    risk_score += 2
-                    risk_factors.append(f'RSI oversold: {rsi:.1f}')
-                    wait_conditions['rsi_recovery'] = f'RSI > 40'
-                    
-            elif signal in ['SELL', 'STRONG_SELL']:
-                if rsi >= self.pullback_settings['rsi_extreme_sell']:  # RSI สูงมาก
-                    risk_score += 4
-                    risk_factors.append(f'RSI overbought extreme: {rsi:.1f}')
-                    wait_conditions['rsi_recovery'] = f'RSI < {self.pullback_settings["rsi_extreme_sell"] - 10}'
-                elif rsi >= 65:  # RSI สูง
-                    risk_score += 2
-                    risk_factors.append(f'RSI overbought: {rsi:.1f}')
-                    wait_conditions['rsi_recovery'] = f'RSI < 60'
-            
-            # 🎯 RISK FACTOR 2: Price Distance from EMA
-            if current_price > 0 and ema_21 > 0:
-                price_distance_percent = abs((current_price - ema_21) / ema_21) * 100
+            # 📊 1. วิเคราะห์ RSI Extreme
+            if signal == 'BUY' and rsi <= self.pullback_settings['rsi_extreme_buy']:
+                risk_score += self.risk_scoring['rsi_extreme']
+                risk_factors.append(f"RSI Extreme Oversold ({rsi:.1f})")
+                wait_conditions['rsi_recovery'] = self.pullback_settings['rsi_safe_zone_min']
                 
-                if price_distance_percent > 2.0:  # ห่างจาก EMA มากกว่า 2%
-                    risk_score += 3
-                    risk_factors.append(f'Price far from EMA21: {price_distance_percent:.2f}%')
-                    wait_conditions['price_return'] = 'Price closer to EMA21'
-                elif price_distance_percent > 1.0:  # ห่างจาก EMA มากกว่า 1%
-                    risk_score += 1
-                    risk_factors.append(f'Price above EMA21: {price_distance_percent:.2f}%')
+            elif signal == 'SELL' and rsi >= self.pullback_settings['rsi_extreme_sell']:
+                risk_score += self.risk_scoring['rsi_extreme']
+                risk_factors.append(f"RSI Extreme Overbought ({rsi:.1f})")
+                wait_conditions['rsi_recovery'] = self.pullback_settings['rsi_safe_zone_max']
+                
+            elif signal == 'BUY' and rsi <= 35:
+                risk_score += self.risk_scoring['rsi_moderate']
+                risk_factors.append(f"RSI Oversold ({rsi:.1f})")
+                
+            elif signal == 'SELL' and rsi >= 65:
+                risk_score += self.risk_scoring['rsi_moderate']
+                risk_factors.append(f"RSI Overbought ({rsi:.1f})")
             
-            # 🎯 RISK FACTOR 3: Volume Analysis (ปรับปรุง)
-            if volume_ratio < 0.5:  # Volume ต่ำมาก
-                risk_score += 3
-                risk_factors.append(f'Very low volume: {volume_ratio:.2f}')
-                wait_conditions['volume_increase'] = 'Volume ratio > 0.8'
-            elif volume_ratio < 0.8:  # Volume ต่ำ
-                risk_score += 1
-                risk_factors.append(f'Low volume: {volume_ratio:.2f}')
-                wait_conditions['volume_increase'] = 'Volume ratio > 1.0'
+            # 📏 2. วิเคราะห์ระยะห่างจาก EMA
+            if current_price > 0 and ema_21 > 0 and atr_percent > 0:
+                price_distance = abs(current_price - ema_21) / current_price
+                atr_threshold_high = atr_percent * self.pullback_settings['ema_distance_danger']
+                atr_threshold_medium = atr_percent * self.pullback_settings['ema_distance_warning']
+                
+                if price_distance >= atr_threshold_high:
+                    risk_score += self.risk_scoring['price_distance_high']
+                    risk_factors.append(f"Price Far from EMA21 ({price_distance*100:.1f}%)")
+                    wait_conditions['ema_return'] = ema_21
+                    
+                elif price_distance >= atr_threshold_medium:
+                    risk_score += self.risk_scoring['price_distance_medium']
+                    risk_factors.append(f"Price Distance from EMA21 ({price_distance*100:.1f}%)")
             
-            # 🎯 RISK FACTOR 4: Market Volatility
-            if atr_percent > 0.02:  # Volatility สูงมาก (> 2%)
-                risk_score += 2
-                risk_factors.append(f'High volatility: {atr_percent*100:.2f}%')
-                wait_conditions['volatility_calm'] = 'ATR < 1.5%'
+            # 📉 3. วิเคราะห์ Volume
+            if volume_ratio <= self.pullback_settings['volume_very_low']:
+                risk_score += self.risk_scoring['volume_very_low']
+                risk_factors.append(f"Volume Very Low ({volume_ratio:.2f})")
+                wait_conditions['volume_recovery'] = 1.0
+                
+            elif volume_ratio <= self.pullback_settings['volume_decline_threshold']:
+                risk_score += self.risk_scoring['volume_decline']
+                risk_factors.append(f"Volume Declining ({volume_ratio:.2f})")
             
-            # 🔧 FIX: ปรับเกณฑ์การตัดสินใจ
-            if risk_score >= 7:  # เสี่ยงสูงมาก
-                risk_level = 'VERY_HIGH'
-                recommendation = 'WAIT'
-                timeout_minutes = 45  # รอนานขึ้น
-            elif risk_score >= 5:  # เสี่ยงสูง
+            # 🎯 กำหนดระดับความเสี่ยงและคำแนะนำ
+            if risk_score >= self.decision_thresholds['high_risk']:
                 risk_level = 'HIGH'
                 recommendation = 'WAIT'
-                timeout_minutes = 30
-            elif risk_score >= 3:  # เสี่ยงปานกลาง
+                timeout_minutes = self.pullback_settings['max_wait_minutes']
+                self.statistics['signals_blocked'] += 1
+                
+            elif risk_score >= self.decision_thresholds['medium_risk']:
                 risk_level = 'MEDIUM'
                 recommendation = 'WAIT'
-                timeout_minutes = 15
-            else:  # เสี่ยงต่ำ
+                timeout_minutes = self.pullback_settings['max_wait_minutes'] // 2
+                self.statistics['signals_blocked'] += 1
+                
+            else:
                 risk_level = 'LOW'
                 recommendation = 'TRADE'
                 timeout_minutes = 0
@@ -340,18 +263,14 @@ class PullbackProtectionPlugin:
                 'timeout_minutes': timeout_minutes,
                 'analysis_time': datetime.now().isoformat(),
                 'original_signal': signal,
-                'current_price': current_price,
-                'rsi_value': rsi,
-                'volume_ratio': volume_ratio,
-                'price_distance_percent': locals().get('price_distance_percent', 0)
+                'current_price': current_price
             }
-            
-            print(f"      Result: {risk_level} risk (score: {risk_score}), {recommendation}")
             
             # บันทึกการวิเคราะห์
             if recommendation == 'WAIT':
                 self._add_waiting_position(symbol, result)
-                self.statistics['signals_blocked'] += 1
+            
+            # self.logger.info(f"🔍 {symbol}: Risk={risk_level}({risk_score}), Recommendation={recommendation}")
             
             return result
             
@@ -364,9 +283,10 @@ class PullbackProtectionPlugin:
                 'risk_factors': [f'Analysis Error: {str(e)}'],
                 'wait_conditions': {},
                 'timeout_minutes': 0,
+                'analysis_time': datetime.now().isoformat(),
                 'error': str(e)
             }
-        
+    
     def _add_waiting_position(self, symbol: str, analysis_result: Dict):
         """📝 เพิ่ม position ที่รอ pullback"""
         try:
@@ -415,7 +335,17 @@ class PullbackProtectionPlugin:
             self.logger.error(f"❌ Error adding waiting position for {symbol}: {str(e)}")
     
     def check_pullback_recovery(self, symbol: str, current_market_data: Dict) -> Dict:
-        """🔧 FIXED: ตรวจสอบการฟื้นตัวจาก Pullback ที่ปรับปรุงแล้ว"""
+        """
+        🔄 ตรวจสอบการฟื้นตัวจาก Pullback
+        
+        Returns:
+            {
+                'ready_to_trade': bool,
+                'recovery_factors': List[str],
+                'wait_expired': bool,
+                'new_recommendation': str
+            }
+        """
         try:
             if symbol not in self.waiting_positions:
                 return {'ready_to_trade': True, 'recovery_factors': [], 'wait_expired': False}
@@ -431,103 +361,77 @@ class PullbackProtectionPlugin:
                 self.statistics['timeout_expired'] += 1
                 return {
                     'ready_to_trade': True,
-                    'recovery_factors': ['Wait timeout expired'],
+                    'recovery_factors': ['Timeout Expired'],
                     'wait_expired': True,
-                    'new_recommendation': 'TRADE_TIMEOUT'
+                    'new_recommendation': 'TRADE_WITH_CAUTION'
                 }
-            
-            # ดึงข้อมูลตลาดปัจจุบัน
-            current_rsi = current_market_data.get('rsi', 50)
-            current_price = current_market_data.get('bid', current_market_data.get('current_price', 0))
-            current_ema_21 = current_market_data.get('ema_21', current_price)
-            current_volume_ratio = current_market_data.get('volumeRatio', current_market_data.get('volume_ratio', 1.0))
-            current_atr_percent = current_market_data.get('atrPercent', current_market_data.get('atr_percent', 0.001))
             
             # ตรวจสอบเงื่อนไขการฟื้นตัว
             recovery_factors = []
             conditions_met = 0
             total_conditions = len(wait_conditions)
             
-            print(f"🔄 {symbol}: Checking recovery conditions...")
-            print(f"      Current RSI: {current_rsi:.1f}, Volume: {current_volume_ratio:.2f}")
+            current_rsi = current_market_data.get('rsi', 50)
+            current_price = current_market_data.get('current_price', 0)
+            current_volume = current_market_data.get('volumeRatio', 1.0)
             
-            # ตรวจสอบแต่ละเงื่อนไข
-            for condition_type, condition_desc in wait_conditions.items():
-                condition_met = False
+            # ตรวจ RSI Recovery
+            if 'rsi_recovery' in wait_conditions:
+                target_rsi = wait_conditions['rsi_recovery']
+                original_signal = analysis['original_signal']
                 
-                if condition_type == 'rsi_recovery':
-                    original_signal = analysis.get('original_signal', 'NONE')
-                    if 'BUY' in original_signal:
-                        if current_rsi > 40:  # RSI ฟื้นจาก oversold
-                            condition_met = True
-                            recovery_factors.append(f'RSI recovered: {current_rsi:.1f}')
-                    elif 'SELL' in original_signal:
-                        if current_rsi < 60:  # RSI ฟื้นจาก overbought
-                            condition_met = True
-                            recovery_factors.append(f'RSI recovered: {current_rsi:.1f}')
-                
-                elif condition_type == 'volume_increase':
-                    if current_volume_ratio >= 1.0:  # Volume เพิ่มขึ้น
-                        condition_met = True
-                        recovery_factors.append(f'Volume increased: {current_volume_ratio:.2f}')
-                
-                elif condition_type == 'price_return':
-                    if current_price > 0 and current_ema_21 > 0:
-                        price_distance = abs((current_price - current_ema_21) / current_ema_21) * 100
-                        if price_distance < 1.0:  # ราคากลับมาใกล้ EMA
-                            condition_met = True
-                            recovery_factors.append(f'Price near EMA: {price_distance:.2f}%')
-                
-                elif condition_type == 'volatility_calm':
-                    if current_atr_percent < 0.015:  # Volatility ลดลง
-                        condition_met = True
-                        recovery_factors.append(f'Volatility reduced: {current_atr_percent*100:.2f}%')
-                
-                if condition_met:
+                if original_signal == 'BUY' and current_rsi >= target_rsi:
+                    recovery_factors.append(f"RSI ฟื้นตัว ({current_rsi:.1f} >= {target_rsi})")
                     conditions_met += 1
-                    print(f"      ✅ {condition_type}: {condition_desc}")
-                else:
-                    print(f"      ❌ {condition_type}: {condition_desc}")
+                elif original_signal == 'SELL' and current_rsi <= target_rsi:
+                    recovery_factors.append(f"RSI ฟื้นตัว ({current_rsi:.1f} <= {target_rsi})")
+                    conditions_met += 1
+            
+            # ตรวจ EMA Return
+            if 'ema_return' in wait_conditions:
+                ema_21 = current_market_data.get('ema_21', current_price)
+                if abs(current_price - ema_21) / current_price < 0.002:  # ใกล้ EMA แล้ว
+                    recovery_factors.append("Price กลับมาใกล้ EMA21")
+                    conditions_met += 1
+            
+            # ตรวจ Volume Recovery
+            if 'volume_recovery' in wait_conditions:
+                if current_volume >= wait_conditions['volume_recovery']:
+                    recovery_factors.append(f"Volume ฟื้นตัว ({current_volume:.2f})")
+                    conditions_met += 1
             
             # ตัดสินใจ
-            recovery_threshold = 0.6  # ต้องผ่าน 60% ของเงื่อนไข
             if total_conditions == 0:  # ไม่มีเงื่อนไข = พร้อมเทรด
                 ready_to_trade = True
                 new_recommendation = 'TRADE'
-            elif conditions_met >= total_conditions * recovery_threshold:
+            elif conditions_met >= total_conditions * 0.7:  # 70% ของเงื่อนไขผ่าน
                 ready_to_trade = True
                 new_recommendation = 'TRADE'
                 self.statistics['successful_entries_after_wait'] += 1
-                recovery_factors.append(f'Recovery complete: {conditions_met}/{total_conditions} conditions met')
             else:
                 ready_to_trade = False
                 new_recommendation = 'CONTINUE_WAITING'
-                recovery_factors.append(f'Still waiting: {conditions_met}/{total_conditions} conditions met')
             
             if ready_to_trade:
                 self._remove_waiting_position(symbol, 'RECOVERED')
-                print(f"✅ {symbol}: Recovery confirmed, ready to trade")
-            else:
-                print(f"⏳ {symbol}: Still waiting for recovery")
             
             return {
                 'ready_to_trade': ready_to_trade,
                 'recovery_factors': recovery_factors,
                 'wait_expired': False,
                 'new_recommendation': new_recommendation,
-                'conditions_met': f"{conditions_met}/{total_conditions}",
-                'recovery_percentage': round((conditions_met / total_conditions) * 100, 1) if total_conditions > 0 else 100
+                'conditions_met': f"{conditions_met}/{total_conditions}"
             }
             
         except Exception as e:
             self.logger.error(f"❌ Error checking pullback recovery for {symbol}: {str(e)}")
             return {
-                'ready_to_trade': True,  # Safe fallback
+                'ready_to_trade': True,
                 'recovery_factors': [f'Check Error: {str(e)}'],
                 'wait_expired': False,
                 'new_recommendation': 'TRADE_WITH_CAUTION'
             }
-        
+    
     def _remove_waiting_position(self, symbol: str, reason: str):
         """🗑️ ลบ position ออกจากรายการรอ"""
         try:
@@ -723,41 +627,57 @@ class PullbackProtectionPlugin:
             
         except Exception as e:
             self.logger.error(f"❌ Error updating settings: {str(e)}")
+
+
+# 🔧 INTEGRATION HELPER FUNCTIONS
+
+def integrate_with_main_system(main_dashboard, enable_on_start=True):
+    """
+    🔗 ฟังก์ชันเชื่อมต่อกับระบบหลัก
     
-    def cleanup_old_records(self):
-        """🧹 ทำความสะอาดข้อมูลเก่า"""
-        try:
-            # ลบ waiting positions ที่เก่ากว่า 1 ชั่วโมง
-            current_time = datetime.now()
-            expired_symbols = []
-            
-            for symbol, waiting_data in self.waiting_positions.items():
-                age_hours = (current_time - waiting_data['wait_start']).total_seconds() / 3600
-                if age_hours > 1.0:  # เก่ากว่า 1 ชั่วโมง
-                    expired_symbols.append(symbol)
-            
-            for symbol in expired_symbols:
-                self._remove_waiting_position(symbol, 'CLEANUP_OLD')
-            
-            # ทำความสะอาด Database
-            conn = sqlite3.connect('pullback_protection.db')
-            cursor = conn.cursor()
-            
-            # ลบข้อมูลเก่ากว่า 7 วัน
-            cutoff_date = (current_time - timedelta(days=7)).isoformat()
-            cursor.execute('DELETE FROM waiting_positions WHERE wait_start_time < ?', (cutoff_date,))
-            
-            deleted_count = cursor.rowcount
-            conn.commit()
-            conn.close()
-            
-            if deleted_count > 0:
-                print(f"🧹 Cleaned up {deleted_count} old pullback records")
-            
-            self.last_cleanup_time = current_time
-            
-        except Exception as e:
-            self.logger.error(f"Error cleaning up old records: {str(e)}")
+    วิธีใช้:
+    from pullback_protection import integrate_with_main_system
+    integrate_with_main_system(self)  # ใน __init__ ของ main dashboard
+    """
+    try:
+        # สร้าง Plugin instance
+        main_dashboard.pullback_protection = PullbackProtectionPlugin(main_dashboard.logger)
+        
+        if enable_on_start:
+            main_dashboard.pullback_protection.enable()
+        
+        # เพิ่ม method ใหม่ให้ main dashboard
+        original_get_symbol_data = main_dashboard.get_symbol_data
+        
+        def enhanced_get_symbol_data(symbol):
+            """📊 get_symbol_data ที่มี Pullback Protection"""
+            try:
+                # ดึงข้อมูลเดิมก่อน
+                original_data = original_get_symbol_data(symbol)
+                
+                if original_data and hasattr(main_dashboard, 'pullback_protection'):
+                    # ประมวลผลผ่าน Pullback Protection
+                    protected_data = main_dashboard.pullback_protection.process_signal(symbol, original_data)
+                    return protected_data
+                
+                return original_data
+                
+            except Exception as e:
+                main_dashboard.logger.error(f"❌ Pullback protection error for {symbol}: {str(e)}")
+                return original_data
+        
+        # แทนที่ method เดิม
+        main_dashboard.get_symbol_data = enhanced_get_symbol_data
+        
+        print("✅ Pullback Protection Plugin ติดตั้งเรียบร้อย")
+        print("🛡️ Expected Result: Win Rate 55% → 65%+")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error integrating Pullback Protection: {str(e)}")
+        return False
+
 
 # 🧪 TESTING FUNCTIONS
 

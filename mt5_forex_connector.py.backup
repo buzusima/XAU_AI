@@ -22,7 +22,7 @@ import warnings
 from broker_symbol_adapter import BrokerSymbolAdapter
 from enhanced_signal_system import MultiTimeframeSignalEngine
 warnings.filterwarnings('ignore')
-from pullback_protection import PullbackProtectionPlugin
+from pullback_protection import PullbackProtectionPlugin, integrate_with_main_system
 from trading_integration import EnhancedTradingSystemWithTrailing, add_trailing_stop_routes
 from correlation_hedging_system import HedgeSystemIntegrator
 from enhanced_signal_system import MultiTimeframeSignalEngine
@@ -61,73 +61,6 @@ def clean_data_for_json(data):
     else:
         return data
 
-def integrate_with_main_system(main_dashboard, enable_on_start=True):
-    """ติดตั้ง Pullback Protection เข้ากับระบบหลัก"""
-    try:
-        if not hasattr(main_dashboard, 'pullback_protection') or not main_dashboard.pullback_protection:
-            print("❌ No pullback_protection found")
-            return False
-            
-        print("🛡️ Installing Pullback Protection Plugin...")
-        
-        # เก็บ method เดิม
-        original_get_symbol_data = main_dashboard.get_symbol_data
-        
-        def enhanced_get_symbol_data(symbol):
-            """Enhanced get_symbol_data with Pullback Protection"""
-            try:
-                original_data = original_get_symbol_data(symbol)
-                
-                if not main_dashboard.pullback_protection.enabled:
-                    return original_data
-                
-                # ประมวลผลผ่าน Pullback Protection
-                original_signal = original_data.get('signal', 'NONE')
-                
-                if original_signal != 'NONE':
-                    # อัพเดตสถิติ
-                    main_dashboard.pullback_protection.statistics['total_signals_checked'] += 1
-                    
-                    # วิเคราะห์ pullback risk
-                    risk_analysis = main_dashboard.pullback_protection.analyze_pullback_risk(symbol, original_data)
-                    
-                    if risk_analysis.get('recommendation') == 'WAIT':
-                        # บล็อค signal
-                        main_dashboard.pullback_protection.statistics['signals_blocked'] += 1
-                        
-                        protected_data = original_data.copy()
-                        protected_data['signal'] = 'WAIT'
-                        protected_data['pullback_protection'] = {
-                            'status': 'SIGNAL_BLOCKED',
-                            'risk_level': risk_analysis.get('risk_level', 'UNKNOWN'),
-                            'risk_factors': risk_analysis.get('risk_factors', []),
-                            'original_signal': original_signal
-                        }
-                        
-                        print(f"🛡️ {symbol}: Signal blocked by Pullback Protection ({original_signal} -> WAIT)")
-                        return protected_data
-                
-                return original_data
-                
-            except Exception as e:
-                print(f"❌ Pullback protection error for {symbol}: {e}")
-                return original_data
-        
-        # แทนที่ method เดิม
-        main_dashboard.get_symbol_data = enhanced_get_symbol_data
-        
-        # เปิดใช้งาน
-        if enable_on_start:
-            main_dashboard.pullback_protection.enabled = True
-            
-        print("✅ Pullback Protection Plugin installed successfully")
-        print("🎯 Expected Result: Win Rate 55% → 65%+")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Error integrating Pullback Protection: {str(e)}")
-        return False
-    
 class DataPersistenceManager:
     """จัดการการบันทึกและโหลดข้อมูลระบบ"""
     
@@ -142,197 +75,13 @@ class DataPersistenceManager:
         
         self.create_data_directory()
         self.initialize_database()
-        self.load_system_settings()  
-        #self.load_pair_tracking_data()  
-
+    
     def create_data_directory(self):
         """สร้างโฟลเดอร์เก็บข้อมูล"""
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
             print(f"Created data directory: {self.data_dir}")
     
-    def load_system_settings(self):
-        """โหลดการตั้งค่าระบบ"""
-        try:
-            if os.path.exists(self.settings_file):
-                with open(self.settings_file, 'r') as f:
-                    settings = json.load(f)
-                print(f"[DISK] Settings loaded from {self.settings_file}")
-                return settings
-            else:
-                print(f"[DISK] No settings file found, using defaults")
-                return {}
-        except Exception as e:
-            print(f"[ERR] Error loading settings: {str(e)}")
-            return {}
-    
-    def save_settings(self, settings_dict):
-        """บันทึกการตั้งค่า"""
-        try:
-            with open(self.settings_file, 'w') as f:
-                json.dump(settings_dict, f, indent=4, default=str)
-            print(f"[DISK] Settings saved to {self.settings_file}")
-            return True
-        except Exception as e:
-            print(f"[ERR] Error saving settings: {str(e)}")
-            return False
-    
-    def load_settings(self):
-        """Alias สำหรับ load_system_settings"""
-        return self.load_system_settings()
-    
-    def save_daily_stats(self, stats_dict):
-        """บันทึกสถิติรายวัน"""
-        try:
-            with open(self.daily_stats_file, 'w') as f:
-                json.dump(stats_dict, f, indent=4, default=str)
-            return True
-        except Exception as e:
-            print(f"[ERR] Error saving daily stats: {str(e)}")
-            return False
-    
-    def load_daily_stats(self):
-        """โหลดสถิติรายวัน"""
-        try:
-            if os.path.exists(self.daily_stats_file):
-                with open(self.daily_stats_file, 'r') as f:
-                    return json.load(f)
-            return {}
-        except Exception as e:
-            print(f"[ERR] Error loading daily stats: {str(e)}")
-            return {}
-    
-    def save_pair_status(self, pair_status_dict):
-        """บันทึกสถานะ pairs"""
-        try:
-            with open(self.pair_status_file, 'w') as f:
-                json.dump(pair_status_dict, f, indent=4, default=str)
-            return True
-        except Exception as e:
-            print(f"[ERR] Error saving pair status: {str(e)}")
-            return False
-    
-    def load_pair_status(self):
-        """โหลดสถานะ pairs"""
-        try:
-            if os.path.exists(self.pair_status_file):
-                with open(self.pair_status_file, 'r') as f:
-                    return json.load(f)
-            return {}
-        except Exception as e:
-            print(f"[ERR] Error loading pair status: {str(e)}")
-            return {}
-    
-    def log_system_event(self, level, message, category):
-        """บันทึก system events"""
-        try:
-            conn = sqlite3.connect(self.db_file)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS system_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT,
-                    level TEXT,
-                    message TEXT,
-                    category TEXT
-                )
-            ''')
-            
-            cursor.execute('''
-                INSERT INTO system_events (timestamp, level, message, category)
-                VALUES (?, ?, ?, ?)
-            ''', (datetime.now().isoformat(), level, message, category))
-            
-            conn.commit()
-            conn.close()
-            
-        except Exception as e:
-            print(f"[ERR] Error logging system event: {str(e)}")
-    
-    def get_trade_history(self, days=30):
-        """ดึงประวัติการเทรด"""
-        try:
-            conn = sqlite3.connect(self.db_file)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS trade_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT,
-                    symbol TEXT,
-                    action TEXT,
-                    volume REAL,
-                    price REAL,
-                    result TEXT
-                )
-            ''')
-            
-            cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
-            cursor.execute('''
-                SELECT * FROM trade_history 
-                WHERE timestamp > ? 
-                ORDER BY timestamp DESC
-            ''', (cutoff_date,))
-            
-            results = cursor.fetchall()
-            conn.close()
-            
-            return results
-            
-        except Exception as e:
-            print(f"[ERR] Error getting trade history: {str(e)}")
-            return []
-    
-    def save_trade_to_db(self, trade_data):
-        """บันทึกการเทรดลง database"""
-        try:
-            conn = sqlite3.connect(self.db_file)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS trade_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT,
-                    ticket TEXT,
-                    symbol TEXT,
-                    type TEXT,
-                    volume REAL,
-                    entry_price REAL,
-                    stop_loss REAL,
-                    take_profit REAL,
-                    signal_strength REAL,
-                    entry_quality TEXT,
-                    risk_percentage REAL
-                )
-            ''')
-            
-            cursor.execute('''
-                INSERT INTO trade_history 
-                (timestamp, ticket, symbol, type, volume, entry_price, stop_loss, take_profit, signal_strength, entry_quality, risk_percentage)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                trade_data.get('entry_time', datetime.now().isoformat()),
-                trade_data.get('ticket', ''),
-                trade_data.get('symbol', ''),
-                trade_data.get('type', ''),
-                trade_data.get('volume', 0),
-                trade_data.get('entry_price', 0),
-                trade_data.get('stop_loss', 0),
-                trade_data.get('take_profit', 0),
-                trade_data.get('signal_strength', 0),
-                trade_data.get('entry_quality', ''),
-                trade_data.get('risk_percentage', 0)
-            ))
-            
-            conn.commit()
-            conn.close()
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Error saving trade to DB: {str(e)}")
-            return False
-        
     def initialize_database(self):
         """สร้างฐานข้อมูล SQLite"""
         try:
@@ -579,85 +328,7 @@ class DataPersistenceManager:
             
         except Exception as e:
             print(f"Error logging system event: {str(e)}")
-    def create_dummy_persistence(self):
-        """สร้าง dummy persistence object"""
-        class DummyPersistence:
-            def __init__(self):
-                self.data_dir = "trading_data"
-                self.settings_file = "settings.json"
-                if not os.path.exists(self.data_dir):
-                    os.makedirs(self.data_dir)
-            
-            def load_settings(self): return {}
-            def save_settings(self, data): return True
-            def load_pair_status(self): return {}
-            def save_pair_status(self, data): return True
-            def load_daily_stats(self): return {}
-            def save_daily_stats(self, data): return True
-            def log_system_event(self, level, msg, cat): pass
-            def save_trade_to_db(self, data): return True
-            def get_trade_history(self, days=30): return []
-        
-        self.persistence = DummyPersistence()
 
-    def load_system_settings_direct(self):
-        """โหลดการตั้งค่าระบบโดยตรง"""
-        try:
-            settings = self.persistence.load_settings()
-            
-            if settings:
-                # Load settings
-                self.current_risk_profile = settings.get('current_risk_profile', 'BALANCED')
-                self.custom_risk_per_trade = settings.get('custom_risk_per_trade', 1.5)
-                self.max_risk_per_trade = settings.get('max_risk_per_trade', 0.015)
-                self.auto_trading_enabled = settings.get('auto_trading_enabled', False)
-                print(f"[DISK] Settings loaded successfully")
-            else:
-                # Use defaults
-                self.current_risk_profile = 'BALANCED'
-                self.custom_risk_per_trade = 1.5
-                self.max_risk_per_trade = 0.015
-                self.auto_trading_enabled = False
-                print(f"[DISK] Using default settings")
-                
-        except Exception as e:
-            print(f"[ERR] Error loading settings: {str(e)}")
-            # Set defaults
-            self.current_risk_profile = 'BALANCED'
-            self.custom_risk_per_trade = 1.5
-            self.max_risk_per_trade = 0.015
-            self.auto_trading_enabled = False
-
-    def load_pair_tracking_data_direct(self):
-        """โหลดข้อมูล pair tracking โดยตรง"""
-        try:
-            pair_status = self.persistence.load_pair_status()
-            
-            # Initialize tracking dictionaries
-            self.active_trades_per_pair = {}
-            self.pair_trade_status = {}
-            self.trade_cooldowns = {}
-            
-            for pair in getattr(self, 'forex_pairs', ['EURUSD', 'GBPUSD', 'USDJPY']):
-                if pair in pair_status:
-                    status_data = pair_status[pair]
-                    self.active_trades_per_pair[pair] = status_data.get('active_trades', [])
-                    self.pair_trade_status[pair] = status_data.get('status', 'READY')
-                else:
-                    self.active_trades_per_pair[pair] = []
-                    self.pair_trade_status[pair] = 'READY'
-                
-                self.trade_cooldowns[pair] = None
-            
-            print("[OK] Pair tracking data loaded")
-            
-        except Exception as e:
-            print(f"[ERR] Error loading pair tracking: {str(e)}")
-            # Initialize with defaults
-            self.active_trades_per_pair = {}
-            self.pair_trade_status = {}
-            self.trade_cooldowns = {}
-            
 class EnhancedSmartAutoTradingDashboard:
     """Enhanced Smart Auto Trading Dashboard with Data Persistence"""
     
@@ -760,20 +431,6 @@ class EnhancedSmartAutoTradingDashboard:
         # print("[OK] Auto Trading Dashboard Initialized")
         # print(f"[MONEY] Account Balance: ${self.account_balance:,.2f}")
         # print(f"[TARGET] Risk Profile: {self.current_risk_profile}")
-    def set_default_settings(self):
-        """ตั้งค่าเริ่มต้นเมื่อไม่มีการตั้งค่าที่ save ไว้"""
-        self.current_risk_profile = 'BALANCED'
-        self.custom_risk_per_trade = 1.5
-        self.max_risk_per_trade = 0.015
-        self.max_total_exposure = 0.06
-        self.max_daily_loss = 0.04
-        
-        self.auto_trading_enabled = False  # เริ่มต้นปิดไว้
-        self.min_signal_strength = 6.0
-        self.min_entry_quality = 'GOOD'
-        self.max_simultaneous_trades = 8
-        self.required_confirmations = True
-        self.min_rr_ratio = 1.5
 
     def add_enhanced_features(self):
         """เพิ่ม enhanced features แบบ optional"""
@@ -819,14 +476,12 @@ class EnhancedSmartAutoTradingDashboard:
         # Pullback Protection
         try:
             self.pullback_protection = PullbackProtectionPlugin(self.logger)
-            # เปลี่ยนจาก integrate_with_main_system(self, enable_on_start=True)
-            # เป็น:
-            self.integrate_pullback_protection(enable_on_start=True)
+            integrate_with_main_system(self, enable_on_start=True)
             print("[OK] Pullback Protection: LOADED")
         except Exception as e:
             print(f"[WARN] Pullback protection error: {str(e)}")
             self.pullback_protection = None
-            
+
     def setup_signal_engine(self):
         """Setup signal engine properly"""
         self.signal_engine = MultiTimeframeSignalEngine()
@@ -877,13 +532,11 @@ class EnhancedSmartAutoTradingDashboard:
             return data
 
     def load_system_settings(self):
-        """โหลดการตั้งค่าระบบ - FIXED VERSION"""
+        """โหลดการตั้งค่าระบบ"""
         try:
             settings = self.persistence.load_settings()
             
             if settings:
-                print(f"[DISK] Loading saved settings...")
-                
                 # Load core settings
                 self.current_risk_profile = settings.get('current_risk_profile', 'BALANCED')
                 self.custom_risk_per_trade = settings.get('custom_risk_per_trade', 1.5)
@@ -891,87 +544,42 @@ class EnhancedSmartAutoTradingDashboard:
                 self.max_total_exposure = settings.get('max_total_exposure', 0.06)
                 self.max_daily_loss = settings.get('max_daily_loss', 0.04)
                 
-                # 🔧 FIX: Auto trading settings - ต้องโหลดค่าจริงที่ save ไว้
-                saved_auto_trading = settings.get('auto_trading_enabled', False)
-                self.auto_trading_enabled = saved_auto_trading  # ใช้ค่าที่ save ไว้
-                
+                # Auto trading settings
+                self.auto_trading_enabled = settings.get('auto_trading_enabled', False)
                 self.auto_trading_pairs = set(settings.get('auto_trading_pairs', self.forex_pairs))
                 self.min_signal_strength = settings.get('min_signal_strength', 6.0)
                 self.min_entry_quality = settings.get('min_entry_quality', 'GOOD')
                 self.max_simultaneous_trades = settings.get('max_simultaneous_trades', 8)
-                self.required_confirmations = settings.get('required_confirmations', True)
-                self.min_rr_ratio = settings.get('min_rr_ratio', 1.5)
                 
-                # 🔧 FIX: Load other important settings
+                # Load hedging settings
                 self.hedging_enabled = settings.get('hedging_enabled', False)
                 self.hedge_min_correlation = settings.get('hedge_min_correlation', 0.6)
                 self.hedge_max_ratio = settings.get('hedge_max_ratio', 0.6)
                 self.hedge_risk_target = settings.get('hedge_risk_target', 0.3)
                 self.hedge_auto_execute = settings.get('hedge_auto_execute', False)
+            
+                # Signal filtering
+                self.required_confirmations = settings.get('required_confirmations', {
+                    'trend_alignment': True,
+                    'volume_confirmation': True,
+                    'rsi_filter': True,
+                    'multiple_timeframe': True
+                })
                 
-                # 🔧 FIX: แสดงสถานะที่โหลดมา
-                print(f"[OK] Settings loaded successfully:")
-                print(f"    Auto Trading: {'ENABLED' if self.auto_trading_enabled else 'DISABLED'}")
-                print(f"    Risk Profile: {self.current_risk_profile}")
-                print(f"    Signal Strength: {self.min_signal_strength}")
-                print(f"    Entry Quality: {self.min_entry_quality}")
-                print(f"    Active Pairs: {len(self.auto_trading_pairs)}")
+                # Additional settings
+                self.min_rr_ratio = settings.get('min_rr_ratio', 1.5)
+                self.account_balance = settings.get('account_balance', 10000.0)
                 
-                # 🔧 FIX: หากมีการเปิด Auto Trading ให้เริ่มทำงานอัตโนมัติ
-                if self.auto_trading_enabled:
-                    print(f"[LIGHTNING] Auto Trading was ENABLED, restarting...")
-                    # เรียกใช้ start_auto_trading_thread แทน start_auto_trading
-                    self.start_auto_trading_on_startup()
-                
+                print("[OK] System settings loaded successfully")
+                self.persistence.log_system_event('INFO', 'System settings loaded from file', 'STARTUP')
             else:
-                print(f"[WARN] No saved settings found, using defaults")
+                # Use defaults
                 self.set_default_settings()
+                print("[CLIPBOARD] Using default settings")
                 
         except Exception as e:
             print(f"[ERR] Error loading settings: {str(e)}")
             self.set_default_settings()
-    
-    def start_auto_trading_on_startup(self):
-        """เริ่ม Auto Trading หลัง startup - SAFE VERSION"""
-        try:
-            # ตรวจสอบว่า MT5 เชื่อมต่อแล้ว
-            if not self.mt5_connected:
-                print(f"[WARN] MT5 not connected, cannot start auto trading")
-                self.auto_trading_enabled = False
-                return False
-            
-            # ตรวจสอบว่ามี forex pairs พร้อม
-            if not self.forex_pairs or len(self.forex_pairs) == 0:
-                print(f"[WARN] No forex pairs loaded, cannot start auto trading")
-                self.auto_trading_enabled = False
-                return False
-            
-            # รอ 5 วินาทีให้ระบบ initialize เสร็จ
-            import time
-            print(f"[TIME] Waiting 5 seconds for system initialization...")
-            time.sleep(5)
-            
-            # เริ่ม Auto Trading Thread
-            if self.auto_trading_enabled and not hasattr(self, 'auto_trading_thread'):
-                self.auto_trading_thread = threading.Thread(
-                    target=self.auto_trading_loop, 
-                    daemon=True, 
-                    name="AutoTradingThread"
-                )
-                
-                if self.auto_trading_thread.start():
-                    print(f"[OK] Auto Trading restarted successfully on startup")
-                    self.trade_logger.info("=== AUTO TRADING RESTORED FROM SAVED SETTINGS ===")
-                    return True
-                else:
-                    print(f"[ERR] Failed to start auto trading thread")
-                    self.auto_trading_enabled = False
-                    return False
-            
-        except Exception as e:
-            print(f"[ERR] Error starting auto trading on startup: {str(e)}")
-            self.auto_trading_enabled = False
-            return False
     
     def set_default_settings(self):
         """ตั้งค่าเริ่มต้น"""
@@ -1004,55 +612,42 @@ class EnhancedSmartAutoTradingDashboard:
         self.min_rr_ratio = 1.5
     
     def save_system_settings(self):
-        """บันทึกการตั้งค่าระบบ - IMPROVED VERSION"""
+        """บันทึกการตั้งค่าระบบ"""
         try:
-            # 🔧 FIX: รวบรวมการตั้งค่าทั้งหมดอย่างครบถ้วน
             settings = {
-                # Risk Management
                 'current_risk_profile': self.current_risk_profile,
-                'custom_risk_per_trade': getattr(self, 'custom_risk_per_trade', 1.5),
+                'custom_risk_per_trade': self.custom_risk_per_trade,
                 'max_risk_per_trade': self.max_risk_per_trade,
                 'max_total_exposure': self.max_total_exposure,
                 'max_daily_loss': self.max_daily_loss,
                 
-                # 🔧 FIX: Auto Trading Settings - บันทึกสถานะจริง
-                'auto_trading_enabled': self.auto_trading_enabled,  # บันทึกสถานะปัจจุบัน
+                'auto_trading_enabled': self.auto_trading_enabled,
                 'auto_trading_pairs': list(self.auto_trading_pairs),
                 'min_signal_strength': self.min_signal_strength,
                 'min_entry_quality': self.min_entry_quality,
                 'max_simultaneous_trades': self.max_simultaneous_trades,
-                'required_confirmations': getattr(self, 'required_confirmations', True),
+                
+                'required_confirmations': self.required_confirmations,
                 'min_rr_ratio': getattr(self, 'min_rr_ratio', 1.5),
-                
-                # Account & Balance
                 'account_balance': self.account_balance,
-                
-                # Hedging Settings
                 'hedging_enabled': getattr(self, 'hedging_enabled', False),
                 'hedge_min_correlation': getattr(self, 'hedge_min_correlation', 0.6),
                 'hedge_max_ratio': getattr(self, 'hedge_max_ratio', 0.6),
                 'hedge_risk_target': getattr(self, 'hedge_risk_target', 0.3),
                 'hedge_auto_execute': getattr(self, 'hedge_auto_execute', False),
                 
-                # System Info
-                'last_saved': datetime.now().isoformat(),
-                'save_version': '2.0_RESTART_FIX'
+                'last_saved': datetime.now().isoformat()
             }
             
-            # 🔧 FIX: บันทึกและตรวจสอบผลลัพธ์
             if self.persistence.save_settings(settings):
-                print(f"[DISK] Settings saved successfully:")
-                print(f"    Auto Trading: {'ENABLED' if self.auto_trading_enabled else 'DISABLED'}")
-                print(f"    Timestamp: {settings['last_saved']}")
+                print("[DISK] Settings config saved successfully")
                 return True
-            else:
-                print(f"[ERR] Failed to save settings to disk")
-                return False
-                
+            return False
+            
         except Exception as e:
             print(f"[ERR] Error saving settings: {str(e)}")
             return False
-        
+    
     def load_pair_tracking_data(self):
         """โหลดข้อมูลการติดตาม pairs"""
         try:
@@ -2276,86 +1871,82 @@ class EnhancedSmartAutoTradingDashboard:
     def start_auto_trading(self):
         """Start auto trading system - FIXED VERSION"""
         try:
-            if self.auto_trading_enabled:
-                print(f"[WARN] Auto trading already enabled")
+            if not self.mt5_connected:
+                self.logger.error("Cannot start auto trading: MT5 not connected")
+                return False
+            
+            if self.auto_trading_enabled == True:
+                self.logger.info("Auto trading already running")
                 return True
             
-            # Pre-flight checks
-            if self.emergency_stop:
-                print(f"[ERR] Cannot start: Emergency stop is active")
-                return False
-            
-            if not self.mt5_connected:
-                print(f"[ERR] Cannot start: MT5 not connected")
-                return False
-            
-            if not self.forex_pairs:
-                print(f"[ERR] Cannot start: No forex pairs loaded")
-                return False
-            
-            # เปิดใช้งาน Auto Trading
+            # CRITICAL FIX 1: Ensure system is running
+            self.is_running = True
+            self.emergency_stop = False
             self.auto_trading_enabled = True
-            print(f"[GO] Starting auto trading system...")
             
-            # เริ่ม thread
+            # CRITICAL FIX 2: Force start new thread with error handling
             try:
-                self.auto_trading_thread = threading.Thread(
-                    target=self.auto_trading_loop,
-                    daemon=True,
-                    name="AutoTradingThread"
-                )
-                self.auto_trading_thread.start()
+                # Stop any existing thread first
+                self.auto_trading_enabled = False
+                time.sleep(1)  # Wait for existing thread to stop
                 
-                # ตรวจสอบว่า thread ทำงาน
-                time.sleep(1)
-                if self.auto_trading_thread.is_alive():
-                    print(f"[OK] Auto trading started successfully")
+                # Start fresh
+                self.auto_trading_enabled = True
+                trading_thread = threading.Thread(target=self._safe_auto_trading_loop, daemon=True)
+                trading_thread.start()
+                
+                # CRITICAL FIX 3: Verify thread started
+                time.sleep(2)
+                if trading_thread.is_alive():
+                    self.logger.info("[OK] AUTO TRADING THREAD STARTED SUCCESSFULLY!")
                     self.trade_logger.info("=== AUTO TRADING SESSION STARTED ===")
                     self.persistence.log_system_event('INFO', 'Auto trading started successfully', 'TRADING')
                     
-                    # 🔧 FIX: บันทึกการตั้งค่าทันที
+                    # Save settings
                     self.save_system_settings()
                     return True
                 else:
-                    print(f"[ERR] Auto trading thread failed to start")
+                    self.logger.error("[ERR] AUTO TRADING THREAD FAILED TO START!")
                     self.auto_trading_enabled = False
                     return False
                     
             except Exception as thread_error:
-                print(f"[ERR] Threading error: {str(thread_error)}")
+                self.logger.error(f"Threading error: {str(thread_error)}")
                 self.auto_trading_enabled = False
                 return False
             
         except Exception as e:
-            print(f"[ERR] Error starting auto trading: {str(e)}")
+            self.logger.error(f"Error starting auto trading: {str(e)}")
             self.auto_trading_enabled = False
             return False
-    
+
     def stop_auto_trading(self):
         """Stop auto trading system - FIXED VERSION"""
         try:
-            print(f"[EMOJI] Stopping auto trading...")
+            self.logger.info("[EMOJI] Stopping auto trading...")
             
-            # ปิดใช้งาน Auto Trading
+            # Set flags in correct order
             self.auto_trading_enabled = False
             
-            # รอให้ thread หยุดทำงาน
+            # Give time for threads to respond
             time.sleep(2)
             
-            # Log การหยุด
-            print(f"[OK] Auto trading stopped successfully")
+            # Log the stop action
             self.trade_logger.info("=== AUTO TRADING STOPPED BY USER ===")
             self.persistence.log_system_event('INFO', 'Auto trading stopped by user', 'TRADING')
             
-            # 🔧 FIX: บันทึกการตั้งค่าทันที
+            # Save settings immediately
             self.save_system_settings()
+            
+            # Update UI status
+            self.logger.info("[OK] Auto trading stopped successfully")
             
             return True
             
         except Exception as e:
-            print(f"[ERR] Error stopping auto trading: {str(e)}")
+            self.logger.error(f"[ERR] Error stopping auto trading: {str(e)}")
             return False
-    
+
     def resolve_symbol(self, target_symbol):
         """Resolve symbol to available variant"""
         try:
@@ -2391,126 +1982,103 @@ class EnhancedSmartAutoTradingDashboard:
             self.logger.error(f"Error resolving symbol {target_symbol}: {str(e)}")
             return None
         
-    def _safe_auto_trading_loop(self):
-        """Safe auto trading loop with symbol resolution"""
-        self.logger.info("[GO] Auto trading loop started")
-        consecutive_errors = 0
-        max_consecutive_errors = 5
-        
-        while self.is_running and self.auto_trading_enabled and not self.emergency_stop:
-            try:
-                consecutive_errors = 0
-                
-                if not self.mt5_connected:
-                    self.logger.warning("MT5 disconnected, attempting reconnect...")
-                    if not self.connect_mt5():
-                        time.sleep(30)
-                        continue
-                
-                if not self.auto_trading_enabled:
-                    self.logger.info("Auto trading disabled, stopping loop")
-                    break
-                
-                # Monitor existing positions
-                self.monitor_positions()
-                
-                # Process signals for each pair
-                signals_processed = 0
-                trades_executed = 0
-                
-                for target_symbol in list(self.auto_trading_pairs):
-                    if not self.auto_trading_enabled:
-                        break
-                    try:
-                        # CRITICAL FIX: Resolve symbol to available variant
-                        actual_symbol = self.resolve_symbol(target_symbol)
-                        
-                        if not actual_symbol:
-                            self.logger.info(f"[ERR] No tradeable variant found for {target_symbol}")
-                            continue
-                        
-                        # Use the resolved symbol for data lookup
-                        if actual_symbol not in self.live_data:
-                            self.logger.info(f"[SEARCH] Fetching data for resolved symbol {actual_symbol}")
-                            try:
-                                symbol_data = self.get_symbol_data(actual_symbol)
-                                if symbol_data:
-                                    self.live_data[actual_symbol] = symbol_data
-                                    self.logger.info(f"[OK] Fetched data for {actual_symbol}")
-                                else:
-                                    self.logger.warning(f"[ERR] Failed to fetch data for {actual_symbol}")
-                                    continue
-                            except Exception as fetch_error:
-                                self.logger.error(f"Error fetching {actual_symbol}: {str(fetch_error)}")
-                                continue
-                        
-                        signal_data = self.live_data[actual_symbol]
-                        
-                        # Quick signal check
-                        if signal_data.get('signal', 'NONE') == 'NONE':
-                            self.logger.info(f"[CHART] {actual_symbol}: No signal")
-                            continue
-                        
-                        signals_processed += 1
-                        self.logger.info(f"[TARGET] Processing signal for {actual_symbol}: {signal_data.get('signal')}")
-                        
-                        # Check pair status (use actual symbol)
-                        pair_status = self.check_pair_trading_status(actual_symbol)
-                        if not pair_status['can_trade']:
-                            self.logger.info(f"[ERR] {actual_symbol}: {pair_status['reason']}")
-                            continue
-                        
-                        # Validate signal
-                        validation = self.validate_trading_signal(actual_symbol, signal_data)
-                        if not validation['valid']:
-                            # self.logger.info(f"[ERR] {actual_symbol}: Validation failed - {', '.join(validation['issues'])}")
-                            continue
-                        
-                        # Execute trade (use actual symbol)
-                        self.logger.info(f"[TARGET] Executing trade for {actual_symbol}: {signal_data.get('signal')}")
-                        result = self.execute_trade(actual_symbol, signal_data)
-                        
-                        if result['success']:
-                            trades_executed += 1
-                            self.logger.info(f"[OK] Trade executed: {actual_symbol} Ticket: {result['ticket']}")
-                        else:
-                            self.logger.warning(f"[ERR] Trade failed: {actual_symbol} - {result.get('error')}")
-                        
-                    except Exception as symbol_error:
-                        self.logger.error(f"Error processing {target_symbol}: {str(symbol_error)}")
-                        continue
-                
-                # Log iteration summary
-                if signals_processed > 0:
-                    self.logger.info(f"[CHART] Processed {signals_processed} signals, executed {trades_executed} trades")
-                else:
-                    self.logger.info(f"[CHART] No signals to process in this iteration")
-                
-                # Adaptive sleep
-                if trades_executed > 0:
-                    time.sleep(5)
-                elif signals_processed > 0:
-                    time.sleep(10)
-                else:
-                    time.sleep(15)
+def _safe_auto_trading_loop(self):
+    """Safe auto trading loop with symbol resolution - COMPLETED VERSION"""
+    self.logger.info("[GO] Auto trading loop started")
+    consecutive_errors = 0
+    max_consecutive_errors = 5
+    
+    while self.is_running and self.auto_trading_enabled and not self.emergency_stop:
+        try:
+            consecutive_errors = 0
+            
+            if not self.mt5_connected:
+                self.logger.warning("MT5 disconnected, attempting reconnect...")
+                if not self.connect_mt5():
+                    time.sleep(30)
+                    continue
+            
+            if not self.auto_trading_enabled:
+                self.logger.info("Auto trading disabled, stopping loop")
+                break
+            
+            # Monitor existing positions
+            self.monitor_positions()
+            
+            # Process signals for each pair
+            signals_processed = 0
+            trades_executed = 0
+            
+            for target_symbol in list(self.auto_trading_pairs):
+                try:
+                    # ⚠️ CRITICAL FIX: เติมโค้ดที่ขาดหาย
                     
-            except Exception as e:
-                consecutive_errors += 1
-                self.logger.error(f"[ERR] Auto trading loop error ({consecutive_errors}/{max_consecutive_errors}): {str(e)}")
+                    # 1. Resolve symbol
+                    actual_symbol = self.resolve_symbol(target_symbol)
+                    if not actual_symbol:
+                        continue
+                    
+                    # 2. Generate signal using enhanced engine
+                    signal_data = self.generate_enhanced_signal(actual_symbol)
+                    if not signal_data:
+                        continue
+                    
+                    signals_processed += 1
+                    
+                    # 3. Check if pair can be traded
+                    pair_status = self.check_pair_status(actual_symbol)
+                    if not pair_status['can_trade']:
+                        self.logger.info(f"[ERR] {actual_symbol}: {pair_status['reason']}")
+                        continue
+                    
+                    # 4. Validate signal
+                    validation = self.validate_trading_signal(actual_symbol, signal_data)
+                    if not validation['valid']:
+                        continue
+                    
+                    # 5. Execute trade
+                    self.logger.info(f"[TARGET] Executing trade for {actual_symbol}: {signal_data.get('signal')}")
+                    result = self.execute_trade(actual_symbol, signal_data)
+                    
+                    if result['success']:
+                        trades_executed += 1
+                        self.logger.info(f"[OK] Trade executed: {actual_symbol} Ticket: {result['ticket']}")
+                    else:
+                        self.logger.warning(f"[ERR] Trade failed: {actual_symbol} - {result.get('error')}")
+                    
+                except Exception as symbol_error:
+                    self.logger.error(f"Error processing {target_symbol}: {str(symbol_error)}")
+                    continue
+            
+            # Log iteration summary
+            if signals_processed > 0:
+                self.logger.info(f"[CHART] Processed {signals_processed} signals, executed {trades_executed} trades")
+            
+            # Adaptive sleep
+            if trades_executed > 0:
+                time.sleep(5)
+            elif signals_processed > 0:
+                time.sleep(10)
+            else:
+                time.sleep(15)
                 
-                if consecutive_errors >= max_consecutive_errors:
-                    self.logger.critical(f"[ALERT] Too many consecutive errors, stopping auto trading")
-                    self.auto_trading_enabled = False
-                    self.emergency_stop = True
-                    break
-                
-                sleep_time = min(60, 5 * (2 ** consecutive_errors))
-                self.logger.info(f"[TIME] Sleeping {sleep_time} seconds after error")
-                time.sleep(sleep_time)
-        
-        self.logger.info("[EMOJI] Auto trading loop stopped")
-        self.auto_trading_enabled = False
-        
+        except Exception as e:
+            consecutive_errors += 1
+            self.logger.error(f"[ERR] Auto trading loop error ({consecutive_errors}/{max_consecutive_errors}): {str(e)}")
+            
+            if consecutive_errors >= max_consecutive_errors:
+                self.logger.critical(f"[ALERT] Too many consecutive errors, stopping auto trading")
+                self.auto_trading_enabled = False
+                self.emergency_stop = True
+                break
+            
+            sleep_time = min(60, 5 * (2 ** consecutive_errors))
+            self.logger.info(f"[TIME] Sleeping {sleep_time} seconds after error")
+            time.sleep(sleep_time)
+    
+    self.logger.info("[EMOJI] Auto trading loop stopped")
+    self.auto_trading_enabled = False
+            
     def emergency_stop_all(self):
         """Emergency stop with position closure"""
         self.emergency_stop = True
@@ -5051,20 +4619,9 @@ class EnhancedSmartAutoTradingDashboard:
                 print("[STOP] Trailing Stop System: STOPPED")
 
     def calculate_trailing_stop(self, position, market_data):
-        """🔧 FIXED: Calculate trailing stop with improved parameters"""
+        """[TARGET] คำนวณ Trailing Stop สำหรับ position"""
         try:
-            # Auto-select profile based on market conditions
             symbol = position.symbol
-            optimal_profile = self.auto_select_trailing_profile(symbol, market_data)
-            
-            # ถ้าโปรไฟล์ที่แนะนำต่างจากปัจจุบัน ให้พิจารณาเปลี่ยน
-            if optimal_profile != self.current_trailing_profile:
-                print(f"[TRAIL] Auto-switching to {optimal_profile} profile for {symbol}")
-                # สามารถเปลี่ยนอัตโนมัติหรือแค่แนะนำ
-                
-            # ใช้โปรไฟล์ที่เลือก
-            profile = self.trailing_profiles[optimal_profile]
-            
             ticket = position.ticket
             position_type = position.type
             entry_price = position.price_open
@@ -5076,29 +4633,19 @@ class EnhancedSmartAutoTradingDashboard:
             if atr <= 0:
                 atr = abs(current_price - entry_price) * 0.01
                 
+            # Get profile settings
+            profile = self.trailing_profiles[self.current_trailing_profile]
+            
             # Initialize position state
             if ticket not in self.trailing_position_states:
                 self.trailing_position_states[ticket] = {
                     'highest_price': current_price if position_type == 0 else entry_price,
                     'lowest_price': current_price if position_type == 1 else entry_price,
                     'breakeven_activated': False,
-                    'trail_count': 0,
-                    'last_update_time': datetime.now(),
-                    'profile_used': optimal_profile
+                    'trail_count': 0
                 }
             
             state = self.trailing_position_states[ticket]
-            
-            # 🔧 FIX: เพิ่มการตรวจสอบเวลา (throttling)
-            time_since_last = (datetime.now() - state['last_update_time']).total_seconds()
-            min_interval = profile.get('update_frequency', 12)
-            
-            if time_since_last < min_interval:
-                return {
-                    'should_update': False,
-                    'trail_reason': 'THROTTLED',
-                    'wait_seconds': int(min_interval - time_since_last)
-                }
             
             # Calculate profit
             if position_type == 0:  # BUY
@@ -5117,50 +4664,33 @@ class EnhancedSmartAutoTradingDashboard:
             should_update = False
             trail_reason = "NO_UPDATE"
             
-            # 🔧 FIX: Breakeven protection - รอนานขึ้น
-            breakeven_trigger = profile['breakeven_trigger_atr']
-            
+            # Breakeven protection
             if (not state['breakeven_activated'] and 
-                profit_atr >= breakeven_trigger):
+                profit_atr >= profile['breakeven_trigger_atr']):
                 
-                # 🔧 FIX: เพิ่ม buffer จาก entry price
-                buffer = atr * 0.8  # เพิ่ม buffer
-                new_sl = entry_price + (buffer if position_type == 0 else -buffer)
+                new_sl = entry_price + (0.0001 if position_type == 0 else -0.0001)
                 state['breakeven_activated'] = True
-                state['last_update_time'] = datetime.now()
                 should_update = True
                 trail_reason = "BREAKEVEN_PROTECTION"
                 
-            # 🔧 FIX: Dynamic trailing - ช้าลงและกว้างขึ้น
-            elif state['breakeven_activated'] or profit_atr >= breakeven_trigger:
+            # Dynamic trailing
+            elif state['breakeven_activated'] or profit_atr >= profile['breakeven_trigger_atr']:
                 trail_distance = profile['min_trail_distance_atr'] * atr
-                
-                # 🔧 FIX: เพิ่ม Trend และ Volatility multipliers
-                trend_strength = market_data.get('trend_strength', 0.5)
-                if trend_strength > 0.7:
-                    trail_distance *= 1.8  # เพิ่มระยะเมื่อ trend แข็งแกร่ง
-                elif trend_strength > 0.5:
-                    trail_distance *= 1.4
-                
-                # เพิ่ม minimum improvement requirement
-                min_improvement = atr * 0.5  # ต้องดีขึ้นอย่างน้อย 0.5 ATR
                 
                 if position_type == 0:  # BUY
                     calculated_sl = reference_price - trail_distance
-                    if calculated_sl > current_sl + min_improvement:
+                    if calculated_sl > current_sl:
                         new_sl = calculated_sl
                         should_update = True
                         trail_reason = "TRAILING_UP"
                         state['trail_count'] += 1
-                        state['last_update_time'] = datetime.now()
                 else:  # SELL
                     calculated_sl = reference_price + trail_distance
-                    if current_sl == 0 or calculated_sl < current_sl - min_improvement:
+                    if current_sl == 0 or calculated_sl < current_sl:
                         new_sl = calculated_sl
                         should_update = True
                         trail_reason = "TRAILING_DOWN"
                         state['trail_count'] += 1
-                        state['last_update_time'] = datetime.now()
             
             return {
                 'should_update': should_update,
@@ -5168,24 +4698,13 @@ class EnhancedSmartAutoTradingDashboard:
                 'trail_reason': trail_reason,
                 'profit_atr': round(profit_atr, 2),
                 'breakeven_activated': state['breakeven_activated'],
-                'trail_count': state['trail_count'],
-                'profile_used': optimal_profile,
-                'trail_distance_pips': self.convert_to_pips(abs(new_sl - current_price), symbol) if should_update else 0
+                'trail_count': state['trail_count']
             }
             
         except Exception as e:
-            self.logger.error(f"Error calculating trailing stop: {str(e)}")
+            print(f"[ERR] Error calculating trailing stop: {str(e)}")
             return {'should_update': False, 'error': str(e)}
 
-    def convert_to_pips(self, price_distance, symbol):
-        """แปลงระยะราคาเป็น Pips"""
-        if 'JPY' in symbol:
-            return round(price_distance * 100, 1)
-        elif 'XAU' in symbol:
-            return round(price_distance * 10, 1)
-        else:
-            return round(price_distance * 10000, 1)
-        
     def update_position_trailing_stop(self, ticket, new_sl, symbol):
         """[TARGET] อัพเดท Stop Loss ใน MT5"""
         try:
@@ -5262,74 +4781,6 @@ class EnhancedSmartAutoTradingDashboard:
         except Exception as e:
             print(f"[ERR] Error processing trailing stops: {str(e)}")
 
-    def start_pullback_monitoring(self):
-        """🔧 NEW: เริ่มระบบ monitor pullback protection"""
-        try:
-            if not hasattr(self, 'pullback_protection') or not self.pullback_protection:
-                return False
-            
-            def pullback_monitoring_loop():
-                """Background loop สำหรับ monitor pullback protection"""
-                while self.is_running and getattr(self, 'pullback_monitoring_enabled', True):
-                    try:
-                        # ตรวจสอบ waiting positions ทุก 30 วินาที
-                        time.sleep(30)
-                        
-                        if hasattr(self, 'pullback_protection') and self.pullback_protection:
-                            current_time = datetime.now()
-                            
-                            # ตรวจสอบ timeout positions
-                            expired_positions = []
-                            for symbol, waiting_data in self.pullback_protection.waiting_positions.items():
-                                if current_time >= waiting_data['timeout_time']:
-                                    expired_positions.append(symbol)
-                            
-                            # ลบ positions ที่หมดเวลา
-                            for symbol in expired_positions:
-                                self.pullback_protection._remove_waiting_position(symbol, 'TIMEOUT')
-                                self.pullback_protection.statistics['timeout_expired'] += 1
-                                print(f"⏰ {symbol}: Timeout expired, removed from waiting list")
-                            
-                            # ตรวจสอบ recovery สำหรับ waiting positions
-                            for symbol in list(self.pullback_protection.waiting_positions.keys()):
-                                try:
-                                    # ดึงข้อมูลตลาดปัจจุบัน
-                                    current_market_data = self.get_current_indicators(symbol)
-                                    if current_market_data:
-                                        recovery_check = self.pullback_protection.check_pullback_recovery(
-                                            symbol, current_market_data
-                                        )
-                                        
-                                        if recovery_check.get('ready_to_trade', False):
-                                            print(f"✅ {symbol}: Pullback recovered, ready to trade")
-                                            
-                                except Exception as e:
-                                    self.logger.error(f"Error checking recovery for {symbol}: {str(e)}")
-                            
-                            # ทำความสะอาด database
-                            if hasattr(self.pullback_protection, 'cleanup_old_records'):
-                                self.pullback_protection.cleanup_old_records()
-                        
-                    except Exception as e:
-                        self.logger.error(f"Error in pullback monitoring loop: {str(e)}")
-                        time.sleep(60)  # รอนานขึ้นเมื่อมี error
-            
-            # เริ่ม monitoring thread
-            self.pullback_monitoring_enabled = True
-            self.pullback_monitoring_thread = threading.Thread(
-                target=pullback_monitoring_loop,
-                daemon=True,
-                name="PullbackMonitoringThread"
-            )
-            self.pullback_monitoring_thread.start()
-            
-            print("[OK] Pullback monitoring started")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error starting pullback monitoring: {str(e)}")
-            return False
-
     def get_trailing_dashboard_data(self):
         """[CHART] ข้อมูลสำหรับ Dashboard"""
         try:
@@ -5368,400 +4819,7 @@ class EnhancedSmartAutoTradingDashboard:
         except Exception as e:
             print(f"[ERR] Error getting dashboard data: {str(e)}")
             return {'error': str(e)}
-    
-    def auto_trading_loop(self):
-        """Main auto trading loop - FIXED VERSION"""
-        try:
-            print("[GO] Auto trading loop started")
-            self.trade_logger.info("=== AUTO TRADING LOOP STARTED ===")
-            
-            consecutive_errors = 0
-            max_consecutive_errors = 5
-            
-            while self.auto_trading_enabled and self.is_running and not self.emergency_stop:
-                try:
-                    # Reset error counter on successful iteration
-                    consecutive_errors = 0
-                    
-                    # Check if we should continue
-                    if not self.auto_trading_enabled or self.emergency_stop:
-                        break
-                    
-                    # ตรวจสอบการเชื่อมต่อ MT5
-                    if not self.mt5_connected:
-                        print("[WARN] MT5 not connected, attempting reconnection...")
-                        if not self.connect_mt5():
-                            print("[ERR] Failed to reconnect MT5")
-                            time.sleep(30)
-                            continue
-                    
-                    # ตรวจสอบ forex pairs
-                    if not hasattr(self, 'forex_pairs') or not self.forex_pairs:
-                        print("[WARN] No forex pairs available")
-                        time.sleep(30)
-                        continue
-                    
-                    print(f"[LOOP] Processing {len(self.forex_pairs)} pairs...")
-                    
-                    # วนลูปตรวจสอบแต่ละ pair
-                    for symbol in self.forex_pairs:
-                        try:
-                            if not self.auto_trading_enabled or self.emergency_stop:
-                                break
-                            
-                            # ตรวจสอบว่า pair พร้อมเทรดหรือไม่
-                            pair_status = self.check_pair_trading_status(symbol)
-                            if not pair_status.get('can_trade', False):
-                                continue
-                            
-                            # ดึงข้อมูล signal
-                            signal_data = self.get_symbol_data(symbol)
-                            if not signal_data or signal_data.get('signal') == 'NONE':
-                                continue
-                            
-                            # ตรวจสอบ signal validation
-                            validation_result = self.validate_trading_signal(symbol, signal_data)
-                            if not validation_result.get('valid', False):
-                                print(f"[SKIP] {symbol}: Signal validation failed")
-                                continue
-                            
-                            # ตรวจสอบ portfolio risk
-                            if not self.check_portfolio_risk():
-                                print(f"[SKIP] Portfolio risk limit reached")
-                                break
-                            
-                            # Execute trade
-                            print(f"[TRADE] Attempting to execute trade for {symbol}")
-                            trade_result = self.execute_auto_trade(symbol, signal_data)
-                            
-                            if trade_result.get('success', False):
-                                print(f"[OK] Trade executed for {symbol}")
-                                # รอสักครู่หลังจาก execute trade
-                                time.sleep(5)
-                            else:
-                                print(f"[FAIL] Trade execution failed for {symbol}: {trade_result.get('error', 'Unknown error')}")
-                            
-                            # หน่วงเวลาระหว่าง pair
-                            time.sleep(2)
-                            
-                        except Exception as pair_error:
-                            print(f"[ERR] Error processing {symbol}: {str(pair_error)}")
-                            continue
-                    
-                    # Update trailing stops for existing positions
-                    try:
-                        if hasattr(self, 'update_trailing_stops'):
-                            self.update_trailing_stops()
-                    except Exception as trailing_error:
-                        print(f"[WARN] Trailing stop update error: {str(trailing_error)}")
-                    
-                    # บันทึกข้อมูล
-                    try:
-                        if hasattr(self, 'save_system_settings'):
-                            self.save_system_settings()
-                    except Exception as save_error:
-                        print(f"[WARN] Save settings error: {str(save_error)}")
-                    
-                    # หน่วงเวลาก่อนรอบถัดไป
-                    print(f"[LOOP] Cycle completed, waiting 30 seconds...")
-                    time.sleep(30)
-                    
-                except Exception as e:
-                    consecutive_errors += 1
-                    print(f"[ERR] Auto trading loop error ({consecutive_errors}/{max_consecutive_errors}): {str(e)}")
-                    
-                    if consecutive_errors >= max_consecutive_errors:
-                        print(f"[ALERT] Too many consecutive errors, stopping auto trading")
-                        self.auto_trading_enabled = False
-                        self.emergency_stop = True
-                        break
-                    
-                    # Exponential backoff on errors
-                    sleep_time = min(60, 5 * (2 ** consecutive_errors))
-                    print(f"[TIME] Sleeping {sleep_time} seconds after error")
-                    time.sleep(sleep_time)
-            
-        except Exception as critical_error:
-            print(f"[CRITICAL] Critical error in auto trading loop: {str(critical_error)}")
-            self.auto_trading_enabled = False
-            
-        finally:
-            print("[STOP] Auto trading loop stopped")
-            self.auto_trading_enabled = False
-            self.trade_logger.info("=== AUTO TRADING LOOP STOPPED ===")
 
-    def check_pair_trading_status(self, symbol):
-        """ตรวจสอบสถานะการเทรดของ pair"""
-        try:
-            # ตรวจสอบว่ามี active trade อยู่หรือไม่
-            if hasattr(self, 'active_trades_per_pair'):
-                active_trades = self.active_trades_per_pair.get(symbol, [])
-                if len(active_trades) > 0 and getattr(self, 'one_trade_per_pair', True):
-                    return {
-                        'can_trade': False,
-                        'reason': f'Already has {len(active_trades)} active trades'
-                    }
-            
-            # ตรวจสอบ cooldown
-            if hasattr(self, 'trade_cooldowns'):
-                cooldown_until = self.trade_cooldowns.get(symbol)
-                if cooldown_until and datetime.now() < cooldown_until:
-                    return {
-                        'can_trade': False,
-                        'reason': f'In cooldown until {cooldown_until.strftime("%H:%M:%S")}'
-                    }
-            
-            return {'can_trade': True, 'reason': 'Ready to trade'}
-            
-        except Exception as e:
-            print(f"[ERR] Error checking pair status for {symbol}: {str(e)}")
-            return {'can_trade': False, 'reason': f'Status check error: {str(e)}'}
-    
-    def execute_auto_trade(self, symbol, signal_data):
-        """Execute automatic trade - REAL MODE with Multiple Filling Types"""
-        try:
-            signal = signal_data.get('signal', 'NONE')
-            if signal == 'NONE':
-                return {'success': False, 'error': 'No valid signal'}
-            
-            # ดึงข้อมูลที่จำเป็น
-            entry_price = signal_data.get('optimal_entry', 0)
-            stop_loss = signal_data.get('stop_loss', 0)
-            take_profit = signal_data.get('take_profit_1', 0)
-            lot_size = signal_data.get('lot_size', 0.01)
-            
-            if entry_price <= 0 or stop_loss <= 0:
-                return {'success': False, 'error': 'Invalid price levels'}
-            
-            # Map เป็น MT5 order type
-            if signal in ['BUY', 'STRONG_BUY']:
-                order_type = mt5.ORDER_TYPE_BUY
-                price = mt5.symbol_info_tick(symbol).ask
-            elif signal in ['SELL', 'STRONG_SELL']:
-                order_type = mt5.ORDER_TYPE_SELL
-                price = mt5.symbol_info_tick(symbol).bid
-            else:
-                return {'success': False, 'error': f'Unknown signal: {signal}'}
-            
-            print(f"[TRADE] Executing REAL {signal} for {symbol}")
-            print(f"        Price: {price}, SL: {stop_loss}, TP: {take_profit}")
-            print(f"        Lot Size: {lot_size}")
-            
-            # 🔧 ลำดับ Filling Types ที่จะลอง
-            filling_types = [
-                mt5.ORDER_FILLING_FOK,    # Fill or Kill (เติมทั้งหมดหรือยกเลิก)
-                mt5.ORDER_FILLING_IOC,    # Immediate or Cancel (เติมทันทีหรือยกเลิก)
-                mt5.ORDER_FILLING_RETURN  # Return (เติมบางส่วนได้)
-            ]
-            
-            filling_names = {
-                mt5.ORDER_FILLING_FOK: "FOK (Fill or Kill)",
-                mt5.ORDER_FILLING_IOC: "IOC (Immediate or Cancel)", 
-                mt5.ORDER_FILLING_RETURN: "RETURN (Partial Fill OK)"
-            }
-            
-            # ลองแต่ละ filling type
-            last_error = None
-            
-            for filling_type in filling_types:
-                try:
-                    print(f"[ATTEMPT] Trying {filling_names[filling_type]}...")
-                    
-                    # สร้าง order request
-                    request = {
-                        "action": mt5.TRADE_ACTION_DEAL,
-                        "symbol": symbol,
-                        "volume": lot_size,
-                        "type": order_type,
-                        "price": price,
-                        "sl": stop_loss,
-                        "tp": take_profit,
-                        "deviation": 20,
-                        "magic": 12345,
-                        "comment": f"Auto Trade - {signal}",
-                        "type_time": mt5.ORDER_TIME_GTC,
-                        "type_filling": filling_type,
-                    }
-                    
-                    # ส่ง order
-                    result = mt5.order_send(request)
-                    
-                    if result.retcode == mt5.TRADE_RETCODE_DONE:
-                        # สำเร็จ!
-                        print(f"[SUCCESS] Order successful with {filling_names[filling_type]}")
-                        print(f"          Order ID: {result.order}")
-                        print(f"          Deal ID: {result.deal}")
-                        print(f"          Fill Price: {result.price}")
-                        
-                        # อัพเดต tracking
-                        if symbol not in self.active_trades_per_pair:
-                            self.active_trades_per_pair[symbol] = []
-                        
-                        self.active_trades_per_pair[symbol].append({
-                            'ticket': result.order,
-                            'deal': result.deal,
-                            'symbol': symbol,
-                            'type': order_type,
-                            'volume': result.volume,
-                            'price': result.price,
-                            'time': datetime.now().isoformat(),
-                            'filling_type': filling_names[filling_type]
-                        })
-                        
-                        self.pair_trade_status[symbol] = 'TRADING'
-                        
-                        # อัพเดตสถิติ
-                        if hasattr(self, 'daily_stats'):
-                            self.daily_stats['trades_executed'] = self.daily_stats.get('trades_executed', 0) + 1
-                        
-                        return {
-                            'success': True,
-                            'message': f'REAL trade executed for {symbol}',
-                            'order_id': result.order,
-                            'deal_id': result.deal,
-                            'price': result.price,
-                            'volume': result.volume,
-                            'signal': signal,
-                            'symbol': symbol,
-                            'filling_type': filling_names[filling_type]
-                        }
-                    
-                    else:
-                        # ล้มเหลว ลองต่อ
-                        error_msg = f"{filling_names[filling_type]} failed: {result.retcode} - {result.comment}"
-                        print(f"[FAIL] {error_msg}")
-                        last_error = error_msg
-                        
-                        # หน่วงเวลาสั้นๆ ก่อนลองต่อ
-                        time.sleep(0.1)
-                        
-                except Exception as filling_error:
-                    error_msg = f"{filling_names[filling_type]} exception: {str(filling_error)}"
-                    print(f"[ERROR] {error_msg}")
-                    last_error = error_msg
-                    continue
-            
-            # ถ้าทุก filling type ล้มเหลว
-            final_error = f"All filling types failed. Last error: {last_error}"
-            print(f"[FINAL_ERROR] {final_error}")
-            
-            return {
-                'success': False, 
-                'error': final_error,
-                'symbol': symbol,
-                'attempted_filling_types': list(filling_names.values())
-            }
-            
-        except Exception as e:
-            error_msg = f"Trade execution error: {str(e)}"
-            print(f"[ERR] {error_msg}")
-            return {'success': False, 'error': error_msg, 'symbol': symbol}
-
-    # 🔧 เพิ่ม function สำหรับตรวจสอบ Symbol Info
-    def check_symbol_filling_modes(self, symbol):
-        """ตรวจสอบ filling modes ที่ symbol รองรับ"""
-        try:
-            symbol_info = mt5.symbol_info(symbol)
-            if symbol_info is None:
-                return None
-            
-            filling_mode = symbol_info.filling_mode
-            
-            supported_modes = []
-            if filling_mode & 1:  # FOK
-                supported_modes.append("FOK")
-            if filling_mode & 2:  # IOC  
-                supported_modes.append("IOC")
-            if filling_mode & 4:  # Return
-                supported_modes.append("RETURN")
-            
-            print(f"[INFO] {symbol} supports filling modes: {supported_modes}")
-            return supported_modes
-            
-        except Exception as e:
-            print(f"[ERR] Error checking filling modes for {symbol}: {str(e)}")
-            return None
-
-    # 🔧 เพิ่ม Enhanced Order Execution ที่ตรวจสอบ Symbol Info ก่อน
-    def execute_auto_trade_enhanced(self, symbol, signal_data):
-        """Enhanced trade execution with symbol-specific filling modes"""
-        try:
-            # ตรวจสอบ filling modes ที่รองรับ
-            supported_modes = self.check_symbol_filling_modes(symbol)
-            
-            if supported_modes:
-                print(f"[INFO] {symbol} supports: {supported_modes}")
-            
-            # เรียกใช้ execute_auto_trade ปกติ
-            return self.execute_auto_trade(symbol, signal_data)
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e), 'symbol': symbol}
-    
-    def check_portfolio_risk(self):
-        """ตรวจสอบ portfolio risk"""
-        try:
-            # ตรวจสอบ total exposure
-            total_exposure = 0
-            max_exposure = getattr(self, 'max_total_exposure', 0.06)  # 6%
-            
-            if hasattr(self, 'active_trades_per_pair'):
-                for trades in self.active_trades_per_pair.values():
-                    total_exposure += len(trades) * 0.015  # สมมติ 1.5% per trade
-            
-            if total_exposure >= max_exposure:
-                return False
-            
-            # ตรวจสอบ daily loss
-            if hasattr(self, 'daily_stats'):
-                daily_pnl = self.daily_stats.get('total_pnl', 0)
-                max_daily_loss = getattr(self, 'max_daily_loss', 0.04) * getattr(self, 'account_balance', 10000)
-                
-                if daily_pnl <= -max_daily_loss:
-                    return False
-            
-            return True
-            
-        except Exception as e:
-            print(f"[ERR] Portfolio risk check error: {str(e)}")
-            return False
-
-        """Execute automatic trade"""
-        try:
-            signal = signal_data.get('signal', 'NONE')
-            if signal == 'NONE':
-                return {'success': False, 'error': 'No valid signal'}
-            
-            # สำหรับตอนนี้ใช้ dummy trade execution
-            print(f"[TRADE] Would execute {signal} for {symbol}")
-            print(f"        Signal strength: {signal_data.get('strength', 0)}/10")
-            print(f"        Entry quality: {signal_data.get('entry_quality', 'UNKNOWN')}")
-            
-            # Simulate trade execution
-            if hasattr(self, 'daily_stats'):
-                self.daily_stats['trades_executed'] = self.daily_stats.get('trades_executed', 0) + 1
-            
-            # Add to active trades tracking
-            if hasattr(self, 'active_trades_per_pair'):
-                if symbol not in self.active_trades_per_pair:
-                    self.active_trades_per_pair[symbol] = []
-                # Add dummy trade ID
-                self.active_trades_per_pair[symbol].append(f"DUMMY_{int(time.time())}")
-            
-            return {
-                'success': True,
-                'message': f'Trade executed for {symbol}',
-                'signal': signal,
-                'symbol': symbol
-            }
-            
-        except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'symbol': symbol
-            }
-    
     def run(self, host='0.0.0.0', port=5000):
         """Run the enhanced auto trading dashboard"""
         try:
