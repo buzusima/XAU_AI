@@ -1,4 +1,13 @@
-import MetaTrader5 as mt5
+# quick_fix_balance.py
+"""
+Quick fix สำหรับปัญหา Balance = $0.00
+แก้ risk_manager.py ให้อ่าน balance จาก bridge ได้
+"""
+
+def fix_risk_manager():
+    """แก้ไขไฟล์ risk_manager.py"""
+    
+    risk_manager_content = '''import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, time
@@ -602,3 +611,15 @@ class RiskManager:
             "timestamp": datetime.now(),
             "risk_level": self.risk_level.value
         }
+'''
+
+    # เขียนไฟล์ใหม่
+    with open('risk_manager.py', 'w', encoding='utf-8') as f:
+        f.write(risk_manager_content)
+    
+    print("✅ risk_manager.py ได้รับการแก้ไขแล้ว")
+
+if __name__ == "__main__":
+    print("🔧 กำลังแก้ไข risk_manager.py...")
+    fix_risk_manager()
+    print("✅ เสร็จสิ้น! กลับไปรัน ea_simulator_integration.py ใหม่")

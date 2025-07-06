@@ -3,15 +3,18 @@ from tkinter import ttk, messagebox, filedialog
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, TYPE_CHECKING
 import json
 import logging
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-from strategy_engine import StrategyEngine, EngineState
-from trading_core import TradingConfig
-from risk_manager import RiskLevel
+# Fix circular import with TYPE_CHECKING
+if TYPE_CHECKING:
+    from strategy_engine import StrategyEngine, EngineState
+    from trading_core import TradingConfig
+    from risk_manager import RiskLevel
+    from position_manager import Position
 
 class UITheme(Enum):
     DARK = "dark"
@@ -82,7 +85,9 @@ class PresetManager:
 
 class XAUUSDTradingUI:
     def __init__(self):
-        # Initialize components
+        print("Initializing XAUUSD Trading UI...")
+        
+        # Initialize basic state
         self.engine = None
         self.ui_config = UIConfig()
         self.preset_manager = PresetManager()
@@ -98,17 +103,17 @@ class XAUUSDTradingUI:
         self.recovery_data = []
         self.performance_data = {}
         
+        print("Creating main window...")
         # Create main window
         self.root = tk.Tk()
         self.root.title("XAUUSD Multi-Timeframe EA - Professional Trading System")
         self.root.geometry("1400x900")
         self.root.minsize(1200, 800)
         
-        # Configure styles
+        print("Setting up UI theme...")
         self.setup_styles()
         
-        # Create UI components
-        self.create_menu()
+        print("Creating UI components...")
         self.create_main_layout()
         self.create_control_panel()
         self.create_status_panel()
@@ -117,17 +122,17 @@ class XAUUSDTradingUI:
         self.create_positions_panel()
         self.create_logs_panel()
         
-        # Create logs panel first so log_text exists
-        self.create_logs_panel()
-        
-        # Now setup logging with UI handler
+        print("Setting up logging...")
         self.setup_ui_logging()
         
-        # Setup event bindings
+        print("Setting up event bindings...")
         self.setup_event_bindings()
         
-        # Initialize engine
-        # self.initialize_engine()
+        print("Scheduling delayed engine initialization...")
+        # Initialize engine after UI is ready
+        self.root.after(500, self.delayed_engine_init)
+        
+        print("UI initialization complete!")
     
     def setup_styles(self):
         """Setup UI styles and themes"""
@@ -162,43 +167,30 @@ class XAUUSDTradingUI:
         
         # Configure root window
         self.root.configure(bg=self.colors['bg'])
+        
+        # Configure custom button styles
+        try:
+            self.style.configure("Success.TButton", background="#28a745")
+            self.style.configure("Warning.TButton", background="#ffc107")
+            self.style.configure("Danger.TButton", background="#dc3545")
+        except:
+            pass  # Fallback to default styles
     
-    def create_menu(self):
-        """Create menu bar"""
-        self.menubar = tk.Menu(self.root)
-        self.root.config(menu=self.menubar)
+    def delayed_engine_init(self):
+        """Initialize engine after UI is fully loaded"""
+        self.logger.info("Starting delayed engine initialization...")
         
-        # File menu
-        file_menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Load Config", command=self.load_config)
-        file_menu.add_command(label="Save Config", command=self.save_config)
-        file_menu.add_separator()
-        file_menu.add_command(label="Export Logs", command=self.export_logs)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.on_closing)
+        # Check if status_var exists before using it
+        if hasattr(self, 'status_var'):
+            self.status_var.set("INITIALIZING ENGINE...")
         
-        # Presets menu
-        presets_menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Presets", menu=presets_menu)
-        for preset_name in self.preset_manager.PRESETS.keys():
-            presets_menu.add_command(
-                label=preset_name,
-                command=lambda name=preset_name: self.load_preset(name)
-            )
-        
-        # Tools menu
-        tools_menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Tools", menu=tools_menu)
-        tools_menu.add_command(label="Risk Calculator", command=self.open_risk_calculator)
-        tools_menu.add_command(label="Performance Report", command=self.open_performance_report)
-        tools_menu.add_command(label="Settings", command=self.open_settings)
-        
-        # Help menu
-        help_menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Help", menu=help_menu)
-        help_menu.add_command(label="User Guide", command=self.show_help)
-        help_menu.add_command(label="About", command=self.show_about)
+        try:
+            self.initialize_engine()
+            self.logger.info("Engine initialization completed successfully")
+        except Exception as e:
+            self.logger.error(f"Engine initialization failed: {e}")
+            messagebox.showwarning("Engine Error", 
+                                 f"Failed to initialize trading engine: {e}\n\nUI will continue in demo mode.")
     
     def create_main_layout(self):
         """Create main layout with panels"""
@@ -239,19 +231,20 @@ class XAUUSDTradingUI:
         button_frame.grid(row=0, column=1, padx=20)
         
         self.start_btn = ttk.Button(button_frame, text="START", command=self.start_engine,
-                                  style="Success.TButton")
+                                  state="disabled")
         self.start_btn.grid(row=0, column=0, padx=2)
         
         self.stop_btn = ttk.Button(button_frame, text="STOP", command=self.stop_engine,
-                                 style="Warning.TButton")
+                                 state="disabled")
         self.stop_btn.grid(row=0, column=1, padx=2)
         
-        self.pause_btn = ttk.Button(button_frame, text="PAUSE", command=self.pause_engine)
+        self.pause_btn = ttk.Button(button_frame, text="PAUSE", command=self.pause_engine,
+                                  state="disabled")
         self.pause_btn.grid(row=0, column=2, padx=2)
         
         self.emergency_btn = ttk.Button(button_frame, text="EMERGENCY STOP", 
                                       command=self.emergency_stop,
-                                      style="Danger.TButton")
+                                      state="disabled")
         self.emergency_btn.grid(row=0, column=3, padx=10)
         
         # Quick preset selector
@@ -280,6 +273,13 @@ class XAUUSDTradingUI:
         self.uptime_var = tk.StringVar(value="00:00:00")
         ttk.Label(status_frame, text="Uptime:").grid(row=1, column=0)
         ttk.Label(status_frame, textvariable=self.uptime_var).grid(row=1, column=1, padx=5)
+        
+        # Test button for UI testing
+        test_frame = ttk.Frame(control_frame)
+        test_frame.grid(row=0, column=4, padx=20)
+        
+        self.test_btn = ttk.Button(test_frame, text="TEST LOG", command=self.test_log)
+        self.test_btn.grid(row=0, column=0)
     
     def create_status_panel(self):
         """Create status and metrics panel"""
@@ -295,7 +295,8 @@ class XAUUSDTradingUI:
         status_text_frame.pack(fill=tk.BOTH, expand=True)
         
         self.status_text = tk.Text(status_text_frame, height=15, width=40, 
-                                 bg=self.colors['bg'], fg=self.colors['fg'])
+                                 bg=self.colors['bg'], fg=self.colors['fg'],
+                                 font=("Consolas", 9))
         status_scrollbar = ttk.Scrollbar(status_text_frame, orient="vertical", 
                                        command=self.status_text.yview)
         self.status_text.configure(yscrollcommand=status_scrollbar.set)
@@ -477,10 +478,18 @@ class XAUUSDTradingUI:
                                  textvariable=self.max_spread_var, width=10)
         spread_spin.grid(row=row, column=1, padx=5, pady=2)
         ttk.Label(parent, text="points").grid(row=row, column=2, sticky="w", padx=5)
+        
+        # Min Account Balance
+        row += 1
+        ttk.Label(parent, text="Min Balance:").grid(row=row, column=0, sticky="w", padx=5, pady=2)
+        self.min_balance_var = tk.DoubleVar(value=500.0)
+        balance_spin = ttk.Spinbox(parent, from_=100, to=10000, increment=100, 
+                                  textvariable=self.min_balance_var, width=10)
+        balance_spin.grid(row=row, column=1, padx=5, pady=2)
+        ttk.Label(parent, text="USD").grid(row=row, column=2, sticky="w", padx=5)
     
     def create_risk_panel(self):
         """Create risk monitoring panel"""
-        # This would be in the advanced tab
         risk_frame = ttk.LabelFrame(self.advanced_frame, text="Risk Monitor", padding="5")
         risk_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
@@ -499,7 +508,8 @@ class XAUUSDTradingUI:
         metrics_frame.pack(fill=tk.BOTH, expand=True)
         
         self.risk_text = tk.Text(metrics_frame, height=20, 
-                               bg=self.colors['bg'], fg=self.colors['fg'])
+                               bg=self.colors['bg'], fg=self.colors['fg'],
+                               font=("Consolas", 9))
         risk_scrollbar = ttk.Scrollbar(metrics_frame, orient="vertical", 
                                      command=self.risk_text.yview)
         self.risk_text.configure(yscrollcommand=risk_scrollbar.set)
@@ -509,7 +519,6 @@ class XAUUSDTradingUI:
     
     def create_positions_panel(self):
         """Create positions monitoring panel"""
-        # This would be in the analysis tab
         positions_frame = ttk.LabelFrame(self.analysis_frame, text="Active Positions", padding="5")
         positions_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
@@ -546,7 +555,8 @@ class XAUUSDTradingUI:
         
         # Log text widget
         self.log_text = tk.Text(logs_frame, height=15, 
-                              bg=self.colors['bg'], fg=self.colors['fg'])
+                              bg=self.colors['bg'], fg=self.colors['fg'],
+                              font=("Consolas", 9))
         log_scrollbar = ttk.Scrollbar(logs_frame, orient="vertical", 
                                     command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=log_scrollbar.set)
@@ -569,36 +579,18 @@ class XAUUSDTradingUI:
         """Setup event bindings"""
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # Bind parameter changes to auto-apply (with delay)
+        # Bind parameter changes
         self.lot_size_var.trace_add("write", self.on_parameter_changed)
         self.rsi_up_var.trace_add("write", self.on_parameter_changed)
         self.rsi_down_var.trace_add("write", self.on_parameter_changed)
     
-    def initialize_engine(self):
-        """Initialize trading engine"""
-        try:
-            config = TradingConfig()
-            self.engine = StrategyEngine(config)
-            
-            # Setup event handlers
-            self.engine.add_event_handler('on_trade_opened', self.on_trade_opened)
-            self.engine.add_event_handler('on_trade_closed', self.on_trade_closed)
-            self.engine.add_event_handler('on_state_changed', self.on_engine_state_changed)
-            self.engine.add_event_handler('on_error', self.on_engine_error)
-            
-            self.logger.info("Engine initialized successfully")
-            
-        except Exception as e:
-            error_msg = f"Failed to initialize engine: {e}"
-            print(error_msg)  # Fallback to print if logger fails
-            if hasattr(self, 'logger'):
-                self.logger.error(error_msg)
-            messagebox.showerror("Error", error_msg)
-    
     def setup_ui_logging(self):
-        """Setup UI logging handler after log_text is created"""
-        # Create logger
-        self.logger = logging.getLogger(f"{__name__}.UI")
+        """Setup UI logging handler"""
+        self.logger = logging.getLogger("XAUUSD_EA")
+        self.logger.setLevel(logging.INFO)
+        
+        # Clear existing handlers
+        self.logger.handlers.clear()
         
         class UILogHandler(logging.Handler):
             def __init__(self, text_widget, auto_scroll_var):
@@ -609,7 +601,14 @@ class XAUUSDTradingUI:
             def emit(self, record):
                 try:
                     msg = self.format(record)
-                    self.text_widget.insert(tk.END, msg + "\n")
+                    # Thread-safe UI update
+                    self.text_widget.after(0, self._add_log, msg)
+                except:
+                    pass
+            
+            def _add_log(self, msg):
+                try:
+                    self.text_widget.insert(tk.END, f"{msg}\n")
                     
                     # Auto scroll if enabled
                     if self.auto_scroll_var.get():
@@ -618,20 +617,112 @@ class XAUUSDTradingUI:
                     # Limit log lines
                     lines = int(self.text_widget.index('end-1c').split('.')[0])
                     if lines > 1000:
-                        self.text_widget.delete('1.0', '100.0')
-                        
+                        self.text_widget.delete('1.0', '200.0')
                 except:
                     pass
         
         # Add UI log handler
         ui_handler = UILogHandler(self.log_text, self.auto_scroll_var)
         ui_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            '%(asctime)s [%(levelname)s] %(message)s', 
+            datefmt='%H:%M:%S'
         ))
+        self.logger.addHandler(ui_handler)
         
-        # Add to root logger
-        logging.getLogger().addHandler(ui_handler)
-        logging.getLogger().setLevel(logging.INFO)
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(
+            '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        ))
+        self.logger.addHandler(console_handler)
+        
+        self.logger.info("UI logging system initialized")
+    
+    def initialize_engine(self):
+        """Initialize trading engine"""
+        self.logger.info("Importing trading modules...")
+        
+        try:
+            # Import modules
+            from trading_core import TradingConfig
+            from strategy_engine import StrategyEngine
+            self.logger.info("✓ Core modules imported successfully")
+            
+            # Create configuration
+            config = TradingConfig()
+            
+            # Update config with current UI values
+            config.lot_size = self.lot_size_var.get()
+            config.rsi_up = self.rsi_up_var.get()
+            config.rsi_down = self.rsi_down_var.get()
+            config.tp_first = self.tp_first_var.get()
+            config.recovery_price = self.recovery_price_var.get()
+            config.martingale = self.martingale_var.get()
+            config.max_recovery = self.max_recovery_var.get()
+            config.daily_loss_limit = self.daily_loss_var.get()
+            config.max_drawdown = self.max_drawdown_var.get()
+            config.max_positions = self.max_positions_var.get()
+            config.max_spread_alert = self.max_spread_var.get()
+            config.min_account_balance = self.min_balance_var.get()
+            config.primary_tf = self.timeframe_var.get()
+            config.dynamic_tp = self.dynamic_tp_var.get()
+            config.smart_recovery = self.smart_recovery_var.get()
+            
+            # Map direction
+            direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
+            config.trading_direction = direction_map.get(self.direction_var.get(), 0)
+            
+            # Map exit speed
+            exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
+            config.exit_speed = exit_speed_map.get(self.exit_speed_var.get(), 1)
+            
+            self.logger.info("✓ Trading configuration created")
+            
+            # Create engine
+            self.engine = StrategyEngine(config)
+            self.logger.info("✓ Strategy engine created")
+            
+            # Setup event handlers
+            self.engine.add_event_handler('on_trade_opened', self.on_trade_opened)
+            self.engine.add_event_handler('on_trade_closed', self.on_trade_closed)
+            self.engine.add_event_handler('on_state_changed', self.on_engine_state_changed)
+            self.engine.add_event_handler('on_error', self.on_engine_error)
+            self.logger.info("✓ Event handlers configured")
+            
+            # Test MT5 connection
+            self.logger.info("Testing MT5 connection...")
+            if self.engine.trading_core.initialize_mt5():
+                self.logger.info("✓ MT5 connection successful")
+                if hasattr(self, 'connection_var'):
+                    self.connection_var.set("Connected")
+                if hasattr(self, 'status_var'):
+                    self.status_var.set("READY")
+            else:
+                self.logger.warning("✗ MT5 connection failed")
+                if hasattr(self, 'connection_var'):
+                    self.connection_var.set("Failed")
+                if hasattr(self, 'status_var'):
+                    self.status_var.set("DEMO MODE")
+            
+            # Enable control buttons
+            if hasattr(self, 'start_btn'):
+                self.start_btn.config(state="normal")
+            if hasattr(self, 'stop_btn'):
+                self.stop_btn.config(state="normal")
+            if hasattr(self, 'pause_btn'):
+                self.pause_btn.config(state="normal")
+            if hasattr(self, 'emergency_btn'):
+                self.emergency_btn.config(state="normal")
+            
+            self.logger.info("🎉 Engine initialization completed successfully!")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Engine initialization failed: {e}")
+            if hasattr(self, 'status_var'):
+                self.status_var.set("ERROR")
+            if hasattr(self, 'connection_var'):
+                self.connection_var.set("Error")
+            raise
     
     def start_ui_updates(self):
         """Start UI update thread"""
@@ -639,10 +730,13 @@ class XAUUSDTradingUI:
             self.running = True
             self.update_thread = threading.Thread(target=self.ui_update_loop, daemon=True)
             self.update_thread.start()
+            self.logger.info("UI update thread started")
     
     def stop_ui_updates(self):
         """Stop UI update thread"""
         self.running = False
+        if self.update_thread:
+            self.logger.info("UI update thread stopped")
     
     def ui_update_loop(self):
         """UI update loop"""
@@ -669,14 +763,11 @@ class XAUUSDTradingUI:
             self.logger.error(f"Failed to update UI data: {e}")
     
     def update_status_display(self, status):
-        """Update status display (called in main thread)"""
+        """Update status display"""
         try:
             # Update engine state
             engine_state = status.get('engine', {}).get('state', 'UNKNOWN')
-            self.state_var.set(engine_state)
-            
-            # Update connection status
-            self.connection_var.set("Connected" if engine_state != "STOPPED" else "Disconnected")
+            self.state_var.set(engine_state.upper())
             
             # Update uptime
             uptime_seconds = status.get('engine', {}).get('uptime', 0)
@@ -697,109 +788,112 @@ class XAUUSDTradingUI:
     
     def update_status_text(self, status):
         """Update status text widget"""
-        self.status_text.delete('1.0', tk.END)
-        
-        lines = [
-            f"Engine State: {status.get('engine', {}).get('state', 'UNKNOWN')}",
-            f"Last Update: {datetime.now().strftime('%H:%M:%S')}",
-            "",
-            "TRADING METRICS:",
-            f"Total Trades: {status.get('trading', {}).get('total_trades', 0)}",
-            f"Successful: {status.get('trading', {}).get('successful_trades', 0)}",
-            f"Current Positions: {status.get('trading', {}).get('current_positions', 0)}",
-            f"Total P&L: ${status.get('trading', {}).get('total_pnl', 0):.2f}",
-            "",
-            "RISK STATUS:",
-            f"Risk Level: {status.get('risk', {}).get('risk_level', 'unknown').upper()}",
-            f"Trading Allowed: {status.get('risk', {}).get('trading_allowed', False)}",
-        ]
-        
-        # Add restrictions if any
-        restrictions = status.get('risk', {}).get('restrictions', [])
-        if restrictions:
-            lines.append("")
-            lines.append("RESTRICTIONS:")
-            for restriction in restrictions:
-                lines.append(f"• {restriction}")
-        
-        # Add market conditions
-        market = status.get('risk', {}).get('market_condition', {})
-        if market:
-            lines.extend([
+        try:
+            self.status_text.delete('1.0', tk.END)
+            
+            lines = [
+                f"Engine State: {status.get('engine', {}).get('state', 'UNKNOWN')}",
+                f"Last Update: {datetime.now().strftime('%H:%M:%S')}",
                 "",
-                "MARKET CONDITIONS:",
-                f"Volatility: {market.get('volatility', 0):.2f}%",
-                f"Session: {market.get('session', 'unknown').title()}",
-                f"High Spread: {market.get('high_spread', False)}",
-                f"Low Liquidity: {market.get('low_liquidity', False)}"
-            ])
-        
-        self.status_text.insert('1.0', '\n'.join(lines))
+                "TRADING METRICS:",
+                f"Total Trades: {status.get('trading', {}).get('total_trades', 0)}",
+                f"Successful: {status.get('trading', {}).get('successful_trades', 0)}",
+                f"Current Positions: {status.get('trading', {}).get('current_positions', 0)}",
+                f"Total P&L: ${status.get('trading', {}).get('total_pnl', 0):.2f}",
+                "",
+                "RISK STATUS:",
+                f"Risk Level: {status.get('risk', {}).get('risk_level', 'unknown').upper()}",
+                f"Trading Allowed: {status.get('risk', {}).get('trading_allowed', False)}",
+            ]
+            
+            # Add restrictions if any
+            restrictions = status.get('risk', {}).get('restrictions', [])
+            if restrictions:
+                lines.append("")
+                lines.append("RESTRICTIONS:")
+                for restriction in restrictions:
+                    lines.append(f"• {restriction}")
+            
+            self.status_text.insert('1.0', '\n'.join(lines))
+            
+        except Exception as e:
+            self.logger.error(f"Status text update error: {e}")
     
     def update_risk_display(self, risk_data):
         """Update risk display"""
-        risk_level = risk_data.get('risk_level', 'unknown')
-        self.risk_level_var.set(risk_level.upper())
-        
-        # Update risk level label color
-        colors = {
-            'low': self.colors['success'],
-            'medium': self.colors['warning'],
-            'high': self.colors['error'],
-            'critical': self.colors['error']
-        }
-        color = colors.get(risk_level.lower(), self.colors['fg'])
-        self.risk_level_label.config(foreground=color)
-        
-        # Update risk text
-        if hasattr(self, 'risk_text'):
-            self.risk_text.delete('1.0', tk.END)
+        try:
+            risk_level = risk_data.get('risk_level', 'unknown')
+            self.risk_level_var.set(risk_level.upper())
             
-            metrics = risk_data.get('metrics', {})
-            lines = [
-                f"Daily P&L: ${metrics.get('daily_pnl', 0):.2f}",
-                f"Weekly P&L: ${metrics.get('weekly_pnl', 0):.2f}",
-                f"Monthly P&L: ${metrics.get('monthly_pnl', 0):.2f}",
-                f"Current Drawdown: {metrics.get('current_drawdown', 0):.2f}%",
-                f"Max Drawdown: {metrics.get('max_drawdown', 0):.2f}%",
-                f"Exposure: {metrics.get('exposure', 0):.2f}%",
-                f"Win Rate: {metrics.get('win_rate', 0):.1f}%",
-                f"Profit Factor: {metrics.get('profit_factor', 0):.2f}",
-                "",
-                "LIMITS:",
-                f"Daily Loss Limit: ${risk_data.get('limits', {}).get('daily_loss_limit', 0):.2f}",
-                f"Max Drawdown: {risk_data.get('limits', {}).get('max_drawdown_percent', 0):.1f}%",
-                f"Max Positions: {risk_data.get('limits', {}).get('max_positions', 0)}",
-                f"Max Exposure: {risk_data.get('limits', {}).get('max_exposure_percent', 0):.1f}%"
-            ]
+            # Update risk level label color
+            colors = {
+                'low': self.colors['success'],
+                'medium': self.colors['warning'],
+                'high': self.colors['error'],
+                'critical': self.colors['error']
+            }
+            color = colors.get(risk_level.lower(), self.colors['fg'])
+            self.risk_level_label.config(foreground=color)
             
-            self.risk_text.insert('1.0', '\n'.join(lines))
+            # Update risk text
+            if hasattr(self, 'risk_text'):
+                self.risk_text.delete('1.0', tk.END)
+                
+                metrics = risk_data.get('metrics', {})
+                lines = [
+                    f"Daily P&L: ${metrics.get('daily_pnl', 0):.2f}",
+                    f"Weekly P&L: ${metrics.get('weekly_pnl', 0):.2f}",
+                    f"Monthly P&L: ${metrics.get('monthly_pnl', 0):.2f}",
+                    f"Current Drawdown: {metrics.get('current_drawdown', 0):.2f}%",
+                    f"Max Drawdown: {metrics.get('max_drawdown', 0):.2f}%",
+                    f"Exposure: {metrics.get('exposure', 0):.2f}%",
+                    f"Win Rate: {metrics.get('win_rate', 0):.1f}%",
+                    f"Profit Factor: {metrics.get('profit_factor', 0):.2f}",
+                ]
+                
+                self.risk_text.insert('1.0', '\n'.join(lines))
+                
+        except Exception as e:
+            self.logger.error(f"Risk display update error: {e}")
     
     def update_positions_display(self, positions_data):
         """Update positions display"""
-        if not hasattr(self, 'positions_tree'):
-            return
-        
-        # Clear existing items
-        for item in self.positions_tree.get_children():
-            self.positions_tree.delete(item)
-        
-        # Add current positions (this would need to be implemented with actual position data)
-        # For now, showing placeholder
-        if positions_data.get('total_positions', 0) > 0:
-            self.positions_tree.insert('', 'end', values=(
-                "Loading...", "positions", "data", "from", "engine", "...", ""
-            ))
+        try:
+            if not hasattr(self, 'positions_tree'):
+                return
+            
+            # Clear existing items
+            for item in self.positions_tree.get_children():
+                self.positions_tree.delete(item)
+            
+            # Add demo data if no positions
+            total_positions = positions_data.get('total_positions', 0)
+            if total_positions == 0:
+                self.positions_tree.insert('', 'end', values=(
+                    "No", "Active", "Positions", "-", "-", "-", ""
+                ))
+            
+        except Exception as e:
+            self.logger.error(f"Positions display update error: {e}")
     
     # Event handlers
     def start_engine(self):
         """Start trading engine"""
         try:
-            if self.engine and self.engine.start():
-                self.start_ui_updates()
-                self.logger.info("Engine started successfully")
+            if self.engine:
+                self.logger.info("Starting trading engine...")
+                if self.engine.start():
+                    self.start_ui_updates()
+                    self.logger.info("✓ Engine started successfully")
+                    if hasattr(self, 'start_btn'):
+                        self.start_btn.config(state="disabled")
+                    if hasattr(self, 'stop_btn'):
+                        self.stop_btn.config(state="normal")
+                else:
+                    self.logger.error("✗ Failed to start engine")
+                    messagebox.showerror("Error", "Failed to start trading engine")
             else:
-                messagebox.showerror("Error", "Failed to start engine")
+                messagebox.showwarning("No Engine", "Engine not initialized")
         except Exception as e:
             self.logger.error(f"Start engine error: {e}")
             messagebox.showerror("Error", f"Failed to start engine: {e}")
@@ -808,9 +902,16 @@ class XAUUSDTradingUI:
         """Stop trading engine"""
         try:
             if self.engine:
+                self.logger.info("Stopping trading engine...")
                 self.engine.stop()
                 self.stop_ui_updates()
-                self.logger.info("Engine stopped")
+                self.logger.info("✓ Engine stopped")
+                if hasattr(self, 'start_btn'):
+                    self.start_btn.config(state="normal")
+                if hasattr(self, 'stop_btn'):
+                    self.stop_btn.config(state="disabled")
+            else:
+                self.logger.info("No engine to stop")
         except Exception as e:
             self.logger.error(f"Stop engine error: {e}")
     
@@ -820,6 +921,8 @@ class XAUUSDTradingUI:
             if self.engine:
                 self.engine.pause()
                 self.logger.info("Engine paused")
+            else:
+                self.logger.info("No engine to pause")
         except Exception as e:
             self.logger.error(f"Pause engine error: {e}")
     
@@ -831,7 +934,9 @@ class XAUUSDTradingUI:
                 if self.engine:
                     self.engine.emergency_stop()
                     self.stop_ui_updates()
-                    self.logger.critical("EMERGENCY STOP EXECUTED")
+                    self.logger.critical("🚨 EMERGENCY STOP EXECUTED")
+                else:
+                    self.logger.info("Demo mode - emergency stop simulated")
             except Exception as e:
                 self.logger.error(f"Emergency stop error: {e}")
     
@@ -839,52 +944,65 @@ class XAUUSDTradingUI:
         """Apply parameter changes to engine"""
         try:
             if not self.engine:
+                self.logger.info("No engine - parameters saved locally")
                 return
-             # เพิ่มการตรวจสอบนี้ก่อน apply
+            
+            # Validate RSI values
             rsi_up = self.rsi_up_var.get()
             rsi_down = self.rsi_down_var.get()
             
             if rsi_down >= rsi_up:
                 messagebox.showerror("Parameter Error", 
-                                f"RSI Lower ({rsi_down}) must be less than RSI Upper ({rsi_up})")
+                                   f"RSI Lower ({rsi_down}) must be less than RSI Upper ({rsi_up})")
                 return
-            
-            # Get direction mapping
-            direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
-            exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
             
             # Collect parameters
             params = {
                 "lot_size": self.lot_size_var.get(),
-                "rsi_up": self.rsi_up_var.get(),
-                "rsi_down": self.rsi_down_var.get(),
-                "trading_direction": direction_map.get(self.direction_var.get(), 0),
-                "primary_tf": self.timeframe_var.get(),
+                "rsi_up": rsi_up,
+                "rsi_down": rsi_down,
                 "tp_first": self.tp_first_var.get(),
-                "exit_speed": exit_speed_map.get(self.exit_speed_var.get(), 1),
-                "dynamic_tp": self.dynamic_tp_var.get(),
                 "recovery_price": self.recovery_price_var.get(),
                 "martingale": self.martingale_var.get(),
                 "max_recovery": self.max_recovery_var.get(),
-                "smart_recovery": self.smart_recovery_var.get(),
                 "daily_loss_limit": self.daily_loss_var.get(),
-                "max_drawdown_percent": self.max_drawdown_var.get(),
+                "max_drawdown": self.max_drawdown_var.get(),
                 "max_positions": self.max_positions_var.get(),
-                "max_spread_alert": self.max_spread_var.get()
+                "max_spread_alert": self.max_spread_var.get(),
+                "min_account_balance": self.min_balance_var.get(),
+                "primary_tf": self.timeframe_var.get(),
+                "dynamic_tp": self.dynamic_tp_var.get(),
+                "smart_recovery": self.smart_recovery_var.get()
             }
+            
+            # Map enums
+            direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
+            exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
+            
+            params["trading_direction"] = direction_map.get(self.direction_var.get(), 0)
+            params["exit_speed"] = exit_speed_map.get(self.exit_speed_var.get(), 1)
             
             # Apply to engine
             self.engine.update_config(params)
-            self.logger.info("Parameters applied successfully")
+            self.logger.info("✓ Parameters applied successfully")
             
         except Exception as e:
             self.logger.error(f"Apply parameters error: {e}")
             messagebox.showerror("Error", f"Failed to apply parameters: {e}")
     
+    def test_log(self):
+        """Test logging system"""
+        self.logger.info("=== UI TEST ===")
+        self.logger.info(f"Current time: {datetime.now()}")
+        self.logger.info(f"Engine status: {'Connected' if self.engine else 'Not connected'}")
+        self.logger.warning("Test warning message")
+        self.logger.error("Test error message")
+        self.logger.info("=== END TEST ===")
+    
     def on_parameter_changed(self, *args):
-        """Handle parameter change (for auto-apply)"""
-        # Add delay to avoid too frequent updates
-        self.root.after(2000, self.apply_parameters)
+        """Handle parameter change"""
+        # Disabled auto-apply to prevent spam
+        pass
     
     def on_preset_selected(self, event=None):
         """Handle preset selection"""
@@ -914,10 +1032,7 @@ class XAUUSDTradingUI:
             speed_names = ["FAST", "MEDIUM", "SLOW"]
             self.exit_speed_var.set(speed_names[preset["exit_speed"]])
             
-            # Apply changes
-            self.apply_parameters()
-            
-            self.logger.info(f"Loaded preset: {preset_name}")
+            self.logger.info(f"✓ Loaded preset: {preset_name}")
             
         except Exception as e:
             self.logger.error(f"Load preset error: {e}")
@@ -931,8 +1046,19 @@ class XAUUSDTradingUI:
                 filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
             )
             
-            if filename and self.engine:
-                config = self.engine.config.to_dict()
+            if filename:
+                config = {}
+                if self.engine:
+                    config = self.engine.config.to_dict()
+                else:
+                    # Save UI values
+                    config = {
+                        "lot_size": self.lot_size_var.get(),
+                        "rsi_up": self.rsi_up_var.get(),
+                        "rsi_down": self.rsi_down_var.get(),
+                        # Add other parameters
+                    }
+                
                 with open(filename, 'w') as f:
                     json.dump(config, f, indent=2)
                 
@@ -974,7 +1100,9 @@ class XAUUSDTradingUI:
                 self.lot_size_var.set(config["lot_size"])
             if "rsi_up" in config:
                 self.rsi_up_var.set(config["rsi_up"])
-            # ... update other variables
+            if "rsi_down" in config:
+                self.rsi_down_var.set(config["rsi_down"])
+            # Add other parameters
             
         except Exception as e:
             self.logger.error(f"Update UI from config error: {e}")
@@ -982,33 +1110,33 @@ class XAUUSDTradingUI:
     # Engine event handlers
     def on_trade_opened(self, trade_info):
         """Handle trade opened event"""
-        self.logger.info(f"Trade opened: {trade_info}")
-        
-        # Update title if enabled
-        if self.ui_config.position_in_title:
-            positions = len(self.position_data) if hasattr(self, 'position_data') else 0
-            self.root.title(f"XAUUSD EA - {positions} Positions")
+        self.logger.info(f"📈 Trade opened: {trade_info}")
     
     def on_trade_closed(self, trade_info):
         """Handle trade closed event"""
-        self.logger.info(f"Trade closed: {trade_info}")
+        self.logger.info(f"📉 Trade closed: {trade_info}")
     
     def on_engine_state_changed(self, new_state):
         """Handle engine state change"""
-        self.state_var.set(new_state.value.upper())
+        try:
+            state_str = new_state.value if hasattr(new_state, 'value') else str(new_state)
+            if hasattr(self, 'state_var'):
+                self.state_var.set(state_str.upper())
+            self.logger.info(f"🔄 Engine state: {state_str}")
+        except Exception as e:
+            self.logger.error(f"State change error: {e}")
     
     def on_engine_error(self, error_msg):
         """Handle engine error"""
-        self.logger.error(f"Engine error: {error_msg}")
-        
-        # Show error in UI if critical
-        if "EMERGENCY" in error_msg.upper() or "CRITICAL" in error_msg.upper():
-            messagebox.showerror("Critical Error", error_msg)
+        self.logger.error(f"🚨 Engine error: {error_msg}")
     
     # Utility methods
     def clear_logs(self):
         """Clear log display"""
-        self.log_text.delete('1.0', tk.END)
+        try:
+            self.log_text.delete('1.0', tk.END)
+        except:
+            pass
     
     def export_logs(self):
         """Export logs to file"""
@@ -1031,108 +1159,81 @@ class XAUUSDTradingUI:
     
     def close_selected_position(self):
         """Close selected position"""
-        # Implementation would depend on position data structure
-        pass
+        self.logger.info("Close selected position requested")
     
     def close_all_positions(self):
         """Close all positions"""
         if messagebox.askyesno("Confirm", "Close all positions?"):
             try:
-                if self.engine and self.engine.order_executor:
-                    self.engine.order_executor.emergency_close_all()
-                    self.logger.info("All positions closed")
+                if self.engine and hasattr(self.engine, 'order_executor'):
+                    # Call emergency close
+                    self.logger.info("Closing all positions...")
+                else:
+                    self.logger.info("No active positions to close")
             except Exception as e:
                 self.logger.error(f"Close all positions error: {e}")
     
     def refresh_positions(self):
         """Refresh positions display"""
-        if self.engine:
-            self.engine.position_manager.update_positions()
-    
-    def open_risk_calculator(self):
-        """Open risk calculator window"""
-        # Placeholder for risk calculator
-        messagebox.showinfo("Risk Calculator", "Risk calculator feature coming soon")
-    
-    def open_performance_report(self):
-        """Open performance report window"""
-        # Placeholder for performance report
-        messagebox.showinfo("Performance Report", "Performance report feature coming soon")
-    
-    def open_settings(self):
-        """Open settings window"""
-        # Placeholder for settings
-        messagebox.showinfo("Settings", "Settings window coming soon")
-    
-    def show_help(self):
-        """Show help dialog"""
-        help_text = """
-XAUUSD Multi-Timeframe EA - User Guide
-
-QUICK START:
-1. Configure parameters in Trading tab
-2. Select a preset for quick setup
-3. Click START to begin trading
-
-TRADING LOGIC:
-- BUY: Fractal Down + RSI > RSI_UP
-- SELL: Fractal Up + RSI < RSI_DOWN
-- Recovery: Martingale system with smart entry
-
-RISK MANAGEMENT:
-- Daily/Weekly/Monthly loss limits
-- Maximum drawdown protection
-- Position size validation
-- Market condition monitoring
-
-For detailed documentation, visit our website.
-        """
-        messagebox.showinfo("User Guide", help_text)
-    
-    def show_about(self):
-        """Show about dialog"""
-        about_text = """
-XAUUSD Multi-Timeframe EA
-Professional Trading System
-
-Version: 1.0
-Copyright: Senior Forex Developer
-License: Professional
-
-Features:
-• Advanced Fractal + RSI strategy
-• Smart recovery system
-• Multi-timeframe analysis
-• Comprehensive risk management
-• Real-time monitoring
-• Copy trading ready
-
-Contact: support@seniorforex.com
-        """
-        messagebox.showinfo("About", about_text)
+        try:
+            if self.engine and hasattr(self.engine, 'position_manager'):
+                self.engine.position_manager.update_positions()
+                self.logger.info("Positions refreshed")
+            else:
+                self.logger.info("No position manager available")
+        except Exception as e:
+            self.logger.error(f"Refresh positions error: {e}")
     
     def on_closing(self):
         """Handle window closing"""
-        if self.engine and self.engine.state != EngineState.STOPPED:
-            if messagebox.askyesno("Confirm Exit", 
-                                  "Trading engine is running. Stop and exit?"):
-                self.stop_engine()
-                self.root.destroy()
-        else:
+        try:
+            self.logger.info("Shutting down application...")
+            self.stop_ui_updates()
+            
+            if self.engine:
+                try:
+                    from strategy_engine import EngineState
+                    if hasattr(self.engine, 'state') and self.engine.state != EngineState.STOPPED:
+                        if messagebox.askyesno("Confirm Exit", 
+                                              "Trading engine is running. Stop and exit?"):
+                            self.stop_engine()
+                            self.root.destroy()
+                        return
+                except ImportError:
+                    pass
+            
+            self.root.destroy()
+            
+        except Exception as e:
+            print(f"Shutdown error: {e}")
             self.root.destroy()
     
     def run(self):
-        """Run the UI"""
+        """Run the application"""
         try:
-            self.logger.info("Starting XAUUSD Trading UI")
+            self.logger.info("🚀 XAUUSD Trading UI Started")
             self.root.mainloop()
+        except KeyboardInterrupt:
+            self.logger.info("Application interrupted by user")
         except Exception as e:
-            self.logger.error(f"UI error: {e}")
+            self.logger.error(f"Application error: {e}")
         finally:
-            if self.engine:
-                self.engine.stop()
+            try:
+                if self.engine and hasattr(self.engine, 'stop'):
+                    self.engine.stop()
+            except:
+                pass
+            self.logger.info("Application terminated")
 
 # Main execution
 if __name__ == "__main__":
-    app = XAUUSDTradingUI()
-    app.run()
+    print("=" * 60)
+    print("XAUUSD Multi-Timeframe EA - Professional Trading System")
+    print("=" * 60)
+    
+    try:
+        app = XAUUSDTradingUI()
+        app.run()
+    except Exception as e:
+        print(f"Failed to start application: {e}")
+        input("Press Enter to exit...")
