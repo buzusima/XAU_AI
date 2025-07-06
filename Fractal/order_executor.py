@@ -80,24 +80,39 @@ class OrderExecutor:
         self._detect_execution_mode()
     
     def _detect_execution_mode(self):
-        """Auto-detect broker execution capabilities"""
-        symbol_info = mt5.symbol_info(self.config.symbol)
-        if symbol_info is None:
+        """Auto-detect broker execution capabilities with safe constant handling"""
+        try:
+            symbol_info = mt5.symbol_info(self.config.symbol)
+            if symbol_info is None:
+                self.execution_mode = ExecutionMode.MARKET
+                return
+            
+            # Get filling mode safely
+            filling_mode = getattr(symbol_info, 'filling_mode', 1)
+            
+            # Check filling modes using safe constant access
+            # Use numeric values as fallback if constants don't exist
+            ioc_mode = getattr(mt5, 'SYMBOL_FILLING_IOC', 1)  # 1 is typical IOC value
+            fok_mode = getattr(mt5, 'SYMBOL_FILLING_FOK', 2)  # 2 is typical FOK value
+            return_mode = getattr(mt5, 'SYMBOL_FILLING_RETURN', 4)  # 4 is typical RETURN value
+            
+            if filling_mode & ioc_mode:
+                self.execution_mode = ExecutionMode.MARKET
+            elif filling_mode & fok_mode:
+                self.execution_mode = ExecutionMode.INSTANT
+            elif filling_mode & return_mode:
+                self.execution_mode = ExecutionMode.REQUEST
+            else:
+                # Default to market execution
+                self.execution_mode = ExecutionMode.MARKET
+            
+            self.logger.info(f"Detected execution mode: {self.execution_mode.value}")
+            self.logger.info(f"Filling mode value: {filling_mode}")
+            
+        except Exception as e:
+            self.logger.error(f"Execution mode detection error: {e}")
             self.execution_mode = ExecutionMode.MARKET
-            return
-        
-        # Check filling modes
-        filling_mode = symbol_info.filling_mode
-        
-        if filling_mode & mt5.SYMBOL_FILLING_IOC:
-            self.execution_mode = ExecutionMode.MARKET
-        elif filling_mode & mt5.SYMBOL_FILLING_FOK:
-            self.execution_mode = ExecutionMode.INSTANT
-        else:
-            self.execution_mode = ExecutionMode.REQUEST
-        
-        self.logger.info(f"Detected execution mode: {self.execution_mode.value}")
-    
+
     def execute_market_order(self, order_type: OrderType, volume: float, 
                            tp_points: float = 0, sl_points: float = 0,
                            comment: str = "", is_recovery: bool = False) -> OrderResult:

@@ -160,7 +160,7 @@ class RiskManager:
         }
     
     def _initialize_account_baseline(self):
-        """Initialize account baseline data"""
+        """Initialize account baseline data with better error handling"""
         try:
             self.logger.info("Initializing risk manager baseline...")
             
@@ -176,6 +176,8 @@ class RiskManager:
                 self.logger.info(f"✓ Risk manager initialized:")
                 self.logger.info(f"  Initial balance: ${self.risk_metrics.current_balance:.2f}")
                 self.logger.info(f"  Initial equity: ${self.risk_metrics.current_equity:.2f}")
+                self.logger.info(f"  Free margin: ${self.risk_metrics.free_margin:.2f}")
+                self.logger.info(f"  Margin level: {self.risk_metrics.margin_level:.2f}%")
                 self.logger.info(f"  Account currency: {self.account_currency}")
                 self.logger.info(f"  Leverage: 1:{self.account_leverage}")
             else:
@@ -185,18 +187,26 @@ class RiskManager:
         except Exception as e:
             self.logger.error(f"Risk manager initialization error: {e}")
             self._set_default_values()
-    
+
     def _set_default_values(self):
         """Set default values when account data unavailable"""
-        self.risk_metrics.current_balance = 1000.0
-        self.risk_metrics.current_equity = 1000.0
-        self.risk_metrics.peak_balance = 1000.0
-        self.risk_metrics.peak_equity = 1000.0
-        self.risk_metrics.free_margin = 1000.0
-        self.risk_metrics.margin_level = 999.99
-        self.account_currency = "USD"
-        self.account_leverage = 100
-        self.risk_metrics.data_valid = False
+        try:
+            self.risk_metrics.current_balance = 1000.0
+            self.risk_metrics.current_equity = 1000.0
+            self.risk_metrics.peak_balance = 1000.0
+            self.risk_metrics.peak_equity = 1000.0
+            self.risk_metrics.current_margin = 0.0
+            self.risk_metrics.free_margin = 1000.0
+            self.risk_metrics.margin_level = 999.99
+            self.risk_metrics.used_margin_percent = 0.0
+            self.account_currency = "USD"
+            self.account_leverage = 100
+            self.risk_metrics.data_valid = False
+            
+            self.logger.info("Using default account values for testing")
+            
+        except Exception as e:
+            self.logger.error(f"Set default values error: {e}")    
     
     def update_risk_limits(self, new_limits: Dict):
         """Update risk limits from UI with validation"""
@@ -332,23 +342,34 @@ class RiskManager:
             return False, [f"Error checking permissions: {e}"]
     
     def _update_account_data(self) -> bool:
-        """Update account data from MT5"""
+        """Update account data from MT5 with safe attribute access"""
         try:
             account_info = mt5.account_info()
             if account_info is None:
                 self.logger.warning("Could not get account info from MT5")
                 return False
             
-            # Update basic account info
-            self.account_currency = account_info.currency
-            self.account_leverage = account_info.leverage
-            self.account_server = account_info.server
+            # Update basic account info with safe attribute access
+            self.account_currency = getattr(account_info, 'currency', 'USD')
+            self.account_leverage = getattr(account_info, 'leverage', 100)
+            self.account_server = getattr(account_info, 'server', '')
+            
+            # Update risk metrics with safe access
+            balance = getattr(account_info, 'balance', 0.0)
+            equity = getattr(account_info, 'equity', 0.0)
+            margin = getattr(account_info, 'margin', 0.0)
+            
+            # Handle free_margin - calculate if not available
+            free_margin = getattr(account_info, 'free_margin', None)
+            if free_margin is None:
+                # Calculate free margin: equity - used margin
+                free_margin = equity - margin if equity >= margin else equity
             
             # Update risk metrics
-            self.risk_metrics.current_balance = float(account_info.balance)
-            self.risk_metrics.current_equity = float(account_info.equity)
-            self.risk_metrics.current_margin = float(account_info.margin)
-            self.risk_metrics.free_margin = float(account_info.free_margin)
+            self.risk_metrics.current_balance = float(balance)
+            self.risk_metrics.current_equity = float(equity)
+            self.risk_metrics.current_margin = float(margin)
+            self.risk_metrics.free_margin = float(free_margin)
             
             # Calculate margin level safely
             if self.risk_metrics.current_margin > 0:
@@ -393,7 +414,7 @@ class RiskManager:
             self.logger.error(f"Account data update error: {e}")
             self.risk_metrics.data_valid = False
             return False
-    
+        
     def update_metrics(self):
         """Update all risk metrics"""
         try:

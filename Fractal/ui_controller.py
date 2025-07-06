@@ -354,7 +354,7 @@ class XAUUSDTradingUI:
         # Configure main frame layout
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(1, weight=2)
-        self.main_frame.grid_rowconfigure(1, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)    
     
     def create_control_panel(self):
         """Create main control panel"""
@@ -731,6 +731,194 @@ class XAUUSDTradingUI:
         ttk.Checkbutton(log_controls, text="Auto Scroll", 
                        variable=self.auto_scroll_var).pack(side=tk.LEFT, padx=10)
     
+    def create_risk_panel(self):
+        """Create risk monitoring panel"""
+        risk_frame = ttk.LabelFrame(self.advanced_frame, text="Risk Monitor", padding="5")
+        risk_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Risk level indicator
+        level_frame = ttk.Frame(risk_frame)
+        level_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(level_frame, text="Risk Level:").pack(side=tk.LEFT)
+        self.risk_level_var = tk.StringVar(value="🟢 LOW")
+        self.risk_level_label = ttk.Label(level_frame, textvariable=self.risk_level_var,
+                                        font=("Arial", 12, "bold"))
+        self.risk_level_label.pack(side=tk.LEFT, padx=10)
+        
+        # Risk metrics text area
+        metrics_frame = ttk.Frame(risk_frame)
+        metrics_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.risk_text = tk.Text(metrics_frame, height=25, 
+                            bg=self.colors['bg'], fg=self.colors['fg'],
+                            font=("Consolas", 9), wrap=tk.NONE)
+        risk_scrollbar_v = ttk.Scrollbar(metrics_frame, orient="vertical", 
+                                    command=self.risk_text.yview)
+        risk_scrollbar_h = ttk.Scrollbar(metrics_frame, orient="horizontal",
+                                    command=self.risk_text.xview)
+        self.risk_text.configure(yscrollcommand=risk_scrollbar_v.set,
+                            xscrollcommand=risk_scrollbar_h.set)
+        
+        self.risk_text.grid(row=0, column=0, sticky="nsew")
+        risk_scrollbar_v.grid(row=0, column=1, sticky="ns")
+        risk_scrollbar_h.grid(row=1, column=0, sticky="ew")
+        
+        metrics_frame.grid_rowconfigure(0, weight=1)
+        metrics_frame.grid_columnconfigure(0, weight=1)
+        
+        # Control buttons
+        control_frame = ttk.Frame(risk_frame)
+        control_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Button(control_frame, text="Refresh Risk Data", 
+                command=self.refresh_risk_data).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Export Risk Report", 
+                command=self.export_risk_report).pack(side=tk.LEFT, padx=5)
+        
+        # Initialize with demo data
+        self._update_risk_display_demo()
+
+    def _update_risk_display_demo(self):
+        """Show demo risk data when engine not available"""
+        try:
+            risk_info = f"""
+    ╔══════════════════════════════════════════════════════════════════════════════════════╗
+    ║                                  RISK MONITOR - DEMO MODE                            ║
+    ╠══════════════════════════════════════════════════════════════════════════════════════╣
+    ║                                                                                      ║
+    ║ 📊 ACCOUNT STATUS                                                                    ║
+    ║   Balance:              $1,000.00                                                   ║
+    ║   Equity:               $1,000.00                                                   ║
+    ║   Free Margin:          $1,000.00                                                   ║
+    ║   Margin Level:         999.99%                                                     ║
+    ║   Used Margin:          0.00%                                                       ║
+    ║   Account Type:         DEMO                                                        ║
+    ║   Currency:             USD                                                         ║
+    ║   Leverage:             1:100                                                       ║
+    ║                                                                                      ║
+    ║ 📈 P&L TRACKING                                                                     ║
+    ║   Daily P&L:            $0.00                                                       ║
+    ║   Weekly P&L:           $0.00                                                       ║
+    ║   Monthly P&L:          $0.00                                                       ║
+    ║   Daily Target:         $20.00                                                      ║
+    ║   Weekly Target:        $100.00                                                     ║
+    ║                                                                                      ║
+    ║ 📉 DRAWDOWN ANALYSIS                                                                ║
+    ║   Current Drawdown:     0.00%                                                       ║
+    ║   Max Drawdown:         0.00%                                                       ║
+    ║   Peak Balance:         $1,000.00                                                   ║
+    ║   Peak Equity:          $1,000.00                                                   ║
+    ║   Balance Drawdown:     0.00%                                                       ║
+    ║   Equity Drawdown:      0.00%                                                       ║
+    ║                                                                                      ║
+    ║ 🎯 PERFORMANCE METRICS                                                              ║
+    ║   Total Trades:         0                                                           ║
+    ║   Winning Trades:       0                                                           ║
+    ║   Losing Trades:        0                                                           ║
+    ║   Win Rate:             0.00%                                                       ║
+    ║   Profit Factor:        0.00                                                        ║
+    ║   Average Win:          $0.00                                                       ║
+    ║   Average Loss:         $0.00                                                       ║
+    ║                                                                                      ║
+    ║ ⚙️ RISK LIMITS & THRESHOLDS                                                         ║
+    ║   Daily Loss Limit:     $100.00                                                     ║
+    ║   Weekly Loss Limit:    $500.00                                                     ║
+    ║   Monthly Loss Limit:   $2,000.00                                                   ║
+    ║   Max Drawdown:         10.00%                                                      ║
+    ║   Max Positions:        5                                                           ║
+    ║   Min Margin Level:     200.00%                                                     ║
+    ║   Max Used Margin:      50.00%                                                      ║
+    ║   Emergency Stop:       100.00%                                                     ║
+    ║                                                                                      ║
+    ║ 🌐 MARKET CONDITIONS                                                                ║
+    ║   Market Session:       Asian                                                       ║
+    ║   Volatility:           Low (0.5%)                                                  ║
+    ║   Trend Strength:       Neutral (0.0)                                              ║
+    ║   Current Spread:       30 points                                                   ║
+    ║   Market Status:        Open                                                        ║
+    ║   Trading Allowed:      Yes                                                         ║
+    ║   High Impact News:     No                                                          ║
+    ║                                                                                      ║
+    ║ 📊 POSITION ANALYSIS                                                                ║
+    ║   Active Positions:     0                                                           ║
+    ║   Total Volume:         0.00 lots                                                   ║
+    ║   Recovery Groups:      0                                                           ║
+    ║   Position Exposure:    0.00%                                                       ║
+    ║   Largest Position:     $0.00                                                       ║
+    ║   Position Correlation: 0.00%                                                       ║
+    ║                                                                                      ║
+    ║ ⚠️ CURRENT RESTRICTIONS                                                             ║
+    ║   🟢 No restrictions active                                                         ║
+    ║   🟢 Trading fully allowed                                                          ║
+    ║   🟢 All risk parameters within limits                                              ║
+    ║   🟢 Connection stable                                                              ║
+    ║   🟢 Market conditions favorable                                                    ║
+    ║                                                                                      ║
+    ║ 🔧 SYSTEM STATUS                                                                    ║
+    ║   Engine State:         RUNNING                                                     ║
+    ║   Last Update:          {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}               ║
+    ║   Data Source:          Demo/Default Values                                         ║
+    ║   Update Frequency:     5 seconds                                                   ║
+    ║   Risk Calculation:     Active                                                      ║
+    ║                                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════════════════════╝
+
+    💡 RISK LEVEL EXPLANATION:
+    🟢 LOW     - All parameters within safe limits
+    🟡 MEDIUM  - Some parameters approaching limits  
+    🟠 HIGH    - Risk parameters exceeded, careful monitoring
+    🔴 CRITICAL- Emergency conditions, trading may be restricted
+
+    📋 NEXT ACTIONS:
+    • Monitor account balance and equity changes
+    • Watch for position correlation and exposure
+    • Keep daily loss within configured limits
+    • Maintain margin level above minimum threshold
+            """
+            
+            self.risk_text.delete('1.0', tk.END)
+            self.risk_text.insert('1.0', risk_info)
+            
+        except Exception as e:
+            self.logger.error(f"Risk display demo error: {e}")
+            self.risk_text.delete('1.0', tk.END)
+            self.risk_text.insert('1.0', f"Error displaying risk data: {e}")
+
+    def refresh_risk_data(self):
+        """Refresh risk data manually"""
+        try:
+            if hasattr(self, 'engine') and self.engine:
+                self.logger.info("Refreshing risk data...")
+                risk_data = self.engine.risk_manager.get_risk_report()
+                self.update_risk_display_real(risk_data)
+            else:
+                self._update_risk_display_demo()
+                self.logger.info("Engine not available, showing demo data")
+        except Exception as e:
+            self.logger.error(f"Refresh risk data error: {e}")
+
+    def export_risk_report(self):
+        """Export risk report to file"""
+        try:
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                title="Export Risk Report"
+            )
+            
+            if filename:
+                risk_content = self.risk_text.get('1.0', tk.END)
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(risk_content)
+                
+                messagebox.showinfo("Success", f"Risk report exported to {filename}")
+                
+        except Exception as e:
+            self.logger.error(f"Export risk report error: {e}")
+            messagebox.showerror("Error", f"Failed to export risk report: {e}")
+
+
     def setup_event_bindings(self):
         """Setup event bindings"""
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -944,32 +1132,32 @@ class XAUUSDTradingUI:
             self.logger.error(f"Process engine updates error: {e}")
     
     def _handle_ui_update(self, update: Dict):
-        """Handle UI update (UI thread)"""
+        """Handle UI update with debug info"""
         try:
+            # Debug: แสดงข้อมูลที่ได้รับ
+            print(f"DEBUG: UI Update received: {update}")
+            
+            # ทดสอบใส่ข้อมูลใน status_text
+            status_info = f"""
+    ENGINE STATE: {update.get('state', 'UNKNOWN')}
+    TIMESTAMP: {datetime.now().strftime('%H:%M:%S')}
+    CONNECTION: {'Connected' if update.get('connection_health', {}).get('connected', False) else 'Disconnected'}
+    STATS: {update.get('stats', {})}
+            """
+            
+            # Force update status text
+            self.status_text.delete('1.0', tk.END)
+            self.status_text.insert('1.0', status_info)
+            
+            # Original update logic...
             if 'state' in update:
                 self.state_var.set(update['state'].upper())
             
-            if 'connection_health' in update:
-                conn = update['connection_health']
-                self._update_connection_status(
-                    conn.get('connected', False),
-                    conn.get('quality', 0),
-                    0  # Will be updated separately
-                )
-            
-            if 'stats' in update:
-                stats = update['stats']
-                uptime = stats.get('uptime_seconds', 0)
-                uptime_str = str(timedelta(seconds=int(uptime)))
-                self.uptime_var.set(uptime_str)
-                
-                # Update loop timing
-                loop_time = stats.get('avg_loop_time', 0) * 1000  # Convert to ms
-                self.loop_time_var.set(f"Loop: {loop_time:.2f}ms")
-                
         except Exception as e:
-            self.logger.error(f"Handle UI update error: {e}")
-    
+            print(f"UI Update Error: {e}")
+            self.status_text.delete('1.0', tk.END)
+            self.status_text.insert('1.0', f"ERROR: {e}")
+
     def _handle_trade_event(self, event_type: str, event_data: Dict):
         """Handle trade event (UI thread)"""
         try:

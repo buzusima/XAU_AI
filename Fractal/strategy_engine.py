@@ -3,7 +3,7 @@ import asyncio
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Tuple
 import logging
 from dataclasses import dataclass
 from enum import Enum
@@ -161,6 +161,10 @@ class StrategyEngine:
         # Recovery testing mode
         self.recovery_test_mode = False
         self.recovery_test_results = []
+        
+        # Smart Recovery Enhancement
+        self.recovery_signal_cache = {}  # Store signals for smart recovery
+        self.last_successful_signals = {}  # Track last successful signals by type
         
         self.logger = logging.getLogger(__name__)
         
@@ -537,7 +541,7 @@ class StrategyEngine:
     def _emergency_close_positions(self) -> List[int]:
         """Emergency close all positions"""
         try:
-            return self.order_executor.emergency_close_all()
+            return self.position_manager.emergency_close_all()
         except Exception as e:
             self.logger.error(f"Emergency close positions error: {e}")
             return []
@@ -654,7 +658,7 @@ class StrategyEngine:
             self._notify_error(f"Trading logic error: {e}")
     
     def _process_trading_logic(self):
-        """Main trading logic processing (unchanged from original)"""
+        """Main trading logic processing with enhanced signal handling"""
         # Check if trading is allowed
         trading_allowed, restrictions = self.risk_manager.check_trading_allowed()
         if not trading_allowed:
@@ -671,22 +675,62 @@ class StrategyEngine:
         if not signals or 'error' in signals:
             return
         
+        # Store signal for smart recovery
+        self._cache_current_signals(signals)
+        
         # Process signals
         for signal_type, signal_data in signals.items():
             if signal_type in ["BUY", "SELL"]:
                 self._process_entry_signal(signal_type, signal_data)
         
-        # Check recovery opportunities
-        self._check_recovery_opportunities()
+        # Check recovery opportunities (enhanced)
+        self._check_recovery_opportunities_smart()
         
         # Monitor existing positions
         self._monitor_positions()
     
+    def _cache_current_signals(self, signals: Dict):
+        """Cache current signals for smart recovery"""
+        try:
+            timestamp = datetime.now()
+            
+            for signal_type, signal_data in signals.items():
+                if signal_type in ["BUY", "SELL"]:
+                    # Cache signal with timestamp
+                    self.recovery_signal_cache[signal_type] = {
+                        "timestamp": timestamp,
+                        "data": signal_data,
+                        "strength": signal_data.get("strength", 0),
+                        "rsi": signal_data.get("rsi", 50)
+                    }
+                    
+                    # Update last successful signal
+                    self.last_successful_signals[signal_type] = {
+                        "timestamp": timestamp,
+                        "data": signal_data
+                    }
+            
+            # Clean old cached signals (older than 5 minutes)
+            cutoff_time = timestamp - timedelta(minutes=5)
+            for signal_type in list(self.recovery_signal_cache.keys()):
+                if self.recovery_signal_cache[signal_type]["timestamp"] < cutoff_time:
+                    del self.recovery_signal_cache[signal_type]
+                    
+        except Exception as e:
+            self.logger.error(f"Signal caching error: {e}")
+    
     def _process_entry_signal(self, signal_type: str, signal_data: Dict):
-        """Process entry signal (unchanged from original)"""
+        """Process entry signal with enhanced validation"""
         try:
             # Check anti-hedge logic
             if not self._check_anti_hedge(signal_type):
+                self.logger.debug(f"Anti-hedge blocked {signal_type} signal")
+                return
+            
+            # Enhanced signal strength validation
+            signal_strength = signal_data.get("strength", 0)
+            if signal_strength < 50:  # Minimum signal strength threshold
+                self.logger.debug(f"Signal strength too low: {signal_strength}")
                 return
             
             # Calculate position size
@@ -708,7 +752,7 @@ class StrategyEngine:
             
             # Execute order
             order_type = OrderType.MARKET_BUY if signal_type == "BUY" else OrderType.MARKET_SELL
-            comment = f"{signal_type} Signal - RSI: {signal_data.get('rsi', 0):.1f}"
+            comment = f"{signal_type} Signal - RSI: {signal_data.get('rsi', 0):.1f} Str: {signal_strength:.1f}"
             
             result = self.order_executor.execute_market_order(
                 order_type=order_type,
@@ -719,6 +763,8 @@ class StrategyEngine:
             
             if result.success:
                 self._on_trade_opened(result, signal_type, signal_data)
+                # Record signal execution
+                self.engine_stats['signals_generated'] += 1
             else:
                 self.logger.error(f"Failed to execute {signal_type} order: {result.error_msg}")
                 self._notify_error(f"Order execution failed: {result.error_msg}")
@@ -728,21 +774,39 @@ class StrategyEngine:
             self._notify_error(f"Entry signal error: {e}")
     
     def _check_anti_hedge(self, signal_type: str) -> bool:
-        """Check anti-hedge logic (unchanged from original)"""
+        """Enhanced anti-hedge logic"""
         current_positions = self.position_manager.positions
         
         for position in current_positions.values():
+            # Basic direction check
             if ((position.type == 0 and signal_type == "SELL") or 
                 (position.type == 1 and signal_type == "BUY")):
                 return False
+            
+            # Check recovery positions
+            if position.is_recovery:
+                # Don't allow opposite signals during recovery
+                if ((position.type == 0 and signal_type == "SELL") or 
+                    (position.type == 1 and signal_type == "BUY")):
+                    return False
         
         return True
     
-    def _check_recovery_opportunities(self):
-        """Check and execute recovery opportunities (unchanged from original)"""
+    def _check_recovery_opportunities_smart(self):
+        """Enhanced smart recovery with signal validation"""
         try:
             for ticket, position in self.position_manager.positions.items():
                 if self.position_manager.check_recovery_needed(position):
+                    
+                    # Check if smart recovery is enabled
+                    if self.config.smart_recovery:
+                        # Wait for same signal type before recovery
+                        signal_type = "BUY" if position.type == 0 else "SELL"
+                        if not self._validate_recovery_signal(signal_type, position):
+                            self.logger.debug(f"Smart recovery waiting for {signal_type} signal for position {ticket}")
+                            continue
+                    
+                    # Find or create recovery group
                     group_id = None
                     for gid, group in self.position_manager.recovery_groups.items():
                         if position in group.positions:
@@ -759,39 +823,78 @@ class StrategyEngine:
                         
                         if recovery_result.success:
                             self.engine_stats['recovery_triggered'] += 1
-                            self.logger.info(f"Recovery order executed for position {ticket}")
+                            self.logger.info(f"✓ Recovery order executed for position {ticket}")
                         else:
-                            self.logger.warning(f"Recovery failed for position {ticket}: {recovery_result.error_msg}")
+                            self.logger.warning(f"✗ Recovery failed for position {ticket}: {recovery_result.error_msg}")
                             
         except Exception as e:
             self.logger.error(f"Recovery check error: {e}")
             self._notify_error(f"Recovery error: {e}")
     
+    def _validate_recovery_signal(self, signal_type: str, position: Position) -> bool:
+        """Validate if recovery signal is present for smart recovery"""
+        try:
+            # Check if we have recent signal for this type
+            if signal_type not in self.recovery_signal_cache:
+                return False
+            
+            cached_signal = self.recovery_signal_cache[signal_type]
+            
+            # Check signal age (should be recent)
+            signal_age = (datetime.now() - cached_signal["timestamp"]).total_seconds()
+            if signal_age > 300:  # 5 minutes max
+                return False
+            
+            # Check signal strength
+            if cached_signal["strength"] < 60:  # Higher threshold for recovery
+                return False
+            
+            # Additional validation for recovery context
+            rsi_value = cached_signal["rsi"]
+            if signal_type == "BUY" and rsi_value < self.config.rsi_up:
+                return False
+            if signal_type == "SELL" and rsi_value > self.config.rsi_down:
+                return False
+            
+            self.logger.info(f"✓ Smart recovery signal validated for {signal_type}: RSI={rsi_value:.1f}, Strength={cached_signal['strength']:.1f}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Recovery signal validation error: {e}")
+            return False
+    
     def _monitor_positions(self):
-        """Monitor existing positions for management (unchanged from original)"""
+        """Enhanced position monitoring with dynamic TP"""
         try:
             if self.config.dynamic_tp:
                 for group_id, group in self.position_manager.recovery_groups.items():
                     if len(group.positions) > 1:
+                        # Calculate new TP for recovery group
                         new_tp = self.position_manager.calculate_take_profit(
                             group.direction, group.positions
                         )
                         
+                        # Update TP for all positions in group
                         for position in group.positions:
-                            self.order_executor.modify_position_tp(position.ticket, new_tp)
+                            current_tp = position.tp
+                            if abs(current_tp - new_tp) > 5:  # Only update if significant change
+                                self.order_executor.modify_position_tp(position.ticket, new_tp)
+                                self.logger.debug(f"Updated TP for {position.ticket}: {current_tp} → {new_tp}")
                             
         except Exception as e:
             self.logger.error(f"Position monitoring error: {e}")
     
     def _on_trade_opened(self, result: OrderResult, signal_type: str, signal_data: Dict):
-        """Handle trade opened event with thread safety"""
+        """Handle trade opened event with enhanced logging"""
         trade_info = {
             "ticket": result.ticket,
             "type": signal_type,
             "volume": result.volume,
             "price": result.price,
             "timestamp": datetime.now(),
-            "signal_data": signal_data
+            "signal_data": signal_data,
+            "tp": result.tp if hasattr(result, 'tp') else 0,
+            "sl": result.sl if hasattr(result, 'sl') else 0
         }
         
         self.trade_history.append(trade_info)
@@ -800,10 +903,12 @@ class StrategyEngine:
         # Queue event for handlers
         self.trade_event_queue.put(('trade_opened', trade_info))
         
+        # Enhanced logging
         self.logger.info(f"📈 Trade opened: {signal_type} {result.volume} lots at {result.price}")
+        self.logger.info(f"   Signal strength: {signal_data.get('strength', 0):.1f}, RSI: {signal_data.get('rsi', 0):.1f}")
     
     def _queue_status_update(self):
-        """Queue status update for UI"""
+        """Queue comprehensive status update for UI"""
         try:
             status = {
                 "timestamp": datetime.now(),
@@ -814,7 +919,16 @@ class StrategyEngine:
                     "consecutive_failures": self.connection_health.consecutive_failures,
                     "response_time": self.connection_health.response_time_avg
                 },
-                "stats": self.engine_stats.copy()
+                "stats": self.engine_stats.copy(),
+                "positions": {
+                    "total": len(self.position_manager.positions),
+                    "recovery_groups": len(self.position_manager.recovery_groups),
+                    "total_pnl": sum(pos.profit for pos in self.position_manager.positions.values())
+                },
+                "signals": {
+                    "cached_signals": len(self.recovery_signal_cache),
+                    "last_signals": {k: v["timestamp"].isoformat() for k, v in self.last_successful_signals.items()}
+                }
             }
             
             self.ui_update_queue.put(status)
@@ -835,31 +949,65 @@ class StrategyEngine:
         
         if loop_time > self.engine_stats['max_loop_time']:
             self.engine_stats['max_loop_time'] = loop_time
+        
+        # Log if loop is taking too long
+        if loop_time > 1.0:
+            self.logger.warning(f"Slow loop detected: {loop_time:.3f}s")
     
     def _validate_config(self) -> bool:
-        """Validate trading configuration (unchanged from original)"""
-        if self.config.lot_size <= 0:
-            self.logger.error("Invalid lot size")
+        """Enhanced configuration validation"""
+        try:
+            # Basic validations
+            if self.config.lot_size <= 0:
+                self.logger.error("Invalid lot size")
+                return False
+            
+            if not (20 <= self.config.rsi_down <= 50):
+                self.logger.error("Invalid RSI_DOWN range")
+                return False
+            
+            if not (50 <= self.config.rsi_up <= 80):
+                self.logger.error("Invalid RSI_UP range")
+                return False
+            
+            if self.config.rsi_down >= self.config.rsi_up:
+                self.logger.error("RSI_DOWN must be less than RSI_UP")
+                return False
+            
+            # Recovery validations
+            if self.config.martingale < 1.1 or self.config.martingale > 5.0:
+                self.logger.error("Invalid martingale multiplier")
+                return False
+            
+            if self.config.max_recovery < 1 or self.config.max_recovery > 10:
+                self.logger.error("Invalid max recovery level")
+                return False
+            
+            # Risk validations
+            if self.config.daily_loss_limit <= 0:
+                self.logger.error("Invalid daily loss limit")
+                return False
+            
+            self.logger.info("✓ Configuration validation passed")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Configuration validation error: {e}")
             return False
-        
-        if not (20 <= self.config.rsi_down <= 50):
-            self.logger.error("Invalid RSI_DOWN range")
-            return False
-        
-        if not (50 <= self.config.rsi_up <= 80):
-            self.logger.error("Invalid RSI_UP range")
-            return False
-        
-        if self.config.rsi_down >= self.config.rsi_up:
-            self.logger.error("RSI_DOWN must be less than RSI_UP")
-            return False
-        
-        return True
     
     def _update_engine_stats(self):
-        """Update engine statistics"""
+        """Update comprehensive engine statistics"""
         if self.start_time:
             self.engine_stats['uptime_seconds'] = (datetime.now() - self.start_time).total_seconds()
+        
+        # Update positions count
+        self.engine_stats['active_positions'] = len(self.position_manager.positions)
+        self.engine_stats['recovery_groups'] = len(self.position_manager.recovery_groups)
+        
+        # Calculate success rate
+        if self.engine_stats['trades_executed'] > 0:
+            success_rate = (self.engine_stats['trades_executed'] - self.engine_stats['trades_closed']) / self.engine_stats['trades_executed']
+            self.engine_stats['success_rate'] = success_rate * 100
     
     def _notify_state_change(self):
         """Thread-safe state change notification"""
@@ -967,6 +1115,11 @@ class StrategyEngine:
                     "total_pnl": status.total_pnl,
                     "last_trade": status.last_trade.isoformat() if status.last_trade else None
                 },
+                "signals": {
+                    "cached_signals": len(self.recovery_signal_cache),
+                    "last_signals": {k: v["timestamp"].isoformat() for k, v in self.last_successful_signals.items()},
+                    "smart_recovery_enabled": self.config.smart_recovery
+                },
                 "risk": self.risk_manager.get_risk_report(),
                 "positions": self.position_manager.get_position_summary(),
                 "recovery": self.position_manager.get_recovery_status(),
@@ -1031,7 +1184,7 @@ class StrategyEngine:
             self.logger.info("Recovery test mode disabled")
     
     def test_recovery_system(self) -> Dict:
-        """Test recovery system functionality"""
+        """Enhanced recovery system testing"""
         try:
             self.logger.info("🧪 Testing recovery system...")
             test_results = {
@@ -1064,8 +1217,6 @@ class StrategyEngine:
             
             # Test 2: TP calculation for recovery
             try:
-                # Mock recovery positions
-                from position_manager import Position
                 mock_positions = [
                     Position(
                         ticket=12345,
@@ -1099,7 +1250,6 @@ class StrategyEngine:
             
             # Test 3: Anti-hedge logic
             try:
-                # Test with no positions
                 can_buy = self._check_anti_hedge("BUY")
                 can_sell = self._check_anti_hedge("SELL")
                 
@@ -1112,6 +1262,38 @@ class StrategyEngine:
             except Exception as e:
                 test_results["tests_failed"] += 1
                 test_results["results"].append({"test": "Anti-hedge logic", "status": "ERROR", "error": str(e)})
+            
+            # Test 4: Smart recovery signal validation
+            try:
+                # Simulate cached signal
+                self.recovery_signal_cache["BUY"] = {
+                    "timestamp": datetime.now(),
+                    "data": {"rsi": 58, "strength": 75},
+                    "strength": 75,
+                    "rsi": 58
+                }
+                
+                mock_position = Position(
+                    ticket=12345,
+                    symbol=self.config.symbol,
+                    type=0,  # BUY
+                    volume=0.01,
+                    open_price=2000.0,
+                    open_time=datetime.now()
+                )
+                
+                is_valid = self._validate_recovery_signal("BUY", mock_position)
+                
+                if is_valid:
+                    test_results["tests_passed"] += 1
+                    test_results["results"].append({"test": "Smart recovery signal validation", "status": "PASS"})
+                else:
+                    test_results["tests_failed"] += 1
+                    test_results["results"].append({"test": "Smart recovery signal validation", "status": "FAIL"})
+                    
+            except Exception as e:
+                test_results["tests_failed"] += 1
+                test_results["results"].append({"test": "Smart recovery signal validation", "status": "ERROR", "error": str(e)})
             
             self.recovery_test_results.append(test_results)
             
@@ -1127,7 +1309,7 @@ class StrategyEngine:
             return {"error": str(e), "timestamp": datetime.now()}
     
     def save_state(self, filepath: str):
-        """Enhanced save state with connection info"""
+        """Enhanced save state with connection and signal info"""
         try:
             state_data = {
                 "config": self.config.to_dict(),
@@ -1143,6 +1325,10 @@ class StrategyEngine:
                 ],
                 "signal_history": self.signal_history,
                 "recovery_test_results": self.recovery_test_results,
+                "cached_signals": {
+                    k: {**v, "timestamp": v["timestamp"].isoformat()} 
+                    for k, v in self.recovery_signal_cache.items()
+                },
                 "timestamp": datetime.now().isoformat()
             }
             
@@ -1155,7 +1341,7 @@ class StrategyEngine:
             self.logger.error(f"Failed to save state: {e}")
     
     def load_state(self, filepath: str) -> bool:
-        """Enhanced load state"""
+        """Enhanced load state with signal cache"""
         try:
             with open(filepath, 'r') as f:
                 state_data = json.load(f)
@@ -1173,6 +1359,12 @@ class StrategyEngine:
             # Restore histories
             self.signal_history = state_data.get("signal_history", [])
             self.recovery_test_results = state_data.get("recovery_test_results", [])
+            
+            # Restore cached signals
+            cached_signals = state_data.get("cached_signals", {})
+            for signal_type, signal_data in cached_signals.items():
+                signal_data["timestamp"] = datetime.fromisoformat(signal_data["timestamp"])
+                self.recovery_signal_cache[signal_type] = signal_data
             
             # Restore trade history with datetime conversion
             trade_history = state_data.get("trade_history", [])

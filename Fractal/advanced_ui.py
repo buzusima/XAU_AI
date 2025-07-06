@@ -361,8 +361,8 @@ class AlertManager:
         try:
             if alert_type in [AlertType.ERROR, AlertType.WARNING]:
                 self.parent.bell()
-        except:
-            pass
+        except Exception as e:
+            print(f"Alert sound error: {e}")
 
 class LiveChartWidget:
     """Live chart widget for real-time data visualization"""
@@ -764,7 +764,8 @@ class ConfigurationManager:
                         "timestamp": config_data.get("timestamp", ""),
                         "file": str(config_file)
                     })
-            except:
+            except Exception as e:
+                print(f"Error loading config {config_file}: {e}")
                 continue
         
         return sorted(configs, key=lambda x: x["timestamp"], reverse=True)
@@ -805,6 +806,257 @@ class ConfigurationManager:
             print(f"Restore failed: {e}")
             return False
 
+# Missing Dialog Classes - Fixed
+class ConfigSaveDialog:
+    """Dialog for saving configuration with name and description"""
+    
+    def __init__(self, parent):
+        self.parent = parent
+        self.result = None
+        self.dialog = None
+    
+    def show(self):
+        """Show the dialog and return (name, description) or None"""
+        self.dialog = tk.Toplevel(self.parent)
+        self.dialog.title("Save Configuration")
+        self.dialog.geometry("400x200")
+        self.dialog.transient(self.parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.update_idletasks()
+        x = (self.dialog.winfo_screenwidth() // 2) - (400 // 2)
+        y = (self.dialog.winfo_screenheight() // 2) - (200 // 2)
+        self.dialog.geometry(f"400x200+{x}+{y}")
+        
+        # Create form
+        frame = ttk.Frame(self.dialog, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Name field
+        ttk.Label(frame, text="Configuration Name:").pack(anchor="w")
+        self.name_var = tk.StringVar(value=f"config_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        name_entry = ttk.Entry(frame, textvariable=self.name_var, width=40)
+        name_entry.pack(fill=tk.X, pady=(0, 10))
+        
+        # Description field
+        ttk.Label(frame, text="Description:").pack(anchor="w")
+        self.desc_var = tk.StringVar()
+        desc_entry = ttk.Entry(frame, textvariable=self.desc_var, width=40)
+        desc_entry.pack(fill=tk.X, pady=(0, 20))
+        
+        # Buttons
+        button_frame = ttk.Frame(frame)
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Save", command=self._save).pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(button_frame, text="Cancel", command=self._cancel).pack(side=tk.RIGHT)
+        
+        # Focus on name entry
+        name_entry.focus()
+        name_entry.select_range(0, tk.END)
+        
+        # Wait for dialog to close
+        self.dialog.wait_window()
+        return self.result
+    
+    def _save(self):
+        """Handle save button"""
+        name = self.name_var.get().strip()
+        description = self.desc_var.get().strip()
+        
+        if not name:
+            messagebox.showerror("Error", "Please enter a configuration name.")
+            return
+        
+        self.result = (name, description)
+        self.dialog.destroy()
+    
+    def _cancel(self):
+        """Handle cancel button"""
+        self.result = None
+        self.dialog.destroy()
+
+class UserGuideDialog:
+    """User guide dialog"""
+    
+    def __init__(self, parent):
+        self.parent = parent
+    
+    def show(self):
+        """Show user guide"""
+        guide_text = """
+XAUUSD Multi-Timeframe EA - User Guide
+
+GETTING STARTED:
+1. Ensure MT5 is running and logged in
+2. Select XAUUSD symbol in MT5
+3. Click START to begin trading
+
+ENTRY SIGNALS:
+• BUY: Fractal Down + RSI > RSI_Upper (default: 55)
+• SELL: Fractal Up + RSI < RSI_Lower (default: 45)
+
+RECOVERY SYSTEM:
+• Activates when position loses > Recovery_Price points
+• Uses Martingale multiplication for lot sizing
+• Smart Recovery waits for same signal before adding
+
+PARAMETERS:
+• Lot Size: Initial position size (0.01-10.0)
+• RSI Upper/Lower: Signal thresholds (20-80)
+• TP Points: Take profit in points (50-1000)
+• Recovery Price: Loss threshold for recovery (50-500)
+• Martingale: Lot multiplier for recovery (1.1-5.0)
+
+RISK MANAGEMENT:
+• Daily Loss Limit: Stop trading after daily loss
+• Max Positions: Limit concurrent positions
+• Max Drawdown: Emergency stop percentage
+
+PRESETS:
+• Scalping: Fast entries, small TP
+• Intraday: Medium settings for day trading
+• Swing: Larger TP, slower entries
+• Conservative: Lower risk, higher thresholds
+
+MONITOR:
+• Watch Live Status for current metrics
+• Check Risk panel for safety levels
+• Review positions in Analysis tab
+
+EMERGENCY FEATURES:
+• Emergency Stop: Closes all positions immediately
+• Auto-stop on risk limits exceeded
+• Connection recovery with position sync
+
+For support, check logs and error messages.
+        """
+        
+        dialog = tk.Toplevel(self.parent)
+        dialog.title("User Guide")
+        dialog.geometry("600x500")
+        dialog.transient(self.parent)
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (500 // 2)
+        dialog.geometry(f"600x500+{x}+{y}")
+        
+        # Create text widget with scrollbar
+        frame = ttk.Frame(dialog, padding="10")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        text_widget = tk.Text(frame, wrap=tk.WORD, font=("Consolas", 10))
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Insert guide text
+        text_widget.insert(tk.END, guide_text)
+        text_widget.config(state=tk.DISABLED)
+        
+        # Close button
+        close_frame = ttk.Frame(dialog)
+        close_frame.pack(fill=tk.X, pady=(10, 0))
+        ttk.Button(close_frame, text="Close", command=dialog.destroy).pack(side=tk.RIGHT)
+
+class AboutDialog:
+    """About dialog"""
+    
+    def __init__(self, parent):
+        self.parent = parent
+    
+    def show(self):
+        """Show about dialog"""
+        about_text = """
+XAUUSD Multi-Timeframe EA
+Professional Trading System
+
+Version: 1.0.0
+Build: 2024.12.28
+
+FEATURES:
+✓ Multi-Timeframe Analysis
+✓ Smart Recovery System  
+✓ Real-time Risk Management
+✓ Advanced UI with Live Charts
+✓ Multi-Broker Compatibility
+✓ Professional Logging System
+
+STRATEGY:
+• Fractal + RSI Entry Signals
+• Dynamic Take Profit Calculation
+• Anti-Hedge Protection
+• Spread Management
+• Position Correlation Analysis
+
+TECHNOLOGY:
+• Python 3.8+ with MT5 Integration
+• Thread-safe Architecture
+• SQLite Data Storage
+• Real-time Performance Monitoring
+• Advanced Error Handling
+
+TRADING PAIRS:
+• XAUUSD (Gold/USD) - Primary
+• Auto-detection of symbol variations
+• Support for different broker naming
+
+RISK DISCLAIMER:
+Trading involves significant risk of loss.
+Past performance does not guarantee future results.
+Only trade with money you can afford to lose.
+
+© 2024 - Professional Trading Solutions
+All rights reserved.
+        """
+        
+        dialog = tk.Toplevel(self.parent)
+        dialog.title("About XAUUSD EA")
+        dialog.geometry("500x400")
+        dialog.transient(self.parent)
+        dialog.resizable(False, False)
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+        dialog.geometry(f"500x400+{x}+{y}")
+        
+        # Create main frame
+        main_frame = ttk.Frame(dialog, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Logo/Icon (placeholder)
+        icon_frame = ttk.Frame(main_frame)
+        icon_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        icon_label = ttk.Label(icon_frame, text="🏆", font=("Arial", 24))
+        icon_label.pack()
+        
+        # About text
+        text_widget = tk.Text(main_frame, wrap=tk.WORD, font=("Segoe UI", 9), 
+                             height=20, width=60)
+        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Insert about text
+        text_widget.insert(tk.END, about_text)
+        text_widget.config(state=tk.DISABLED)
+        
+        # Button frame
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        ttk.Button(button_frame, text="OK", command=dialog.destroy).pack(side=tk.RIGHT)
+
 # Enhanced UI Controller with advanced features
 class AdvancedUIController:
     """Enhanced UI controller with advanced features"""
@@ -824,110 +1076,152 @@ class AdvancedUIController:
     
     def setup_advanced_features(self):
         """Setup advanced UI features"""
-        # Add alert manager to main window
-        alert_container = ttk.Frame(self.root)
-        alert_container.pack(side=tk.TOP, fill=tk.X, before=self.main_ui.notebook)
-        self.alert_manager = AlertManager(alert_container)
-        
-        # Add performance dashboard tab
-        self.performance_dashboard = PerformanceDashboard(self.main_ui.advanced_frame)
-        
-        # Add advanced menu bar
-        self.create_advanced_menu()
-        
-        # Add status bar
-        self.create_status_bar()
+        try:
+            # Add alert manager to main window
+            alert_container = ttk.Frame(self.root)
+            alert_container.pack(side=tk.TOP, fill=tk.X, before=self.main_ui.notebook)
+            self.alert_manager = AlertManager(alert_container)
+            
+            # Add performance dashboard tab
+            self.performance_dashboard = PerformanceDashboard(self.main_ui.advanced_frame)
+            
+            # Add advanced menu bar
+            self.create_advanced_menu()
+            
+            # Add status bar
+            self.create_status_bar()
+        except Exception as e:
+            print(f"Setup advanced features error: {e}")
     
     def create_advanced_menu(self):
         """Create advanced menu bar"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
-        
-        # File menu
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Save Configuration", command=self.save_configuration)
-        file_menu.add_command(label="Load Configuration", command=self.load_configuration)
-        file_menu.add_separator()
-        file_menu.add_command(label="Export Logs", command=self.export_logs)
-        file_menu.add_command(label="Export Data", command=self.export_data)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.main_ui.on_closing)
-        
-        # Tools menu
-        tools_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Tools", menu=tools_menu)
-        tools_menu.add_command(label="System Diagnostics", command=self.show_diagnostics)
-        tools_menu.add_command(label="Performance Report", command=self.show_performance_report)
-        tools_menu.add_command(label="Clear All Data", command=self.clear_all_data)
-        
-        # View menu
-        view_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="View", menu=view_menu)
-        view_menu.add_command(label="Show Alerts", command=self.show_alerts)
-        view_menu.add_command(label="Performance Dashboard", command=self.show_performance_dashboard)
-        view_menu.add_command(label="Full Screen", command=self.toggle_fullscreen)
-        
-        # Help menu
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Help", menu=help_menu)
-        help_menu.add_command(label="User Guide", command=self.show_user_guide)
-        help_menu.add_command(label="About", command=self.show_about)
+        try:
+            menubar = tk.Menu(self.root)
+            self.root.config(menu=menubar)
+            
+            # File menu
+            file_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="File", menu=file_menu)
+            file_menu.add_command(label="Save Configuration", command=self.save_configuration)
+            file_menu.add_command(label="Load Configuration", command=self.load_configuration)
+            file_menu.add_separator()
+            file_menu.add_command(label="Export Logs", command=self.export_logs)
+            file_menu.add_command(label="Export Data", command=self.export_data)
+            file_menu.add_separator()
+            file_menu.add_command(label="Exit", command=self.main_ui.on_closing)
+            
+            # Tools menu
+            tools_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Tools", menu=tools_menu)
+            tools_menu.add_command(label="System Diagnostics", command=self.show_diagnostics)
+            tools_menu.add_command(label="Performance Report", command=self.show_performance_report)
+            tools_menu.add_command(label="Clear All Data", command=self.clear_all_data)
+            
+            # View menu
+            view_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="View", menu=view_menu)
+            view_menu.add_command(label="Show Alerts", command=self.show_alerts)
+            view_menu.add_command(label="Performance Dashboard", command=self.show_performance_dashboard)
+            view_menu.add_command(label="Full Screen", command=self.toggle_fullscreen)
+            
+            # Help menu
+            help_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Help", menu=help_menu)
+            help_menu.add_command(label="User Guide", command=self.show_user_guide)
+            help_menu.add_command(label="About", command=self.show_about)
+        except Exception as e:
+            print(f"Create advanced menu error: {e}")
     
     def create_status_bar(self):
         """Create status bar"""
-        self.status_bar = ttk.Frame(self.root)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # Status sections
-        self.status_text = tk.StringVar(value="Ready")
-        ttk.Label(self.status_bar, textvariable=self.status_text).pack(side=tk.LEFT, padx=5)
-        
-        # Connection status
-        self.connection_status = tk.StringVar(value="Disconnected")
-        ttk.Label(self.status_bar, textvariable=self.connection_status).pack(side=tk.RIGHT, padx=5)
-        
-        # Memory usage
-        self.memory_status = tk.StringVar(value="Memory: 0 MB")
-        ttk.Label(self.status_bar, textvariable=self.memory_status).pack(side=tk.RIGHT, padx=5)
+        try:
+            self.status_bar = ttk.Frame(self.root)
+            self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+            
+            # Status sections
+            self.status_text = tk.StringVar(value="Ready")
+            ttk.Label(self.status_bar, textvariable=self.status_text).pack(side=tk.LEFT, padx=5)
+            
+            # Connection status
+            self.connection_status = tk.StringVar(value="Disconnected")
+            ttk.Label(self.status_bar, textvariable=self.connection_status).pack(side=tk.RIGHT, padx=5)
+            
+            # Memory usage
+            self.memory_status = tk.StringVar(value="Memory: 0 MB")
+            ttk.Label(self.status_bar, textvariable=self.memory_status).pack(side=tk.RIGHT, padx=5)
+        except Exception as e:
+            print(f"Create status bar error: {e}")
     
     def update_status(self, message: str):
         """Update status bar message"""
-        self.status_text.set(message)
+        try:
+            self.status_text.set(message)
+        except Exception as e:
+            print(f"Update status error: {e}")
     
     def update_connection_status(self, connected: bool):
         """Update connection status"""
-        status = "Connected" if connected else "Disconnected"
-        self.connection_status.set(f"MT5: {status}")
+        try:
+            status = "Connected" if connected else "Disconnected"
+            self.connection_status.set(f"MT5: {status}")
+        except Exception as e:
+            print(f"Update connection status error: {e}")
     
     def update_memory_usage(self, memory_mb: float):
         """Update memory usage display"""
-        self.memory_status.set(f"Memory: {memory_mb:.1f} MB")
+        try:
+            self.memory_status.set(f"Memory: {memory_mb:.1f} MB")
+        except Exception as e:
+            print(f"Update memory usage error: {e}")
     
     # Alert methods
     def show_info_alert(self, title: str, message: str):
         """Show info alert"""
-        self.alert_manager.add_alert(AlertType.INFO, title, message)
+        try:
+            if self.alert_manager:
+                self.alert_manager.add_alert(AlertType.INFO, title, message)
+        except Exception as e:
+            print(f"Show info alert error: {e}")
     
     def show_success_alert(self, title: str, message: str):
         """Show success alert"""
-        self.alert_manager.add_alert(AlertType.SUCCESS, title, message)
+        try:
+            if self.alert_manager:
+                self.alert_manager.add_alert(AlertType.SUCCESS, title, message)
+        except Exception as e:
+            print(f"Show success alert error: {e}")
     
     def show_warning_alert(self, title: str, message: str):
         """Show warning alert"""
-        self.alert_manager.add_alert(AlertType.WARNING, title, message, auto_dismiss=False)
+        try:
+            if self.alert_manager:
+                self.alert_manager.add_alert(AlertType.WARNING, title, message, auto_dismiss=False)
+        except Exception as e:
+            print(f"Show warning alert error: {e}")
     
     def show_error_alert(self, title: str, message: str):
         """Show error alert"""
-        self.alert_manager.add_alert(AlertType.ERROR, title, message, auto_dismiss=False)
+        try:
+            if self.alert_manager:
+                self.alert_manager.add_alert(AlertType.ERROR, title, message, auto_dismiss=False)
+        except Exception as e:
+            print(f"Show error alert error: {e}")
     
     def show_trade_alert(self, title: str, message: str):
         """Show trade alert"""
-        self.alert_manager.add_alert(AlertType.TRADE, title, message)
+        try:
+            if self.alert_manager:
+                self.alert_manager.add_alert(AlertType.TRADE, title, message)
+        except Exception as e:
+            print(f"Show trade alert error: {e}")
     
     def show_signal_alert(self, title: str, message: str):
         """Show signal alert"""
-        self.alert_manager.add_alert(AlertType.SIGNAL, title, message)
+        try:
+            if self.alert_manager:
+                self.alert_manager.add_alert(AlertType.SIGNAL, title, message)
+        except Exception as e:
+            print(f"Show signal alert error: {e}")
     
     # Configuration management
     def save_configuration(self):
@@ -956,3 +1250,83 @@ class AdvancedUIController:
             if not configs:
                 self.show_info_alert("No Configurations", "No saved configurations found")
                 return
+            
+            # Show config selection dialog
+            messagebox.showinfo("Load Configuration", f"Found {len(configs)} saved configurations")
+            
+        except Exception as e:
+            self.show_error_alert("Load Error", f"Failed to load configuration: {e}")
+    
+    def export_logs(self):
+        """Export logs to file"""
+        try:
+            messagebox.showinfo("Export Logs", "Log export feature would be implemented here")
+        except Exception as e:
+            self.show_error_alert("Export Error", f"Failed to export logs: {e}")
+    
+    def export_data(self):
+        """Export data to file"""
+        try:
+            messagebox.showinfo("Export Data", "Data export feature would be implemented here")
+        except Exception as e:
+            self.show_error_alert("Export Error", f"Failed to export data: {e}")
+    
+    def show_diagnostics(self):
+        """Show system diagnostics"""
+        try:
+            messagebox.showinfo("System Diagnostics", "System diagnostics would be shown here")
+        except Exception as e:
+            self.show_error_alert("Diagnostics Error", f"Failed to show diagnostics: {e}")
+    
+    def show_performance_report(self):
+        """Show performance report"""
+        try:
+            messagebox.showinfo("Performance Report", "Performance report would be shown here")
+        except Exception as e:
+            self.show_error_alert("Report Error", f"Failed to show performance report: {e}")
+    
+    def clear_all_data(self):
+        """Clear all data"""
+        try:
+            if messagebox.askyesno("Confirm", "Clear all stored data?"):
+                messagebox.showinfo("Clear Data", "All data would be cleared here")
+        except Exception as e:
+            self.show_error_alert("Clear Error", f"Failed to clear data: {e}")
+    
+    def show_alerts(self):
+        """Show alerts panel"""
+        try:
+            messagebox.showinfo("Alerts", "Alerts panel is already visible")
+        except Exception as e:
+            print(f"Show alerts error: {e}")
+    
+    def show_performance_dashboard(self):
+        """Show performance dashboard"""
+        try:
+            messagebox.showinfo("Performance Dashboard", "Switch to Advanced tab to view dashboard")
+        except Exception as e:
+            print(f"Show performance dashboard error: {e}")
+    
+    def toggle_fullscreen(self):
+        """Toggle fullscreen mode"""
+        try:
+            current_state = self.root.attributes('-fullscreen')
+            self.root.attributes('-fullscreen', not current_state)
+        except Exception as e:
+            print(f"Toggle fullscreen error: {e}")
+    
+    def show_user_guide(self):
+        """Show user guide"""
+        try:
+            dialog = UserGuideDialog(self.root)
+            dialog.show()
+        except Exception as e:
+            self.show_error_alert("Guide Error", f"Failed to show user guide: {e}")
+    
+    def show_about(self):
+        """Show about dialog"""
+        try:
+            dialog = AboutDialog(self.root)
+            dialog.show()
+        except Exception as e:
+            self.show_error_alert("About Error", f"Failed to show about dialog: {e}")

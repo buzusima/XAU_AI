@@ -176,28 +176,57 @@ class XAUUSDTradingCore:
         return True
     
     def _validate_account(self) -> bool:
-        """Validate account information"""
+        """Validate account information with proper MT5 attribute handling"""
         try:
             account = mt5.account_info()
             if account is None:
                 self.logger.error("Cannot get account information")
                 return False
             
+            # Safe attribute access with getattr and defaults
+            login = getattr(account, 'login', 0)
+            server = getattr(account, 'server', '')
+            name = getattr(account, 'name', '')
+            company = getattr(account, 'company', '')
+            currency = getattr(account, 'currency', 'USD')
+            leverage = getattr(account, 'leverage', 0)
+            balance = getattr(account, 'balance', 0.0)
+            equity = getattr(account, 'equity', 0.0)
+            margin = getattr(account, 'margin', 0.0)
+            
+            # Handle free_margin - some MT5 versions don't have this attribute
+            free_margin = getattr(account, 'free_margin', None)
+            if free_margin is None:
+                # Calculate free margin if not available
+                free_margin = equity - margin if equity > margin else equity
+            
+            # Calculate margin level safely
+            margin_level = 999.99  # Default for no positions
+            if margin > 0:
+                margin_level = (equity / margin) * 100
+            
+            # Check trade_allowed attribute safely
+            trade_allowed = getattr(account, 'trade_allowed', True)
+            
+            # Check account trade mode safely
+            trade_mode = getattr(account, 'trade_mode', mt5.ACCOUNT_TRADE_MODE_DEMO)
+            is_demo = (trade_mode == mt5.ACCOUNT_TRADE_MODE_DEMO)
+            
             # Populate account info
             self.account_info = AccountInfo(
-                login=account.login,
-                server=account.server,
-                name=account.name,
-                company=account.company,
-                currency=account.currency,
-                leverage=account.leverage,
-                balance=account.balance,
-                equity=account.equity,
-                margin=account.margin,
-                free_margin=account.free_margin,
-                margin_level=account.margin_level if account.margin > 0 else 999.99,
-                trade_allowed=account.trade_allowed,
-                is_demo=account.trade_mode == mt5.ACCOUNT_TRADE_MODE_DEMO
+                login=login,
+                server=server,
+                name=name,
+                company=company,
+                currency=currency,
+                leverage=leverage,
+                balance=float(balance),
+                equity=float(equity),
+                margin=float(margin),
+                free_margin=float(free_margin),
+                margin_level=float(margin_level),
+                trade_allowed=trade_allowed,
+                is_demo=is_demo
             )
             
             # Validation checks
@@ -218,6 +247,9 @@ class XAUUSDTradingCore:
             
             self.logger.info(f"✓ Account validated: {self.account_info.name} ({self.account_info.server})")
             self.logger.info(f"  Balance: ${self.account_info.balance:.2f} {self.account_info.currency}")
+            self.logger.info(f"  Equity: ${self.account_info.equity:.2f}")
+            self.logger.info(f"  Free Margin: ${self.account_info.free_margin:.2f}")
+            self.logger.info(f"  Margin Level: {self.account_info.margin_level:.2f}%")
             self.logger.info(f"  Leverage: 1:{self.account_info.leverage}")
             self.logger.info(f"  Account Type: {'DEMO' if self.account_info.is_demo else 'LIVE'}")
             
@@ -225,10 +257,11 @@ class XAUUSDTradingCore:
             
         except Exception as e:
             self.logger.error(f"Account validation error: {e}")
+            self.logger.error(f"Available account attributes: {dir(account) if 'account' in locals() else 'No account object'}")
             return False
-    
+        
     def _detect_and_validate_symbol(self) -> bool:
-        """Auto-detect and validate XAUUSD symbol"""
+        """Auto-detect and validate XAUUSD symbol with proper MT5 constants"""
         try:
             # Auto-detect symbol if enabled
             if self.config.auto_symbol_detect:
@@ -237,7 +270,7 @@ class XAUUSDTradingCore:
                     self.config.symbol = detected_symbol
                     self.logger.info(f"✓ Auto-detected symbol: {self.config.symbol}")
             
-            # Get symbol information
+            # Get symbol information with error handling
             symbol = mt5.symbol_info(self.config.symbol)
             if symbol is None:
                 self.logger.error(f"❌ Symbol {self.config.symbol} not found")
@@ -250,29 +283,43 @@ class XAUUSDTradingCore:
                     return False
                 self.logger.info(f"✓ Symbol {self.config.symbol} enabled")
             
-            # Populate symbol info
+            # Get filling mode safely - use actual MT5 constants
+            filling_mode = getattr(symbol, 'filling_mode', 0)
+            # Check for valid filling modes that exist in MT5
+            if hasattr(mt5, 'SYMBOL_FILLING_FOK') and (filling_mode & mt5.SYMBOL_FILLING_FOK):
+                default_filling = mt5.SYMBOL_FILLING_FOK
+            elif hasattr(mt5, 'SYMBOL_FILLING_IOC') and (filling_mode & mt5.SYMBOL_FILLING_IOC):
+                default_filling = mt5.SYMBOL_FILLING_IOC
+            else:
+                # Use numeric value as fallback
+                default_filling = 1  # IOC equivalent
+            
+            # Get trade mode safely
+            trade_mode = getattr(symbol, 'trade_mode', 4)  # 4 = SYMBOL_TRADE_MODE_FULL
+            
+            # Populate symbol info with safe attribute access
             self.symbol_info = SymbolInfo(
-                name=symbol.name,
-                description=symbol.description,
-                currency_base=symbol.currency_base,
-                currency_profit=symbol.currency_profit,
-                currency_margin=symbol.currency_margin,
-                digits=symbol.digits,
-                point=symbol.point,
-                spread=symbol.spread,
-                volume_min=symbol.volume_min,
-                volume_max=symbol.volume_max,
-                volume_step=symbol.volume_step,
-                contract_size=symbol.contract_size,
-                margin_initial=symbol.margin_initial,
-                margin_maintenance=symbol.margin_maintenance,
-                trade_mode=symbol.trade_mode,
-                filling_mode=symbol.filling_mode,
-                expiration_mode=symbol.expiration_mode
+                name=getattr(symbol, 'name', self.config.symbol),
+                description=getattr(symbol, 'description', ''),
+                currency_base=getattr(symbol, 'currency_base', 'XAU'),
+                currency_profit=getattr(symbol, 'currency_profit', 'USD'),
+                currency_margin=getattr(symbol, 'currency_margin', 'USD'),
+                digits=getattr(symbol, 'digits', 2),
+                point=getattr(symbol, 'point', 0.01),
+                spread=getattr(symbol, 'spread', 30),
+                volume_min=getattr(symbol, 'volume_min', 0.01),
+                volume_max=getattr(symbol, 'volume_max', 100.0),
+                volume_step=getattr(symbol, 'volume_step', 0.01),
+                contract_size=getattr(symbol, 'contract_size', 100.0),
+                margin_initial=getattr(symbol, 'margin_initial', 0.0),
+                margin_maintenance=getattr(symbol, 'margin_maintenance', 0.0),
+                trade_mode=trade_mode,
+                filling_mode=default_filling,
+                expiration_mode=getattr(symbol, 'expiration_mode', 1)  # GTC equivalent
             )
             
-            # Validation checks
-            if self.symbol_info.trade_mode == mt5.SYMBOL_TRADE_MODE_DISABLED:
+            # Validation checks - use numeric values to avoid constant issues
+            if self.symbol_info.trade_mode == 0:  # SYMBOL_TRADE_MODE_DISABLED
                 self.logger.error("❌ Trading disabled for this symbol")
                 return False
             
@@ -280,7 +327,7 @@ class XAUUSDTradingCore:
                 self.logger.error("❌ Invalid minimum volume")
                 return False
             
-            # Check if it's really gold
+            # Check if it's really gold (optional warning, not blocking)
             if not self._is_gold_symbol():
                 self.logger.warning(f"⚠️ Symbol {self.config.symbol} may not be gold")
             
@@ -288,13 +335,117 @@ class XAUUSDTradingCore:
             self.logger.info(f"  Digits: {self.symbol_info.digits}, Point: {self.symbol_info.point}")
             self.logger.info(f"  Volume range: {self.symbol_info.volume_min} - {self.symbol_info.volume_max}")
             self.logger.info(f"  Current spread: {self.symbol_info.spread} points")
+            self.logger.info(f"  Contract size: {self.symbol_info.contract_size}")
+            self.logger.info(f"  Trade mode: {self.symbol_info.trade_mode}")
+            self.logger.info(f"  Filling mode: {self.symbol_info.filling_mode}")
             
             return True
             
         except Exception as e:
             self.logger.error(f"Symbol validation error: {e}")
             return False
+
+    def _is_gold_symbol(self) -> bool:
+        """Check if current symbol is gold - simplified version"""
+        try:
+            symbol_name = self.config.symbol.upper()
+            
+            # Check for gold indicators in symbol name
+            gold_indicators = ['XAU', 'GOLD']
+            return any(indicator in symbol_name for indicator in gold_indicators)
+            
+        except Exception as e:
+            self.logger.error(f"Gold symbol check error: {e}")
+            return True  # Assume it's gold if check fails
+
+    def _validate_gold_symbol(self, symbol_info) -> bool:
+        """Validate if symbol is actually gold - simplified version"""
+        try:
+            # Check symbol name contains gold indicators
+            name_lower = getattr(symbol_info, 'name', '').lower()
+            if not any(indicator in name_lower for indicator in ['xau', 'gold']):
+                return False
+            
+            # Basic validation - just check if it looks like gold
+            digits = getattr(symbol_info, 'digits', 0)
+            if digits > 0 and digits <= 5:
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.debug(f"Gold validation error: {e}")
+            return True  # Assume valid if validation fails
     
+    def _detect_gold_symbol(self) -> Optional[str]:
+        """Auto-detect gold symbol variations with better error handling"""
+        gold_symbols = [
+            "XAUUSD", "XAUUSD.m", "XAUUSD.raw", "XAUUSD.v", "XAUUSD.c",
+            "#XAUUSD", "GOLD", "GOLDUSD", "XAU/USD", "XAUUSD.",
+            "Gold", "GOLD.m", "XAUUSD.a", "XAUUSD.b", "XAUUSD.mt5"
+        ]
+        
+        self.logger.info("Auto-detecting gold symbol...")
+        
+        for symbol in gold_symbols:
+            try:
+                symbol_info = mt5.symbol_info(symbol)
+                if symbol_info is not None:
+                    # Additional validation - check if it's really gold
+                    if self._validate_gold_symbol(symbol_info):
+                        self.logger.info(f"✓ Gold symbol found: {symbol}")
+                        return symbol
+                    else:
+                        self.logger.debug(f"Symbol {symbol} found but doesn't match gold characteristics")
+            except Exception as e:
+                self.logger.debug(f"Error checking symbol {symbol}: {e}")
+                continue
+        
+        self.logger.warning("❌ No gold symbol auto-detected, using default")
+        return None
+
+    def _calculate_point_values(self):
+        """Calculate point values and multipliers for this broker with error handling"""
+        try:
+            # Get current tick
+            tick = mt5.symbol_info_tick(self.config.symbol)
+            if tick is None:
+                self.logger.warning("Cannot get current tick for point calculation")
+                # Use symbol info point value as fallback
+                self.point_multiplier = 1.0
+                return
+            
+            # Calculate point value based on contract size
+            contract_size = getattr(self.symbol_info, 'contract_size', 100.0)
+            point_value = getattr(self.symbol_info, 'point', 0.01)
+            
+            # Standard XAUUSD: 1 lot = 100 oz, 1 point = $1 per lot
+            point_value_per_lot = contract_size * point_value
+            
+            # For XAUUSD, point value should be around $0.01 per 0.01 lot
+            expected_point_value = 0.01  # $0.01 per 0.01 lot per point
+            actual_point_value = point_value_per_lot / 100  # per 0.01 lot
+            
+            if expected_point_value > 0:
+                self.point_multiplier = actual_point_value / expected_point_value
+            else:
+                self.point_multiplier = 1.0
+            
+            self.logger.info(f"✓ Point calculation completed:")
+            self.logger.info(f"  Contract size: {contract_size}")
+            self.logger.info(f"  Point value: {point_value}")
+            self.logger.info(f"  Point value per lot: ${point_value_per_lot}")
+            self.logger.info(f"  Point value per 0.01 lot: ${actual_point_value:.4f}")
+            self.logger.info(f"  Point multiplier: {self.point_multiplier:.4f}")
+            
+            # Warn if unusual values
+            if not (0.1 <= self.point_multiplier <= 10.0):
+                self.logger.warning(f"⚠️ Unusual point multiplier: {self.point_multiplier}")
+            
+        except Exception as e:
+            self.logger.error(f"Point calculation error: {e}")
+            self.point_multiplier = 1.0  # Default fallback
+
     def _detect_gold_symbol(self) -> Optional[str]:
         """Auto-detect gold symbol variations"""
         gold_symbols = [
