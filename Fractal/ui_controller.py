@@ -8,6 +8,8 @@ import json
 import logging
 from dataclasses import dataclass, asdict
 from enum import Enum
+import queue
+from concurrent.futures import ThreadPoolExecutor
 
 # Fix circular import with TYPE_CHECKING
 if TYPE_CHECKING:
@@ -32,7 +34,8 @@ class UIConfig:
     show_advanced_controls: bool = False
     position_in_title: bool = True
     sound_alerts: bool = True
-    
+    max_ui_updates_per_second: int = 10
+
 class PresetManager:
     """Trading preset configurations"""
     
@@ -83,25 +86,135 @@ class PresetManager:
         }
     }
 
+class ThreadSafeUIUpdater:
+    """Thread-safe UI update manager"""
+    
+    def __init__(self, root: tk.Tk, max_updates_per_second: int = 10):
+        self.root = root
+        self.update_queue = queue.Queue(maxsize=100)
+        self.is_updating = False
+        self.last_update = 0
+        self.min_update_interval = 1.0 / max_updates_per_second
+        self.update_lock = threading.Lock()
+        
+    def schedule_update(self, update_func, *args, **kwargs):
+        """Schedule a UI update function to run in main thread"""
+        try:
+            update_item = (update_func, args, kwargs)
+            self.update_queue.put(update_item, block=False)
+            
+            # Schedule processing if not already scheduled
+            with self.update_lock:
+                if not self.is_updating:
+                    self.is_updating = True
+                    self.root.after_idle(self._process_updates)
+                    
+        except queue.Full:
+            # Drop update if queue is full
+            pass
+    
+    def _process_updates(self):
+        """Process all queued updates"""
+        try:
+            current_time = time.time()
+            
+            # Rate limiting
+            if current_time - self.last_update < self.min_update_interval:
+                # Reschedule for later
+                self.root.after(
+                    int((self.min_update_interval - (current_time - self.last_update)) * 1000),
+                    self._process_updates
+                )
+                return
+            
+            updates_processed = 0
+            max_updates_per_batch = 5  # Limit updates per batch
+            
+            while not self.update_queue.empty() and updates_processed < max_updates_per_batch:
+                try:
+                    update_func, args, kwargs = self.update_queue.get_nowait()
+                    update_func(*args, **kwargs)
+                    updates_processed += 1
+                except queue.Empty:
+                    break
+                except Exception as e:
+                    print(f"UI update error: {e}")
+            
+            self.last_update = current_time
+            
+            # Schedule next batch if there are more updates
+            if not self.update_queue.empty():
+                self.root.after_idle(self._process_updates)
+            else:
+                with self.update_lock:
+                    self.is_updating = False
+                    
+        except Exception as e:
+            print(f"Update processing error: {e}")
+            with self.update_lock:
+                self.is_updating = False
+
+class ConnectionStatusWidget:
+    """Connection status display widget"""
+    
+    def __init__(self, parent):
+        self.frame = ttk.Frame(parent)
+        
+        # Connection indicator
+        self.status_var = tk.StringVar(value="Disconnected")
+        self.status_label = ttk.Label(self.frame, textvariable=self.status_var)
+        self.status_label.pack(side=tk.LEFT)
+        
+        # Quality indicator
+        self.quality_var = tk.StringVar(value="0%")
+        ttk.Label(self.frame, text="Quality:").pack(side=tk.LEFT, padx=(10, 0))
+        self.quality_label = ttk.Label(self.frame, textvariable=self.quality_var)
+        self.quality_label.pack(side=tk.LEFT)
+        
+        # Reconnection count
+        self.reconnect_var = tk.StringVar(value="0")
+        ttk.Label(self.frame, text="Reconnects:").pack(side=tk.LEFT, padx=(10, 0))
+        ttk.Label(self.frame, textvariable=self.reconnect_var).pack(side=tk.LEFT)
+    
+    def update_status(self, connected: bool, quality: float = 0, reconnections: int = 0):
+        """Update connection status"""
+        if connected:
+            self.status_var.set("✅ Connected")
+            color = "green"
+        else:
+            self.status_var.set("❌ Disconnected")
+            color = "red"
+        
+        self.status_label.config(foreground=color)
+        self.quality_var.set(f"{quality:.0f}%")
+        self.reconnect_var.set(str(reconnections))
+
 class XAUUSDTradingUI:
     def __init__(self):
-        print("Initializing XAUUSD Trading UI...")
+        print("Initializing XAUUSD Trading UI with thread safety...")
         
         # Initialize basic state
         self.engine = None
         self.ui_config = UIConfig()
         self.preset_manager = PresetManager()
         
+        # Thread safety
+        self.ui_thread_id = threading.get_ident()
+        self.ui_lock = threading.RLock()
+        self.data_lock = threading.RLock()
+        
         # UI state
         self.running = False
         self.update_thread = None
         self.last_update = None
         
-        # Data for UI
-        self.status_data = {}
-        self.position_data = []
-        self.recovery_data = []
-        self.performance_data = {}
+        # Data for UI (thread-safe access)
+        with self.data_lock:
+            self.status_data = {}
+            self.position_data = []
+            self.recovery_data = []
+            self.performance_data = {}
+            self.connection_data = {}
         
         print("Creating main window...")
         # Create main window
@@ -109,6 +222,9 @@ class XAUUSDTradingUI:
         self.root.title("XAUUSD Multi-Timeframe EA - Professional Trading System")
         self.root.geometry("1400x900")
         self.root.minsize(1200, 800)
+        
+        # Initialize thread-safe updater
+        self.ui_updater = ThreadSafeUIUpdater(self.root, self.ui_config.max_ui_updates_per_second)
         
         print("Setting up UI theme...")
         self.setup_styles()
@@ -127,6 +243,9 @@ class XAUUSDTradingUI:
         
         print("Setting up event bindings...")
         self.setup_event_bindings()
+        
+        # Initialize connection status widget
+        self.connection_widget = ConnectionStatusWidget(self.root)
         
         print("Scheduling delayed engine initialization...")
         # Initialize engine after UI is ready
@@ -177,20 +296,42 @@ class XAUUSDTradingUI:
             pass  # Fallback to default styles
     
     def delayed_engine_init(self):
-        """Initialize engine after UI is fully loaded"""
+        """Initialize engine after UI is fully loaded (thread-safe)"""
         self.logger.info("Starting delayed engine initialization...")
         
-        # Check if status_var exists before using it
-        if hasattr(self, 'status_var'):
-            self.status_var.set("INITIALIZING ENGINE...")
+        # Use thread pool for engine initialization
+        def init_engine():
+            try:
+                self.initialize_engine()
+                self.ui_updater.schedule_update(self._on_engine_initialized)
+            except Exception as e:
+                self.logger.error(f"Engine initialization failed: {e}")
+                self.ui_updater.schedule_update(
+                    self._on_engine_init_failed, 
+                    f"Failed to initialize trading engine: {e}"
+                )
         
-        try:
-            self.initialize_engine()
-            self.logger.info("Engine initialization completed successfully")
-        except Exception as e:
-            self.logger.error(f"Engine initialization failed: {e}")
-            messagebox.showwarning("Engine Error", 
-                                 f"Failed to initialize trading engine: {e}\n\nUI will continue in demo mode.")
+        # Run initialization in background thread
+        threading.Thread(target=init_engine, daemon=True, name="EngineInit").start()
+    
+    def _on_engine_initialized(self):
+        """Called when engine initialization succeeds (UI thread)"""
+        self.logger.info("Engine initialization completed successfully")
+        
+        # Enable controls
+        if hasattr(self, 'start_btn'):
+            self.start_btn.config(state="normal")
+        if hasattr(self, 'stop_btn'):
+            self.stop_btn.config(state="normal")
+        if hasattr(self, 'pause_btn'):
+            self.pause_btn.config(state="normal")
+        if hasattr(self, 'emergency_btn'):
+            self.emergency_btn.config(state="normal")
+    
+    def _on_engine_init_failed(self, error_msg: str):
+        """Called when engine initialization fails (UI thread)"""
+        messagebox.showwarning("Engine Error", 
+                             f"{error_msg}\n\nUI will continue in demo mode.")
     
     def create_main_layout(self):
         """Create main layout with panels"""
@@ -259,34 +400,37 @@ class XAUUSDTradingUI:
         preset_combo.grid(row=0, column=1, padx=5)
         preset_combo.bind("<<ComboboxSelected>>", self.on_preset_selected)
         
-        # Status indicators
-        status_frame = ttk.Frame(control_frame)
-        status_frame.grid(row=0, column=3, padx=20)
+        # Connection status (enhanced)
+        connection_frame = ttk.Frame(control_frame)
+        connection_frame.grid(row=0, column=3, padx=20)
         
-        # Connection status
-        self.connection_var = tk.StringVar(value="Disconnected")
-        ttk.Label(status_frame, text="MT5:").grid(row=0, column=0)
-        self.connection_label = ttk.Label(status_frame, textvariable=self.connection_var)
-        self.connection_label.grid(row=0, column=1, padx=5)
+        self.connection_widget = ConnectionStatusWidget(connection_frame)
+        self.connection_widget.frame.pack()
         
-        # Uptime
+        # Uptime display
+        uptime_frame = ttk.Frame(control_frame)
+        uptime_frame.grid(row=0, column=4, padx=20)
+        
+        ttk.Label(uptime_frame, text="Uptime:").grid(row=0, column=0)
         self.uptime_var = tk.StringVar(value="00:00:00")
-        ttk.Label(status_frame, text="Uptime:").grid(row=1, column=0)
-        ttk.Label(status_frame, textvariable=self.uptime_var).grid(row=1, column=1, padx=5)
+        ttk.Label(uptime_frame, textvariable=self.uptime_var).grid(row=0, column=1, padx=5)
         
-        # Test button for UI testing
+        # Test and recovery buttons
         test_frame = ttk.Frame(control_frame)
-        test_frame.grid(row=0, column=4, padx=20)
+        test_frame.grid(row=0, column=5, padx=20)
         
         self.test_btn = ttk.Button(test_frame, text="TEST LOG", command=self.test_log)
         self.test_btn.grid(row=0, column=0)
+        
+        self.test_recovery_btn = ttk.Button(test_frame, text="TEST RECOVERY", command=self.test_recovery)
+        self.test_recovery_btn.grid(row=0, column=1, padx=5)
     
     def create_status_panel(self):
         """Create status and metrics panel"""
         status_frame = ttk.LabelFrame(self.main_frame, text="Live Status", padding="5")
         status_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         
-        # Real-time metrics
+        # Real-time metrics with enhanced display
         metrics_frame = ttk.Frame(status_frame)
         metrics_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -303,6 +447,18 @@ class XAUUSDTradingUI:
         
         self.status_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         status_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Performance indicators
+        perf_frame = ttk.LabelFrame(status_frame, text="Performance", padding="5")
+        perf_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # Loop timing display
+        self.loop_time_var = tk.StringVar(value="Loop: 0.00ms")
+        ttk.Label(perf_frame, textvariable=self.loop_time_var).pack(side=tk.LEFT)
+        
+        # Update rate display
+        self.update_rate_var = tk.StringVar(value="Updates: 0/s")
+        ttk.Label(perf_frame, textvariable=self.update_rate_var).pack(side=tk.LEFT, padx=(10, 0))
     
     def create_trading_panel(self):
         """Create trading parameters panel"""
@@ -585,44 +741,28 @@ class XAUUSDTradingUI:
         self.rsi_down_var.trace_add("write", self.on_parameter_changed)
     
     def setup_ui_logging(self):
-        """Setup UI logging handler"""
+        """Setup UI logging handler with thread safety"""
         self.logger = logging.getLogger("XAUUSD_EA")
         self.logger.setLevel(logging.INFO)
         
         # Clear existing handlers
         self.logger.handlers.clear()
         
-        class UILogHandler(logging.Handler):
-            def __init__(self, text_widget, auto_scroll_var):
+        class ThreadSafeUILogHandler(logging.Handler):
+            def __init__(self, ui_instance):
                 super().__init__()
-                self.text_widget = text_widget
-                self.auto_scroll_var = auto_scroll_var
+                self.ui = ui_instance
             
             def emit(self, record):
                 try:
                     msg = self.format(record)
-                    # Thread-safe UI update
-                    self.text_widget.after(0, self._add_log, msg)
-                except:
-                    pass
-            
-            def _add_log(self, msg):
-                try:
-                    self.text_widget.insert(tk.END, f"{msg}\n")
-                    
-                    # Auto scroll if enabled
-                    if self.auto_scroll_var.get():
-                        self.text_widget.see(tk.END)
-                    
-                    # Limit log lines
-                    lines = int(self.text_widget.index('end-1c').split('.')[0])
-                    if lines > 1000:
-                        self.text_widget.delete('1.0', '200.0')
-                except:
-                    pass
+                    # Use UI updater for thread-safe logging
+                    self.ui.ui_updater.schedule_update(self.ui._add_log, msg)
+                except Exception as e:
+                    print(f"Log handler error: {e}")
         
         # Add UI log handler
-        ui_handler = UILogHandler(self.log_text, self.auto_scroll_var)
+        ui_handler = ThreadSafeUILogHandler(self)
         ui_handler.setFormatter(logging.Formatter(
             '%(asctime)s [%(levelname)s] %(message)s', 
             datefmt='%H:%M:%S'
@@ -638,8 +778,29 @@ class XAUUSDTradingUI:
         
         self.logger.info("UI logging system initialized")
     
+    def _add_log(self, msg: str):
+        """Add log message to UI (must be called from UI thread)"""
+        try:
+            if threading.get_ident() != self.ui_thread_id:
+                self.logger.warning("_add_log called from non-UI thread")
+                return
+            
+            self.log_text.insert(tk.END, f"{msg}\n")
+            
+            # Auto scroll if enabled
+            if self.auto_scroll_var.get():
+                self.log_text.see(tk.END)
+            
+            # Limit log lines
+            lines = int(self.log_text.index('end-1c').split('.')[0])
+            if lines > self.ui_config.log_max_lines:
+                self.log_text.delete('1.0', f'{lines - self.ui_config.log_max_lines}.0')
+                
+        except Exception as e:
+            print(f"Add log error: {e}")
+    
     def initialize_engine(self):
-        """Initialize trading engine"""
+        """Initialize trading engine with enhanced error handling"""
         self.logger.info("Importing trading modules...")
         
         try:
@@ -652,29 +813,7 @@ class XAUUSDTradingUI:
             config = TradingConfig()
             
             # Update config with current UI values
-            config.lot_size = self.lot_size_var.get()
-            config.rsi_up = self.rsi_up_var.get()
-            config.rsi_down = self.rsi_down_var.get()
-            config.tp_first = self.tp_first_var.get()
-            config.recovery_price = self.recovery_price_var.get()
-            config.martingale = self.martingale_var.get()
-            config.max_recovery = self.max_recovery_var.get()
-            config.daily_loss_limit = self.daily_loss_var.get()
-            config.max_drawdown = self.max_drawdown_var.get()
-            config.max_positions = self.max_positions_var.get()
-            config.max_spread_alert = self.max_spread_var.get()
-            config.min_account_balance = self.min_balance_var.get()
-            config.primary_tf = self.timeframe_var.get()
-            config.dynamic_tp = self.dynamic_tp_var.get()
-            config.smart_recovery = self.smart_recovery_var.get()
-            
-            # Map direction
-            direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
-            config.trading_direction = direction_map.get(self.direction_var.get(), 0)
-            
-            # Map exit speed
-            exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
-            config.exit_speed = exit_speed_map.get(self.exit_speed_var.get(), 1)
+            self._update_config_from_ui(config)
             
             self.logger.info("✓ Trading configuration created")
             
@@ -683,52 +822,68 @@ class XAUUSDTradingUI:
             self.logger.info("✓ Strategy engine created")
             
             # Setup event handlers
-            self.engine.add_event_handler('on_trade_opened', self.on_trade_opened)
-            self.engine.add_event_handler('on_trade_closed', self.on_trade_closed)
-            self.engine.add_event_handler('on_state_changed', self.on_engine_state_changed)
-            self.engine.add_event_handler('on_error', self.on_engine_error)
+            self._setup_engine_event_handlers()
             self.logger.info("✓ Event handlers configured")
             
             # Test MT5 connection
             self.logger.info("Testing MT5 connection...")
             if self.engine.trading_core.initialize_mt5():
                 self.logger.info("✓ MT5 connection successful")
-                if hasattr(self, 'connection_var'):
-                    self.connection_var.set("Connected")
-                if hasattr(self, 'status_var'):
-                    self.status_var.set("READY")
+                self.ui_updater.schedule_update(self._update_connection_status, True, 100, 0)
             else:
                 self.logger.warning("✗ MT5 connection failed")
-                if hasattr(self, 'connection_var'):
-                    self.connection_var.set("Failed")
-                if hasattr(self, 'status_var'):
-                    self.status_var.set("DEMO MODE")
-            
-            # Enable control buttons
-            if hasattr(self, 'start_btn'):
-                self.start_btn.config(state="normal")
-            if hasattr(self, 'stop_btn'):
-                self.stop_btn.config(state="normal")
-            if hasattr(self, 'pause_btn'):
-                self.pause_btn.config(state="normal")
-            if hasattr(self, 'emergency_btn'):
-                self.emergency_btn.config(state="normal")
+                self.ui_updater.schedule_update(self._update_connection_status, False, 0, 0)
             
             self.logger.info("🎉 Engine initialization completed successfully!")
             
         except Exception as e:
             self.logger.error(f"❌ Engine initialization failed: {e}")
-            if hasattr(self, 'status_var'):
-                self.status_var.set("ERROR")
-            if hasattr(self, 'connection_var'):
-                self.connection_var.set("Error")
             raise
+    
+    def _update_config_from_ui(self, config):
+        """Update config with current UI values"""
+        config.lot_size = self.lot_size_var.get()
+        config.rsi_up = self.rsi_up_var.get()
+        config.rsi_down = self.rsi_down_var.get()
+        config.tp_first = self.tp_first_var.get()
+        config.recovery_price = self.recovery_price_var.get()
+        config.martingale = self.martingale_var.get()
+        config.max_recovery = self.max_recovery_var.get()
+        config.daily_loss_limit = self.daily_loss_var.get()
+        config.max_drawdown = self.max_drawdown_var.get()
+        config.max_positions = self.max_positions_var.get()
+        config.max_spread_alert = self.max_spread_var.get()
+        config.min_account_balance = self.min_balance_var.get()
+        config.primary_tf = self.timeframe_var.get()
+        config.dynamic_tp = self.dynamic_tp_var.get()
+        config.smart_recovery = self.smart_recovery_var.get()
+        
+        # Map direction
+        direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
+        config.trading_direction = direction_map.get(self.direction_var.get(), 0)
+        
+        # Map exit speed
+        exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
+        config.exit_speed = exit_speed_map.get(self.exit_speed_var.get(), 1)
+    
+    def _setup_engine_event_handlers(self):
+        """Setup engine event handlers"""
+        self.engine.add_event_handler('on_trade_opened', self.on_trade_opened)
+        self.engine.add_event_handler('on_trade_closed', self.on_trade_closed)
+        self.engine.add_event_handler('on_state_changed', self.on_engine_state_changed)
+        self.engine.add_event_handler('on_error', self.on_engine_error)
+        self.engine.add_event_handler('on_connection_status', self.on_connection_status_changed)
+    
+    def _update_connection_status(self, connected: bool, quality: float, reconnections: int):
+        """Update connection status display (UI thread)"""
+        if hasattr(self, 'connection_widget'):
+            self.connection_widget.update_status(connected, quality, reconnections)
     
     def start_ui_updates(self):
         """Start UI update thread"""
         if not self.running:
             self.running = True
-            self.update_thread = threading.Thread(target=self.ui_update_loop, daemon=True)
+            self.update_thread = threading.Thread(target=self.ui_update_loop, daemon=True, name="UI_Updates")
             self.update_thread.start()
             self.logger.info("UI update thread started")
     
@@ -739,181 +894,157 @@ class XAUUSDTradingUI:
             self.logger.info("UI update thread stopped")
     
     def ui_update_loop(self):
-        """UI update loop"""
+        """Enhanced UI update loop"""
+        self.logger.info("UI update loop started")
+        last_update_time = time.time()
+        update_count = 0
+        
         while self.running:
             try:
-                self.update_ui_data()
+                current_time = time.time()
+                
+                # Get updates from engine
+                if self.engine:
+                    self._process_engine_updates()
+                
+                # Update performance metrics
+                update_count += 1
+                if current_time - last_update_time >= 1.0:
+                    update_rate = update_count / (current_time - last_update_time)
+                    self.ui_updater.schedule_update(self._update_performance_display, update_rate)
+                    
+                    update_count = 0
+                    last_update_time = current_time
+                
                 time.sleep(self.ui_config.update_interval)
+                
             except Exception as e:
-                self.logger.error(f"UI update error: {e}")
+                self.logger.error(f"UI update loop error: {e}")
+                time.sleep(1.0)
     
-    def update_ui_data(self):
-        """Update UI with latest data"""
-        if not self.engine:
-            return
-        
+    def _process_engine_updates(self):
+        """Process updates from engine"""
         try:
-            # Get engine status
-            status = self.engine.get_detailed_status()
+            # Get UI updates
+            ui_updates = self.engine.get_ui_updates()
+            for update in ui_updates:
+                self.ui_updater.schedule_update(self._handle_ui_update, update)
             
-            # Update UI elements in main thread
-            self.root.after(0, self.update_status_display, status)
+            # Get trade events
+            trade_events = self.engine.get_trade_events()
+            for event_type, event_data in trade_events:
+                self.ui_updater.schedule_update(self._handle_trade_event, event_type, event_data)
             
-        except Exception as e:
-            self.logger.error(f"Failed to update UI data: {e}")
-    
-    def update_status_display(self, status):
-        """Update status display"""
-        try:
-            # Update engine state
-            engine_state = status.get('engine', {}).get('state', 'UNKNOWN')
-            self.state_var.set(engine_state.upper())
-            
-            # Update uptime
-            uptime_seconds = status.get('engine', {}).get('uptime', 0)
-            uptime_str = str(timedelta(seconds=int(uptime_seconds)))
-            self.uptime_var.set(uptime_str)
-            
-            # Update status text
-            self.update_status_text(status)
-            
-            # Update risk display
-            self.update_risk_display(status.get('risk', {}))
-            
-            # Update positions
-            self.update_positions_display(status.get('positions', {}))
-            
-        except Exception as e:
-            self.logger.error(f"Status display update error: {e}")
-    
-    def update_status_text(self, status):
-        """Update status text widget"""
-        try:
-            self.status_text.delete('1.0', tk.END)
-            
-            lines = [
-                f"Engine State: {status.get('engine', {}).get('state', 'UNKNOWN')}",
-                f"Last Update: {datetime.now().strftime('%H:%M:%S')}",
-                "",
-                "TRADING METRICS:",
-                f"Total Trades: {status.get('trading', {}).get('total_trades', 0)}",
-                f"Successful: {status.get('trading', {}).get('successful_trades', 0)}",
-                f"Current Positions: {status.get('trading', {}).get('current_positions', 0)}",
-                f"Total P&L: ${status.get('trading', {}).get('total_pnl', 0):.2f}",
-                "",
-                "RISK STATUS:",
-                f"Risk Level: {status.get('risk', {}).get('risk_level', 'unknown').upper()}",
-                f"Trading Allowed: {status.get('risk', {}).get('trading_allowed', False)}",
-            ]
-            
-            # Add restrictions if any
-            restrictions = status.get('risk', {}).get('restrictions', [])
-            if restrictions:
-                lines.append("")
-                lines.append("RESTRICTIONS:")
-                for restriction in restrictions:
-                    lines.append(f"• {restriction}")
-            
-            self.status_text.insert('1.0', '\n'.join(lines))
-            
-        except Exception as e:
-            self.logger.error(f"Status text update error: {e}")
-    
-    def update_risk_display(self, risk_data):
-        """Update risk display"""
-        try:
-            risk_level = risk_data.get('risk_level', 'unknown')
-            self.risk_level_var.set(risk_level.upper())
-            
-            # Update risk level label color
-            colors = {
-                'low': self.colors['success'],
-                'medium': self.colors['warning'],
-                'high': self.colors['error'],
-                'critical': self.colors['error']
-            }
-            color = colors.get(risk_level.lower(), self.colors['fg'])
-            self.risk_level_label.config(foreground=color)
-            
-            # Update risk text
-            if hasattr(self, 'risk_text'):
-                self.risk_text.delete('1.0', tk.END)
-                
-                metrics = risk_data.get('metrics', {})
-                lines = [
-                    f"Daily P&L: ${metrics.get('daily_pnl', 0):.2f}",
-                    f"Weekly P&L: ${metrics.get('weekly_pnl', 0):.2f}",
-                    f"Monthly P&L: ${metrics.get('monthly_pnl', 0):.2f}",
-                    f"Current Drawdown: {metrics.get('current_drawdown', 0):.2f}%",
-                    f"Max Drawdown: {metrics.get('max_drawdown', 0):.2f}%",
-                    f"Exposure: {metrics.get('exposure', 0):.2f}%",
-                    f"Win Rate: {metrics.get('win_rate', 0):.1f}%",
-                    f"Profit Factor: {metrics.get('profit_factor', 0):.2f}",
-                ]
-                
-                self.risk_text.insert('1.0', '\n'.join(lines))
+            # Get error messages
+            error_messages = self.engine.get_error_messages()
+            for error_msg in error_messages:
+                self.ui_updater.schedule_update(self._handle_error_message, error_msg)
                 
         except Exception as e:
-            self.logger.error(f"Risk display update error: {e}")
+            self.logger.error(f"Process engine updates error: {e}")
     
-    def update_positions_display(self, positions_data):
-        """Update positions display"""
+    def _handle_ui_update(self, update: Dict):
+        """Handle UI update (UI thread)"""
         try:
-            if not hasattr(self, 'positions_tree'):
-                return
+            if 'state' in update:
+                self.state_var.set(update['state'].upper())
             
-            # Clear existing items
-            for item in self.positions_tree.get_children():
-                self.positions_tree.delete(item)
+            if 'connection_health' in update:
+                conn = update['connection_health']
+                self._update_connection_status(
+                    conn.get('connected', False),
+                    conn.get('quality', 0),
+                    0  # Will be updated separately
+                )
             
-            # Add demo data if no positions
-            total_positions = positions_data.get('total_positions', 0)
-            if total_positions == 0:
-                self.positions_tree.insert('', 'end', values=(
-                    "No", "Active", "Positions", "-", "-", "-", ""
-                ))
-            
+            if 'stats' in update:
+                stats = update['stats']
+                uptime = stats.get('uptime_seconds', 0)
+                uptime_str = str(timedelta(seconds=int(uptime)))
+                self.uptime_var.set(uptime_str)
+                
+                # Update loop timing
+                loop_time = stats.get('avg_loop_time', 0) * 1000  # Convert to ms
+                self.loop_time_var.set(f"Loop: {loop_time:.2f}ms")
+                
         except Exception as e:
-            self.logger.error(f"Positions display update error: {e}")
+            self.logger.error(f"Handle UI update error: {e}")
+    
+    def _handle_trade_event(self, event_type: str, event_data: Dict):
+        """Handle trade event (UI thread)"""
+        try:
+            if event_type == 'trade_opened':
+                self.logger.info(f"📈 Trade Event: {event_data}")
+            elif event_type == 'trade_closed':
+                self.logger.info(f"📉 Trade Event: {event_data}")
+                
+        except Exception as e:
+            self.logger.error(f"Handle trade event error: {e}")
+    
+    def _handle_error_message(self, error_msg: str):
+        """Handle error message (UI thread)"""
+        self.logger.error(f"Engine Error: {error_msg}")
+    
+    def _update_performance_display(self, update_rate: float):
+        """Update performance display (UI thread)"""
+        self.update_rate_var.set(f"Updates: {update_rate:.1f}/s")
     
     # Event handlers
     def start_engine(self):
-        """Start trading engine"""
-        try:
-            if self.engine:
-                self.logger.info("Starting trading engine...")
-                if self.engine.start():
-                    self.start_ui_updates()
-                    self.logger.info("✓ Engine started successfully")
-                    if hasattr(self, 'start_btn'):
-                        self.start_btn.config(state="disabled")
-                    if hasattr(self, 'stop_btn'):
-                        self.stop_btn.config(state="normal")
+        """Start trading engine (thread-safe)"""
+        def start_engine_async():
+            try:
+                if self.engine:
+                    self.logger.info("Starting trading engine...")
+                    if self.engine.start():
+                        self.ui_updater.schedule_update(self._on_engine_started)
+                        self.start_ui_updates()
+                    else:
+                        self.ui_updater.schedule_update(self._on_engine_start_failed)
                 else:
-                    self.logger.error("✗ Failed to start engine")
-                    messagebox.showerror("Error", "Failed to start trading engine")
-            else:
-                messagebox.showwarning("No Engine", "Engine not initialized")
-        except Exception as e:
-            self.logger.error(f"Start engine error: {e}")
-            messagebox.showerror("Error", f"Failed to start engine: {e}")
+                    self.ui_updater.schedule_update(
+                        lambda: messagebox.showwarning("No Engine", "Engine not initialized")
+                    )
+            except Exception as e:
+                self.logger.error(f"Start engine error: {e}")
+                self.ui_updater.schedule_update(
+                    lambda: messagebox.showerror("Error", f"Failed to start engine: {e}")
+                )
+        
+        # Run in background thread
+        threading.Thread(target=start_engine_async, daemon=True, name="StartEngine").start()
+    
+    def _on_engine_started(self):
+        """Called when engine starts successfully (UI thread)"""
+        self.logger.info("✓ Engine started successfully")
+        self.start_btn.config(state="disabled")
+        self.stop_btn.config(state="normal")
+    
+    def _on_engine_start_failed(self):
+        """Called when engine start fails (UI thread)"""
+        self.logger.error("✗ Failed to start engine")
+        messagebox.showerror("Error", "Failed to start trading engine")
     
     def stop_engine(self):
-        """Stop trading engine"""
-        try:
-            if self.engine:
-                self.logger.info("Stopping trading engine...")
-                self.engine.stop()
-                self.stop_ui_updates()
-                self.logger.info("✓ Engine stopped")
-                if hasattr(self, 'start_btn'):
-                    self.start_btn.config(state="normal")
-                if hasattr(self, 'stop_btn'):
-                    self.stop_btn.config(state="disabled")
-            else:
-                self.logger.info("No engine to stop")
-        except Exception as e:
-            self.logger.error(f"Stop engine error: {e}")
+        """Stop trading engine (thread-safe)"""
+        def stop_engine_async():
+            try:
+                if self.engine:
+                    self.logger.info("Stopping trading engine...")
+                    self.engine.stop()
+                    self.stop_ui_updates()
+                    self.ui_updater.schedule_update(self._on_engine_stopped)
+            except Exception as e:
+                self.logger.error(f"Stop engine error: {e}")
+        
+        # Run in background thread
+        threading.Thread(target=stop_engine_async, daemon=True, name="StopEngine").start()
+    
+    def _on_engine_stopped(self):
+        """Called when engine stops (UI thread)"""
+        self.logger.info("✓ Engine stopped")
+        self.start_btn.config(state="normal")
+        self.stop_btn.config(state="disabled")
     
     def pause_engine(self):
         """Pause trading engine"""
@@ -921,8 +1052,6 @@ class XAUUSDTradingUI:
             if self.engine:
                 self.engine.pause()
                 self.logger.info("Engine paused")
-            else:
-                self.logger.info("No engine to pause")
         except Exception as e:
             self.logger.error(f"Pause engine error: {e}")
     
@@ -930,71 +1059,131 @@ class XAUUSDTradingUI:
         """Emergency stop"""
         if messagebox.askyesno("Emergency Stop", 
                               "This will close all positions and stop trading. Continue?"):
+            def emergency_stop_async():
+                try:
+                    if self.engine:
+                        self.engine.emergency_stop()
+                        self.stop_ui_updates()
+                        self.ui_updater.schedule_update(lambda: self.logger.critical("🚨 EMERGENCY STOP EXECUTED"))
+                    else:
+                        self.ui_updater.schedule_update(lambda: self.logger.info("Demo mode - emergency stop simulated"))
+                except Exception as e:
+                    self.logger.error(f"Emergency stop error: {e}")
+            
+            # Run in background thread
+            threading.Thread(target=emergency_stop_async, daemon=True, name="EmergencyStop").start()
+    
+    def test_recovery(self):
+        """Test recovery system"""
+        def test_recovery_async():
             try:
                 if self.engine:
-                    self.engine.emergency_stop()
-                    self.stop_ui_updates()
-                    self.logger.critical("🚨 EMERGENCY STOP EXECUTED")
+                    self.logger.info("🧪 Running recovery system test...")
+                    results = self.engine.test_recovery_system()
+                    
+                    self.ui_updater.schedule_update(self._show_recovery_test_results, results)
                 else:
-                    self.logger.info("Demo mode - emergency stop simulated")
+                    self.ui_updater.schedule_update(
+                        lambda: self.logger.info("No engine - recovery test skipped")
+                    )
             except Exception as e:
-                self.logger.error(f"Emergency stop error: {e}")
+                self.logger.error(f"Recovery test error: {e}")
+        
+        # Run in background thread
+        threading.Thread(target=test_recovery_async, daemon=True, name="RecoveryTest").start()
+    
+    def _show_recovery_test_results(self, results: Dict):
+        """Show recovery test results (UI thread)"""
+        if 'error' in results:
+            messagebox.showerror("Test Error", f"Recovery test failed: {results['error']}")
+            return
+        
+        passed = results.get('tests_passed', 0)
+        failed = results.get('tests_failed', 0)
+        total = passed + failed
+        
+        if total > 0:
+            success_rate = (passed / total) * 100
+            message = f"Recovery Test Results:\n\n"
+            message += f"Tests Passed: {passed}\n"
+            message += f"Tests Failed: {failed}\n"
+            message += f"Success Rate: {success_rate:.1f}%\n\n"
+            
+            for result in results.get('results', []):
+                status_icon = "✅" if result['status'] == 'PASS' else "❌"
+                message += f"{status_icon} {result['test']}: {result['status']}\n"
+            
+            messagebox.showinfo("Recovery Test", message)
+        else:
+            messagebox.showwarning("Recovery Test", "No tests were executed")
     
     def apply_parameters(self):
-        """Apply parameter changes to engine"""
-        try:
-            if not self.engine:
-                self.logger.info("No engine - parameters saved locally")
-                return
-            
-            # Validate RSI values
-            rsi_up = self.rsi_up_var.get()
-            rsi_down = self.rsi_down_var.get()
-            
-            if rsi_down >= rsi_up:
-                messagebox.showerror("Parameter Error", 
-                                   f"RSI Lower ({rsi_down}) must be less than RSI Upper ({rsi_up})")
-                return
-            
-            # Collect parameters
-            params = {
-                "lot_size": self.lot_size_var.get(),
-                "rsi_up": rsi_up,
-                "rsi_down": rsi_down,
-                "tp_first": self.tp_first_var.get(),
-                "recovery_price": self.recovery_price_var.get(),
-                "martingale": self.martingale_var.get(),
-                "max_recovery": self.max_recovery_var.get(),
-                "daily_loss_limit": self.daily_loss_var.get(),
-                "max_drawdown": self.max_drawdown_var.get(),
-                "max_positions": self.max_positions_var.get(),
-                "max_spread_alert": self.max_spread_var.get(),
-                "min_account_balance": self.min_balance_var.get(),
-                "primary_tf": self.timeframe_var.get(),
-                "dynamic_tp": self.dynamic_tp_var.get(),
-                "smart_recovery": self.smart_recovery_var.get()
-            }
-            
-            # Map enums
-            direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
-            exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
-            
-            params["trading_direction"] = direction_map.get(self.direction_var.get(), 0)
-            params["exit_speed"] = exit_speed_map.get(self.exit_speed_var.get(), 1)
-            
-            # Apply to engine
-            self.engine.update_config(params)
-            self.logger.info("✓ Parameters applied successfully")
-            
-        except Exception as e:
-            self.logger.error(f"Apply parameters error: {e}")
-            messagebox.showerror("Error", f"Failed to apply parameters: {e}")
+        """Apply parameter changes to engine (thread-safe)"""
+        def apply_params_async():
+            try:
+                if not self.engine:
+                    self.ui_updater.schedule_update(lambda: self.logger.info("No engine - parameters saved locally"))
+                    return
+                
+                # Validate RSI values
+                rsi_up = self.rsi_up_var.get()
+                rsi_down = self.rsi_down_var.get()
+                
+                if rsi_down >= rsi_up:
+                    self.ui_updater.schedule_update(
+                        lambda: messagebox.showerror("Parameter Error", 
+                                       f"RSI Lower ({rsi_down}) must be less than RSI Upper ({rsi_up})")
+                    )
+                    return
+                
+                # Collect parameters
+                params = self._collect_parameters()
+                
+                # Apply to engine
+                self.engine.update_config(params)
+                self.ui_updater.schedule_update(lambda: self.logger.info("✓ Parameters applied successfully"))
+                
+            except Exception as e:
+                self.logger.error(f"Apply parameters error: {e}")
+                self.ui_updater.schedule_update(
+                    lambda: messagebox.showerror("Error", f"Failed to apply parameters: {e}")
+                )
+        
+        # Run in background thread
+        threading.Thread(target=apply_params_async, daemon=True, name="ApplyParams").start()
+    
+    def _collect_parameters(self) -> Dict:
+        """Collect parameters from UI"""
+        # Map enums
+        direction_map = {"BOTH": 0, "BUY_ONLY": 1, "SELL_ONLY": 2, "STOP": 3}
+        exit_speed_map = {"FAST": 0, "MEDIUM": 1, "SLOW": 2}
+        
+        return {
+            "lot_size": self.lot_size_var.get(),
+            "rsi_up": self.rsi_up_var.get(),
+            "rsi_down": self.rsi_down_var.get(),
+            "tp_first": self.tp_first_var.get(),
+            "recovery_price": self.recovery_price_var.get(),
+            "martingale": self.martingale_var.get(),
+            "max_recovery": self.max_recovery_var.get(),
+            "daily_loss_limit": self.daily_loss_var.get(),
+            "max_drawdown": self.max_drawdown_var.get(),
+            "max_positions": self.max_positions_var.get(),
+            "max_spread_alert": self.max_spread_var.get(),
+            "min_account_balance": self.min_balance_var.get(),
+            "primary_tf": self.timeframe_var.get(),
+            "dynamic_tp": self.dynamic_tp_var.get(),
+            "smart_recovery": self.smart_recovery_var.get(),
+            "trading_direction": direction_map.get(self.direction_var.get(), 0),
+            "exit_speed": exit_speed_map.get(self.exit_speed_var.get(), 1)
+        }
     
     def test_log(self):
         """Test logging system"""
         self.logger.info("=== UI TEST ===")
         self.logger.info(f"Current time: {datetime.now()}")
         self.logger.info(f"Engine status: {'Connected' if self.engine else 'Not connected'}")
+        self.logger.info(f"UI thread: {threading.get_ident() == self.ui_thread_id}")
         self.logger.warning("Test warning message")
         self.logger.error("Test error message")
         self.logger.info("=== END TEST ===")
@@ -1038,75 +1227,6 @@ class XAUUSDTradingUI:
             self.logger.error(f"Load preset error: {e}")
             messagebox.showerror("Error", f"Failed to load preset: {e}")
     
-    def save_config(self):
-        """Save current configuration"""
-        try:
-            filename = filedialog.asksaveasfilename(
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-            )
-            
-            if filename:
-                config = {}
-                if self.engine:
-                    config = self.engine.config.to_dict()
-                else:
-                    # Save UI values
-                    config = {
-                        "lot_size": self.lot_size_var.get(),
-                        "rsi_up": self.rsi_up_var.get(),
-                        "rsi_down": self.rsi_down_var.get(),
-                        # Add other parameters
-                    }
-                
-                with open(filename, 'w') as f:
-                    json.dump(config, f, indent=2)
-                
-                self.logger.info(f"Configuration saved to {filename}")
-                messagebox.showinfo("Success", "Configuration saved successfully")
-                
-        except Exception as e:
-            self.logger.error(f"Save config error: {e}")
-            messagebox.showerror("Error", f"Failed to save configuration: {e}")
-    
-    def load_config(self):
-        """Load configuration from file"""
-        try:
-            filename = filedialog.askopenfilename(
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-            )
-            
-            if filename:
-                with open(filename, 'r') as f:
-                    config = json.load(f)
-                
-                if self.engine:
-                    self.engine.update_config(config)
-                
-                # Update UI variables
-                self.update_ui_from_config(config)
-                
-                self.logger.info(f"Configuration loaded from {filename}")
-                messagebox.showinfo("Success", "Configuration loaded successfully")
-                
-        except Exception as e:
-            self.logger.error(f"Load config error: {e}")
-            messagebox.showerror("Error", f"Failed to load configuration: {e}")
-    
-    def update_ui_from_config(self, config):
-        """Update UI variables from config"""
-        try:
-            if "lot_size" in config:
-                self.lot_size_var.set(config["lot_size"])
-            if "rsi_up" in config:
-                self.rsi_up_var.set(config["rsi_up"])
-            if "rsi_down" in config:
-                self.rsi_down_var.set(config["rsi_down"])
-            # Add other parameters
-            
-        except Exception as e:
-            self.logger.error(f"Update UI from config error: {e}")
-    
     # Engine event handlers
     def on_trade_opened(self, trade_info):
         """Handle trade opened event"""
@@ -1120,8 +1240,7 @@ class XAUUSDTradingUI:
         """Handle engine state change"""
         try:
             state_str = new_state.value if hasattr(new_state, 'value') else str(new_state)
-            if hasattr(self, 'state_var'):
-                self.state_var.set(state_str.upper())
+            self.ui_updater.schedule_update(lambda: self.state_var.set(state_str.upper()))
             self.logger.info(f"🔄 Engine state: {state_str}")
         except Exception as e:
             self.logger.error(f"State change error: {e}")
@@ -1129,6 +1248,18 @@ class XAUUSDTradingUI:
     def on_engine_error(self, error_msg):
         """Handle engine error"""
         self.logger.error(f"🚨 Engine error: {error_msg}")
+    
+    def on_connection_status_changed(self, status: str, connection_health):
+        """Handle connection status change"""
+        self.logger.info(f"🔗 Connection status: {status}")
+        
+        # Update connection widget
+        self.ui_updater.schedule_update(
+            self._update_connection_status,
+            connection_health.is_connected,
+            connection_health.connection_quality,
+            connection_health.total_reconnections
+        )
     
     # Utility methods
     def clear_logs(self):
@@ -1164,41 +1295,59 @@ class XAUUSDTradingUI:
     def close_all_positions(self):
         """Close all positions"""
         if messagebox.askyesno("Confirm", "Close all positions?"):
-            try:
-                if self.engine and hasattr(self.engine, 'order_executor'):
-                    # Call emergency close
-                    self.logger.info("Closing all positions...")
-                else:
-                    self.logger.info("No active positions to close")
-            except Exception as e:
-                self.logger.error(f"Close all positions error: {e}")
+            def close_all_async():
+                try:
+                    if self.engine and hasattr(self.engine, 'order_executor'):
+                        self.logger.info("Closing all positions...")
+                        # This should be implemented in engine
+                    else:
+                        self.ui_updater.schedule_update(lambda: self.logger.info("No active positions to close"))
+                except Exception as e:
+                    self.logger.error(f"Close all positions error: {e}")
+            
+            # Run in background thread
+            threading.Thread(target=close_all_async, daemon=True, name="CloseAll").start()
     
     def refresh_positions(self):
         """Refresh positions display"""
-        try:
-            if self.engine and hasattr(self.engine, 'position_manager'):
-                self.engine.position_manager.update_positions()
-                self.logger.info("Positions refreshed")
-            else:
-                self.logger.info("No position manager available")
-        except Exception as e:
-            self.logger.error(f"Refresh positions error: {e}")
+        def refresh_async():
+            try:
+                if self.engine and hasattr(self.engine, 'position_manager'):
+                    self.engine.position_manager.update_positions()
+                    self.ui_updater.schedule_update(lambda: self.logger.info("Positions refreshed"))
+                else:
+                    self.ui_updater.schedule_update(lambda: self.logger.info("No position manager available"))
+            except Exception as e:
+                self.logger.error(f"Refresh positions error: {e}")
+        
+        # Run in background thread
+        threading.Thread(target=refresh_async, daemon=True, name="RefreshPositions").start()
     
     def on_closing(self):
-        """Handle window closing"""
+        """Handle window closing (thread-safe)"""
         try:
             self.logger.info("Shutting down application...")
             self.stop_ui_updates()
             
+            # Check if engine is running
             if self.engine:
                 try:
                     from strategy_engine import EngineState
-                    if hasattr(self.engine, 'state') and self.engine.state != EngineState.STOPPED:
+                    if hasattr(self.engine, 'state') and self.engine.state not in [EngineState.STOPPED, EngineState.ERROR]:
                         if messagebox.askyesno("Confirm Exit", 
                                               "Trading engine is running. Stop and exit?"):
-                            self.stop_engine()
-                            self.root.destroy()
-                        return
+                            # Stop engine in background
+                            def stop_and_exit():
+                                try:
+                                    self.engine.stop()
+                                    self.ui_updater.schedule_update(self.root.destroy)
+                                except:
+                                    self.ui_updater.schedule_update(self.root.destroy)
+                            
+                            threading.Thread(target=stop_and_exit, daemon=True).start()
+                            return  # Don't destroy immediately
+                        else:
+                            return  # Cancel exit
                 except ImportError:
                     pass
             
