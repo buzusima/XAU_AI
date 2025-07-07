@@ -22,7 +22,7 @@ class BrokerSymbolAdapter:
             'NZDJPY', 'NZDCHF', 'NZDCAD',
             'CHFJPY', 'CADJPY', 'XAUUSD'
         ]
-        
+        self.system_symbols = [base + '.c' for base in self.base_symbols]
         # Runtime Detection Results
         self.detected_suffix = '.v'  # Default based on current broker
         self.detected_suffixes = ['.v', '.c']
@@ -159,13 +159,18 @@ class BrokerSymbolAdapter:
                 account_info = mt5.account_info()
                 self.server_name = account_info.server if account_info else "Unknown"
             
+            if len(self.system_symbols) > 0:
+                mapping_success_rate = f"{len(self.broker_symbol_map)/len(self.system_symbols)*100:.1f}%"
+            else:
+                mapping_success_rate = "0%"
+
             return {
                 'server': self.server_name,
                 'detected_suffix': self.detected_suffix,
                 'detected_suffixes': self.detected_suffixes,
                 'total_system_symbols': len(self.system_symbols),
                 'mapped_symbols': len(self.broker_symbol_map),
-                'mapping_success_rate': f"{len(self.broker_symbol_map)/len(self.system_symbols)*100:.1f}%",
+                'mapping_success_rate': mapping_success_rate,
                 'broker_symbols': list(self.broker_symbol_map.values()),
                 'system_symbols': self.system_symbols,
                 'symbol_mapping': self.broker_symbol_map,
