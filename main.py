@@ -679,6 +679,23 @@ class EnhancedSmartAutoTradingDashboard:
         self.forex_pairs = []
         self.auto_trading_pairs = set()
         
+        # 🔧 FIX: เพิ่ม system_symbols attribute
+        self.system_symbols = [
+            'EURUSD.c', 'GBPUSD.c', 'USDJPY.c', 'USDCHF.c', 'AUDUSD.c', 'NZDUSD.c', 'USDCAD.c',
+            'EURGBP.c', 'EURJPY.c', 'EURCHF.c', 'EURAUD.c', 'EURNZD.c', 'EURCAD.c',
+            'GBPJPY.c', 'GBPCHF.c', 'GBPAUD.c', 'GBPNZD.c', 'GBPCAD.c',
+            'AUDCHF.c', 'AUDJPY.c', 'AUDNZD.c', 'AUDCAD.c',
+            'NZDJPY.c', 'NZDCHF.c', 'NZDCAD.c',
+            'CHFJPY.c', 'CADJPY.c', 'XAUUSD.c'
+        ]
+        # 🔧 FIX: เพิ่ม broker symbol mapping attributes
+        self.broker_symbol_map = {}  # system_symbol -> broker_symbol
+        self.reverse_symbol_map = {}  # broker_symbol -> system_symbol
+        self.detected_suffix = '.c'  # default suffix
+        self.detected_suffixes = ['.c']  # available suffixes
+        self.mapping_successful = False
+        self.broker_symbols_mapped = False
+
         # [MONEY] Account & Risk Settings
         self.account_balance = 10000.0
         self.current_risk_profile = 'BALANCED'
@@ -3245,7 +3262,7 @@ class EnhancedSmartAutoTradingDashboard:
         def dashboard():
             # ใช้ชื่อไฟล์เดิมที่คุณมี
             try:
-                return send_from_directory('.', 'forex_dashboard.html')
+                return send_from_directory('.', 'main_dashboard.html')
             except:
                 # ถ้าไม่เจอ ให้ลองหาไฟล์อื่น
                 try:
@@ -3260,7 +3277,7 @@ class EnhancedSmartAutoTradingDashboard:
 <p style="color:#00ccff;">[OK] Positions tracking persistent</p>
 <p style="color:#00ccff;">[OK] Daily statistics saved</p>
 <p style="color:#00ccff;">[OK] Trade history database</p>
-<p style="color:#ff6666;">Please save the HTML code as 'forex_dashboard.html' in the same directory.</p>
+<p style="color:#ff6666;">Please save the HTML code as 'main_dashboard.html' in the same directory.</p>
 <p style="color:#ff6666;">Current directory: ''' + os.getcwd() + '''</p>
 <br><a href="/api/market-data" style="color:#00ccff;">API Test - Market Data</a>
 <br><a href="/api/system-status" style="color:#00ccff;">System Status</a>
@@ -3270,6 +3287,7 @@ class EnhancedSmartAutoTradingDashboard:
         def get_market_data():
             """Get market data with auto trading status"""
             try:
+                self.update_account_info()
                 formatted_data = {}
                 for symbol, data in self.live_data.items():
                     if data:
@@ -3913,7 +3931,6 @@ class EnhancedSmartAutoTradingDashboard:
     <a href="/" style="color:#00ccff;"><- Back to Main Dashboard</a>
     </body></html>'''
     
-
         @self.app.route('/trailing-dashboard')
         def trailing_dashboard():
             """Serve trailing stop dashboard"""
@@ -4091,10 +4108,38 @@ class EnhancedSmartAutoTradingDashboard:
                     'status_text': 'ERROR'
                 })
 
-        
-        
         print("[OK] All routes setup completed")
+        # เพิ่มโค้ดนี้ใน main.py ในส่วน setup_routes()
 
+        @self.app.route('/api/switch-to-arbitrage', methods=['POST'])
+        def switch_to_arbitrage():
+            """API สำหรับเปลี่ยนไประบบ Correlation/Arbitrage"""
+            try:
+                print("🔄 [SWITCH] Request to switch to Arbitrage Trading...")
+                
+                # ในขั้นนี้แค่ทดสอบว่า API ทำงาน
+                return jsonify({
+                    'success': True,
+                    'message': 'Switch request received!',
+                    'next_step': 'Will implement actual switching...',
+                    'new_system_port': 5001
+                })
+                
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+
+        @self.app.route('/api/system-mode')
+        def get_system_mode():
+            """ตรวจสอบโหมดปัจจุบันของระบบ"""
+            return jsonify({
+                'success': True,
+                'current_mode': 'REGULAR_TRADING',
+                'port': 5000,
+                'arbitrage_available': True
+            })
         
 
         @self.app.route('/api/account-info')
@@ -5630,7 +5675,6 @@ class EnhancedSmartAutoTradingDashboard:
             print(f"[ERR] {error_msg}")
             return {'success': False, 'error': error_msg, 'symbol': symbol}
 
-    # 🔧 เพิ่ม function สำหรับตรวจสอบ Symbol Info
     def check_symbol_filling_modes(self, symbol):
         """ตรวจสอบ filling modes ที่ symbol รองรับ"""
         try:
@@ -5655,7 +5699,44 @@ class EnhancedSmartAutoTradingDashboard:
             print(f"[ERR] Error checking filling modes for {symbol}: {str(e)}")
             return None
 
-    # 🔧 เพิ่ม Enhanced Order Execution ที่ตรวจสอบ Symbol Info ก่อน
+    def update_account_info(self):
+        """อัพเดทข้อมูล account - FIXED VERSION"""
+        try:
+            if not self.mt5_connected:
+                return False
+                
+            # ดึงข้อมูล account
+            account_info = mt5.account_info()
+            if account_info is None:
+                self.logger.warning("Cannot get account info from MT5")
+                return False
+            
+            # อัพเดทข้อมูล account
+            self.account_info = {
+                'login': account_info.login,
+                'server': account_info.server,
+                'company': account_info.company,
+                'name': account_info.name,
+                'currency': account_info.currency,
+                'balance': float(account_info.balance),
+                'equity': float(account_info.equity),
+                'margin': float(account_info.margin),
+                'free_margin': float(account_info.margin_free),
+                'margin_level': float(account_info.margin_level) if account_info.margin_level else 0,
+                'profit': float(account_info.profit),
+                'leverage': int(account_info.leverage),
+                'trade_allowed': bool(account_info.trade_allowed)
+            }
+            
+            # อัพเดท account balance ในระบบ
+            self.account_balance = float(account_info.balance)
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error updating account info: {str(e)}")
+            return False
+
     def execute_auto_trade_enhanced(self, symbol, signal_data):
         """Enhanced trade execution with symbol-specific filling modes"""
         try:

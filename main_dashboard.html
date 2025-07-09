@@ -817,6 +817,121 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        .system-switch-panel {
+            background: #002244;
+            border: 1px solid #0088cc;
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .switch-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .switch-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .switch-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00aa00;
+            box-shadow: 0 0 8px #00aa00;
+        }
+
+        .switch-text {
+            color: #00ccff;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .switch-description {
+            color: #88aacc;
+            font-size: 10px;
+            margin-left: 17px;
+        }
+
+        .btn-switch {
+            background: #004488;
+            color: #00ccff;
+            border: 1px solid #0066aa;
+        }
+
+        .btn-switch:hover {
+            background: #0066aa;
+            color: #ffffff;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border: 2px solid #0088cc;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            color: #ffffff;
+        }
+
+        .modal-content h3 {
+            color: #00ccff;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .modal-details {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 11px;
+        }
+
+        .detail-label {
+            color: #888;
+        }
+
+        .detail-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
     </style>
 </head>
 
@@ -848,6 +963,24 @@
                     </span>
                     <button class="refresh-btn" onclick="manualRefresh()" title="Press R to refresh">Refresh</button>
                 </div>
+            </div>
+        </div>
+        
+        <div class="system-switch-panel">
+            <div class="switch-info">
+                <div class="switch-status">
+                    <div class="switch-indicator"></div>
+                    <span class="switch-text">Regular Trading Mode</span>
+                </div>
+                <div class="switch-description">
+                    Current: Standard Forex Trading
+                </div>
+            </div>
+            
+            <div class="switch-controls">
+                <button id="switchToArbitrageBtn" class="control-btn btn-switch" onclick="showSwitchConfirmation()">
+                    🔄 Switch to Correlation Trading
+                </button>
             </div>
         </div>
 
@@ -940,6 +1073,38 @@
             </div>
         </div>
 
+        <!-- Modal สำหรับ Confirmation -->
+        <div id="switchConfirmModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>🔄 Switch Trading System</h3>
+                <p>คุณต้องการเปลี่ยนไประบบ <strong>Correlation/Arbitrage Trading</strong> หรือไม่?</p>
+                
+                <div class="modal-details">
+                    <div class="detail-item">
+                        <span class="detail-label">การเปลี่ยนแปลง:</span>
+                        <span class="detail-value">หยุดระบบเก่า → เริ่มระบบใหม่</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Port ใหม่:</span>
+                        <span class="detail-value">5001 (แยกจากระบบเดิม)</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">กลับระบบเก่า:</span>
+                        <span class="detail-value">ได้ตลอดเวลา</span>
+                    </div>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button class="control-btn btn-stop" onclick="closeSwitchModal()">
+                        ❌ ยกเลิก
+                    </button>
+                    <button class="control-btn btn-start" onclick="confirmSwitchSystem()">
+                        ✅ เปลี่ยนระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Trailing Stop Panel -->
         <div class="auto-trading-panel" style="background: #002a00; border-color: #00ff00;">
             <div class="trading-status">
@@ -986,6 +1151,7 @@
             </div>
         
         </div>
+
         <!-- Signal Settings Panel -->
         <div class="auto-trading-panel" style="background: #332200; border-color: #ffcc00;">
             <div class="trading-status">
@@ -1730,7 +1896,6 @@
             }
         }
 
-
         async function toggleAdvancedFeatures() {
             try {
                 const response = await fetch('/api/toggle-advanced-features', {
@@ -2468,8 +2633,149 @@
             }
         });
 
-        console.log('[TARGET] Professional Forex Dashboard JavaScript Loaded!');
-        console.log('[GO] All features operational and ready for trading!');
+        // ตัวแปรสำหรับระบบเปลี่ยน
+        let systemSwitching = false;
+
+        // แสดง Modal ยืนยันการเปลี่ยนระบบ
+        function showSwitchConfirmation() {
+            if (systemSwitching) {
+                showNotification('⏳ กำลังเปลี่ยนระบบอยู่ กรุณารอสักครู่...', 'warning');
+                return;
+            }
+            
+            document.getElementById('switchConfirmModal').style.display = 'flex';
+            console.log('🔄 [SWITCH] Showing confirmation modal');
+        }
+
+        // ปิด Modal
+        function closeSwitchModal() {
+            document.getElementById('switchConfirmModal').style.display = 'none';
+            console.log('❌ [SWITCH] Modal closed');
+        }
+
+        // ยืนยันการเปลี่ยนระบบ
+        async function confirmSwitchSystem() {
+            if (systemSwitching) return;
+            
+            try {
+                systemSwitching = true;
+                
+                // ปิด Modal
+                closeSwitchModal();
+                
+                // แสดงสถานะการเปลี่ยน
+                showNotification('🔄 กำลังเปลี่ยนไประบบ Correlation Trading...', 'info');
+                updateSwitchButton('switching');
+                
+                console.log('🔄 [SWITCH] Starting system switch...');
+                
+                // เรียก API เปลี่ยนระบบ
+                const response = await fetch('/api/switch-to-arbitrage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        current_mode: 'REGULAR_TRADING'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ [SWITCH] Switch request successful:', result);
+                    
+                    // แสดงผลสำเร็จ
+                    showNotification('✅ ส่งคำขอเปลี่ยนระบบสำเร็จ!', 'success');
+                    showNotification(`🔄 ${result.message}`, 'info');
+                    
+                    // ในขั้นต่อไปจะเป็นการเปลี่ยนหน้าจริง
+                    setTimeout(() => {
+                        showNotification('📋 ในขั้นต่อไปจะทำการเปลี่ยนหน้าจริง...', 'info');
+                        updateSwitchButton('ready');
+                        systemSwitching = false;
+                    }, 2000);
+                    
+                } else {
+                    throw new Error(result.error || 'Switch failed');
+                }
+                
+            } catch (error) {
+                console.error('❌ [SWITCH] Error:', error);
+                showNotification('❌ เกิดข้อผิดพลาด: ' + error.message, 'error');
+                updateSwitchButton('ready');
+                systemSwitching = false;
+            }
+        }
+
+        // อัพเดตสถานะปุ่ม
+        function updateSwitchButton(state) {
+            const btn = document.getElementById('switchToArbitrageBtn');
+            const indicator = document.querySelector('.switch-indicator');
+            const text = document.querySelector('.switch-text');
+            const description = document.querySelector('.switch-description');
+            
+            switch (state) {
+                case 'switching':
+                    btn.textContent = '⏳ กำลังเปลี่ยนระบบ...';
+                    btn.disabled = true;
+                    btn.style.background = '#666';
+                    indicator.style.background = '#ffaa00';
+                    indicator.style.boxShadow = '0 0 8px #ffaa00';
+                    text.textContent = 'กำลังเปลี่ยนระบบ...';
+                    description.textContent = 'โปรดรอสักครู่';
+                    break;
+                    
+                case 'ready':
+                default:
+                    btn.textContent = '🔄 Switch to Correlation Trading';
+                    btn.disabled = false;
+                    btn.style.background = '#004488';
+                    indicator.style.background = '#00aa00';
+                    indicator.style.boxShadow = '0 0 8px #00aa00';
+                    text.textContent = 'Regular Trading Mode';
+                    description.textContent = 'Current: Standard Forex Trading';
+                    break;
+            }
+        }
+
+        // ตรวจสอบสถานะระบบเมื่อโหลดหน้า
+        async function checkSystemMode() {
+            try {
+                const response = await fetch('/api/system-mode');
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('📊 [SYSTEM] Current mode:', result.current_mode);
+                    
+                    // อัพเดต UI ตามสถานะปัจจุบัน
+                    if (result.current_mode === 'REGULAR_TRADING') {
+                        updateSwitchButton('ready');
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ [SYSTEM] Could not check system mode:', error);
+            }
+        }
+
+        // เพิ่มใน DOMContentLoaded event listener ที่มีอยู่แล้ว
+        document.addEventListener('DOMContentLoaded', async function() {
+            // ... โค้ดเดิม ...
+            
+            // เพิ่มการตรวจสอบสถานะระบบ
+            await checkSystemMode();
+            
+            console.log('🔄 [SWITCH] System switch functionality loaded');
+        });
+
+        // Keyboard shortcut สำหรับเปลี่ยนระบบ (Ctrl + Shift + A)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                e.preventDefault();
+                showSwitchConfirmation();
+            }
+        });
     </script>
 </body>
 
